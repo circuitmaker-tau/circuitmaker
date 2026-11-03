@@ -89,6 +89,8 @@ export const COURSE_CASES: Case[] = [
   { name: 'TC-T3 (2)', circuit: example('dff'), until: 170 },
   { name: 'TC-T3 (3)', circuit: allDelays(example('dff'), 1), until: 170 },
   { name: 'TC-S1 down counter', circuit: example('down'), until: 340 },
+  { name: 'WK9B Bamba FSM (T-FF)', circuit: example('bamba'), until: 1700 },
+  { name: 'WK9A 0101 detector (JK + D)', circuit: example('detector'), until: 1700 },
 ];
 
 // ---------------------------------------------------------------- random circuits

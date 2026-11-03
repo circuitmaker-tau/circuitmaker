@@ -90,7 +90,7 @@ export function Home({ onOpenEditor, onHelp }: HomeProps) {
               </button>
             </div>
             <p className="building">
-              11 מעגלים מוכנים מההרצאות ומהמבחנים, דיאגרמת זמנים וניתוח hazards.{' '}
+              {EXAMPLES.length} מעגלים מוכנים מההרצאות ומהמבחנים, דיאגרמת זמנים וניתוח hazards.{' '}
               <button type="button" className="inline-link" onClick={onHelp}>
                 איך משתמשים
               </button>

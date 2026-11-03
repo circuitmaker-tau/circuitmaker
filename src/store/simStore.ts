@@ -13,12 +13,14 @@ import type { Circuit } from '../model';
 import type { Logic } from '../engine/logic';
 import { delayToTicks } from '../model/time';
 import { useCircuitStore } from './circuitStore';
+import { loadPrefs, savePrefs } from './prefs';
+import type { Speed } from './speeds';
 
 /** Real milliseconds for one typical gate delay at speed ×1. */
 export const MS_PER_TYPICAL_TP = 600;
 
-export const SPEEDS = [0.25, 0.5, 1, 2, 4] as const;
-export type Speed = (typeof SPEEDS)[number];
+export { SPEEDS } from './speeds';
+export type { Speed } from './speeds';
 
 const GATE_TYPES = ['AND', 'OR', 'NOT', 'BUF', 'NAND', 'NOR', 'XOR', 'XNOR'];
 
@@ -113,6 +115,7 @@ const rateFor = (circuit: Circuit, speed: Speed) =>
 let pendingDemo: { net: string; value: 0 | 1; at: number } | null = null;
 
 export const useSimStore = create<SimState>()((set, get) => {
+  const initialSpeed = loadPrefs().speed;
   const bump = () =>
     set((s) => ({ version: s.version + 1, fronts: s.sim ? frontsOf(s.sim) : new Map() }));
   /** Tell the user about an oscillation or a new warning (forbidden SR input, latch race). */
@@ -137,8 +140,9 @@ export const useSimStore = create<SimState>()((set, get) => {
     version: 0,
     fronts: new Map(),
     playing: false,
-    speed: 1,
-    rate: 10 / MS_PER_TYPICAL_TP,
+    // remembered from the last visit
+    speed: initialSpeed,
+    rate: (10 * initialSpeed) / MS_PER_TYPICAL_TP,
     carry: 0,
     warned: 0,
     period: 0,
@@ -230,7 +234,9 @@ export const useSimStore = create<SimState>()((set, get) => {
       bump();
     },
 
-    setSpeed: (speed) =>
-      set(() => ({ speed, rate: rateFor(useCircuitStore.getState().circuit, speed) })),
+    setSpeed: (speed) => {
+      savePrefs({ speed });
+      set(() => ({ speed, rate: rateFor(useCircuitStore.getState().circuit, speed) }));
+    },
   };
 });

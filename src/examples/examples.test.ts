@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Simulator } from '../engine/simulator';
 import { hasErrors, validateCircuit } from '../model';
 import { counter4 } from './counter4';
+import { BAMBA_INPUT, DETECTOR_INPUT, FSM_PERIOD, bambaFsm, detector0101 } from './fsm';
 import { EXAMPLES } from './index';
 import { asymmetric, dffFeedback, mux2Fixed, norLatch, staticZero, tffPulses } from './lessons';
 import { rippleAdder } from './rippleAdder';
@@ -103,5 +104,69 @@ describe('teaching examples give the waveforms of the course solutions', () => {
     }
     const sim = run(c, 200);
     expect(sim.oscillating.size).toBeGreaterThan(0);
+  });
+});
+
+describe('state machines of week 9', () => {
+  const run = (c: Circuit, until: number) => {
+    const sim = new Simulator(c);
+    sim.runUntil(until * 10);
+    return sim;
+  };
+  /** z per clock cycle from the course's state table, for the given X bits. */
+  const fromTable = (table: Record<string, [string, string, 0 | 1, 0 | 1]>, bits: (0 | 1)[]) => {
+    let s = '00';
+    return bits.map((x) => {
+      const [ns0, ns1, z0, z1] = table[s];
+      const z = x ? z1 : z0;
+      s = x ? ns1 : ns0;
+      return z;
+    });
+  };
+  /** z in each cycle, once X has settled and before the edge (t = 10i + 3). */
+  const sampled = (c: Circuit, cycles: number) => {
+    const sim = new Simulator(c);
+    const out: (0 | 1 | 'X')[] = [];
+    for (let i = 0; i < cycles; i++) {
+      sim.runUntil((i * FSM_PERIOD + 3) * 10);
+      out.push(sim.value('z:out'));
+    }
+    return out;
+  };
+
+  it('the Bamba machine gives z = 1 once after a Bamba of 2 or 3 cycles, as in the WK9B table', () => {
+    const table = {
+      '00': ['00', '01', 0, 0],
+      '01': ['00', '10', 0, 0],
+      '10': ['00', '11', 1, 0],
+      '11': ['00', '00', 1, 0],
+    } as const;
+    const want = fromTable(table as never, BAMBA_INPUT);
+    expect(sampled(bambaFsm, BAMBA_INPUT.length)).toEqual(want);
+    expect(want.filter((z) => z === 1)).toHaveLength(2);
+    // one clean pulse per normal Bamba, no glitches
+    expect(wave(run(bambaFsm, 170), 'z:out')).toBe('0:0 32:1 37:0 72:1 77:0');
+  });
+
+  it('the WK9A machine detects 0101 (a → b → d → c), with the equations of the lecture', () => {
+    // the next-state table from Y1 = Jy1' + K'y1, Y2 = D
+    const table: Record<string, [string, string, 0 | 1, 0 | 1]> = {};
+    for (const y1 of [0, 1])
+      for (const y2 of [0, 1]) {
+        const row = [0, 1].map((x) => {
+          const J = x & y2;
+          const K = x | (1 - y2);
+          const D = ((1 - x) & (1 - y2)) | ((1 - y1) & y2);
+          const Y1 = (J & (1 - y1)) | ((1 - K) & y1);
+          return [`${Y1}${D}`, (x & y1 & (1 - y2)) as 0 | 1] as const;
+        });
+        table[`${y1}${y2}`] = [row[0][0], row[1][0], row[0][1], row[1][1]];
+      }
+    expect(sampled(detector0101, DETECTOR_INPUT.length)).toEqual(
+      fromTable(table, DETECTOR_INPUT),
+    );
+    expect(wave(run(detector0101, 170), 'z:out')).toBe('0:0 41:1 47:0 101:1 107:0');
+    // 010101: only once, the machine goes back to a after detecting
+    expect(fromTable(table, [0, 1, 0, 1, 0, 1]).filter((z) => z === 1)).toHaveLength(1);
   });
 });

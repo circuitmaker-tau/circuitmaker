@@ -3,6 +3,7 @@ import { CATALOG, formatSchedule, outputPortsOf, parseSchedule } from '../model'
 import type { Component } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { useTimingStore } from '../store/timingStore';
+import { splitLesson } from './lessonText';
 
 interface PropertiesPanelProps {
   component: Component | null;
@@ -22,7 +23,17 @@ export function PropertiesPanel({ component }: PropertiesPanelProps) {
           {lesson && (
             <section className="lesson" aria-label="מה לומדים מהדוגמה">
               <h3>מה לומדים כאן</h3>
-              <p>{lesson}</p>
+              <p>
+                {splitLesson(lesson).map((piece, i) =>
+                  piece.ltr ? (
+                    <bdi key={i} dir="ltr">
+                      {piece.text}
+                    </bdi>
+                  ) : (
+                    piece.text
+                  ),
+                )}
+              </p>
             </section>
           )}
         </>
