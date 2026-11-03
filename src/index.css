@@ -441,3 +441,59 @@ a {
   --xy-controls-button-background-color: var(--panel);
   --xy-controls-button-border-color: var(--line);
 }
+
+/* playback controls, floating at the top of the canvas */
+
+.sim-controls {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.sim-time {
+  font-family: var(--mono);
+  min-width: 7.5em;
+  text-align: center;
+}
+
+.sim-state {
+  font-size: 0.8rem;
+  color: var(--muted);
+  min-width: 4em;
+}
+
+.sim-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.sim-speed select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+button:disabled:hover {
+  border-color: var(--line);
+}
