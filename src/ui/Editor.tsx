@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import type { DragEvent } from 'react';
 import {
   Background,
+  ConnectionLineType,
   Controls,
   ReactFlow,
   applyEdgeChanges,
@@ -16,15 +17,19 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, NodeChange } from '@xyflow/react';
-import { COMPONENT_TYPES, canConnect } from '../model';
+import { COMPONENT_TYPES, canConnect, createComponent } from '../model';
 import type { ComponentType, Position } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { ComponentNode } from './ComponentNode';
 import type { ComponentFlowNode } from './ComponentNode';
+import { findFreeSpot, routeCircuit, wirePath } from './geometry';
 import { DRAG_MIME, Palette } from './Palette';
 import { PropertiesPanel } from './PropertiesPanel';
+import { WireEdge } from './WireEdge';
+import type { WireFlowEdge } from './WireEdge';
 
 const nodeTypes = { component: ComponentNode };
+const edgeTypes = { wire: WireEdge };
 
 type NodeMeta = Pick<ComponentFlowNode, 'measured' | 'selected'>;
 
@@ -53,18 +58,23 @@ export function Editor() {
     [circuit.components, nodeMeta],
   );
 
-  const edges = useMemo<Edge[]>(
-    () =>
-      circuit.wires.map((w) => ({
+  // routes are computed from the circuit, so every drag re-routes and re-checks crossings
+  const edges = useMemo<WireFlowEdge[]>(() => {
+    const routes = new Map(routeCircuit(circuit).map((r) => [r.id, r]));
+    return circuit.wires.map((w) => {
+      const r = routes.get(w.id);
+      return {
         id: w.id,
+        type: 'wire',
         source: w.from.component,
         sourceHandle: w.from.port,
         target: w.to.component,
         targetHandle: w.to.port,
         selected: selectedEdges.has(w.id),
-      })),
-    [circuit.wires, selectedEdges],
-  );
+        data: { d: r ? wirePath(r.points, r.hops) : '' },
+      };
+    });
+  }, [circuit, selectedEdges]);
 
   const onNodesChange = (changes: NodeChange<ComponentFlowNode>[]) => {
     const next = applyNodeChanges(changes, nodes);
@@ -81,7 +91,7 @@ export function Editor() {
     if (removed.length > 0) removeComponents(removed);
   };
 
-  const onEdgesChange = (changes: EdgeChange[]) => {
+  const onEdgesChange = (changes: EdgeChange<WireFlowEdge>[]) => {
     const next = applyEdgeChanges(changes, edges);
     setSelectedEdges(new Set(next.filter((e) => e.selected).map((e) => e.id)));
     const removed = changes.filter((c) => c.type === 'remove').map((c) => c.id);
@@ -115,10 +125,9 @@ export function Editor() {
     event.dataTransfer.dropEffect = 'move';
   };
 
-  // a click in the palette places components on a 4-column grid, so they do not overlap
+  // a click in the palette puts the component in the first free spot
   const onPaletteAdd = (type: ComponentType) => {
-    const n = circuit.components.length;
-    addComponent(type, { x: 40 + (n % 4) * 160, y: 40 + (Math.floor(n / 4) % 5) * 100 });
+    addComponent(type, findFreeSpot(circuit, createComponent(type, 'new')));
   };
 
   const selected = nodes.filter((n) => n.selected);
@@ -132,6 +141,8 @@ export function Editor() {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          connectionLineType={ConnectionLineType.Step}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

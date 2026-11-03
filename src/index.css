@@ -8,6 +8,12 @@
   --accent-soft: rgba(47, 111, 222, 0.12);
   --danger: #c4372f;
   --node: #ffffff;
+  --stroke: #3a3a40;
+  /* signal values: green 1, red 0, orange dashed X; also told apart by width and dash */
+  --sig-1: #1f9d55;
+  --sig-0: #d64545;
+  --sig-x: #d9822b;
+  --wire: #6b6b70;
   font-family:
     system-ui,
     -apple-system,
@@ -29,6 +35,11 @@
     --accent-soft: rgba(106, 156, 255, 0.16);
     --danger: #ff7a70;
     --node: #232327;
+    --stroke: #c9c9cf;
+    --sig-1: #3ecf7a;
+    --sig-0: #ff6b6b;
+    --sig-x: #f0a050;
+    --wire: #9a9aa2;
   }
 }
 
@@ -239,37 +250,46 @@ a {
 
 .cm-node {
   position: relative;
-  width: 96px;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.25px solid var(--muted);
-  border-radius: 8px;
-  background: var(--node);
   color: var(--fg);
 }
 
-.cm-node.is-selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+.cm-gate-svg {
+  display: block;
+  overflow: visible;
 }
 
-.cm-io {
-  width: 72px;
+.cm-outline {
+  stroke: var(--stroke);
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
 
-.cm-body {
+.cm-body-fill {
+  fill: var(--node);
+}
+
+.cm-stub {
+  stroke: var(--stroke);
+  stroke-width: 1.6;
+}
+
+.cm-node.is-selected .cm-outline {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.cm-caption {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  line-height: 1.15;
+  padding-top: 2px;
 }
 
-.cm-label {
-  font-weight: 600;
-  font-size: 0.85rem;
-  text-align: center;
+.cm-formula {
+  font-size: 0.75rem;
+  font-family: ui-monospace, Menlo, monospace;
 }
 
 .cm-id {
@@ -277,21 +297,57 @@ a {
   color: var(--muted);
 }
 
-.cm-switch {
-  min-width: 32px;
-  font-weight: 600;
-  padding: 0 6px;
+.cm-box {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1.5px solid var(--stroke);
+  border-radius: 8px;
+  background: var(--node);
 }
 
-.cm-const {
+.cm-node.is-selected .cm-box {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.cm-label {
   font-weight: 600;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.cm-switch,
+.cm-const {
+  min-width: 30px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.cm-switch.is-on,
+.cm-const.is-on {
+  background: var(--sig-1);
+  border: 1px solid var(--sig-1);
+  color: #fff;
+}
+
+.cm-switch.is-off,
+.cm-const.is-off {
+  background: var(--node);
+  border: 1px solid var(--sig-0);
+  color: var(--sig-0);
 }
 
 .cm-lamp {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 1.25px solid var(--muted);
+  border: 1.5px solid var(--muted);
 }
 
 .cm-port {
@@ -305,25 +361,59 @@ a {
 }
 
 .cm-port-in {
-  left: 10px;
+  left: 8px;
 }
 
 .cm-port-out {
-  right: 10px;
+  right: 8px;
 }
 
 .react-flow__handle {
-  width: 8px;
-  height: 8px;
-  background: var(--muted);
+  width: 7px;
+  height: 7px;
+  min-width: 0;
+  min-height: 0;
+  background: var(--node);
+  border: 1.5px solid var(--stroke);
 }
 
-.react-flow__edge-path {
-  stroke: var(--muted);
-  stroke-width: 1.5;
+.react-flow__handle.connectingto,
+.react-flow__handle:hover {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
-.react-flow__edge.selected .react-flow__edge-path {
+/* wires: orthogonal paths, coloured by value once the engine runs */
+
+.react-flow__edge-path.cm-wire {
+  fill: none;
+  stroke: var(--wire);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.react-flow__edge-path.cm-wire.sig-1 {
+  stroke: var(--sig-1);
+  stroke-width: 3;
+}
+
+.react-flow__edge-path.cm-wire.sig-0 {
+  stroke: var(--sig-0);
+  stroke-width: 1.6;
+}
+
+.react-flow__edge-path.cm-wire.sig-x {
+  stroke: var(--sig-x);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+.react-flow__edge.selected .react-flow__edge-path.cm-wire {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.react-flow__connection-path {
   stroke: var(--accent);
   stroke-width: 2;
 }
