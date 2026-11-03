@@ -33,6 +33,8 @@ export interface ComponentPatch {
 
 export interface CircuitState {
   circuit: Circuit;
+  /** What a loaded example teaches, or null for the user's own circuit. */
+  lesson: string | null;
   /** Bumped whenever a whole circuit is loaded, so the canvas can fit it to the view. */
   loaded: number;
   /** Last user-facing message (a refused wire, a bad value, a bad file). */
@@ -47,7 +49,7 @@ export interface CircuitState {
   toggleInput: (id: string) => void;
   connect: (from: PortRef, to: PortRef) => boolean;
   removeWires: (ids: string[]) => void;
-  loadCircuit: (circuit: Circuit) => void;
+  loadCircuit: (circuit: Circuit, lesson?: string) => void;
   newCircuit: () => void;
   renameCircuit: (name: string) => void;
   showMessage: (text: string) => void;
@@ -70,6 +72,7 @@ const clone = (c: Circuit): Circuit => structuredClone(c);
 
 export const useCircuitStore = create<CircuitState>()((set, get) => ({
   circuit: clone(mux2FromGates),
+  lesson: null,
   loaded: 0,
   message: null,
   saveStatus: 'idle',
@@ -195,9 +198,15 @@ export const useCircuitStore = create<CircuitState>()((set, get) => ({
     set({ circuit: { ...circuit, wires: circuit.wires.filter((w) => !gone.has(w.id)) } });
   },
 
-  loadCircuit: (circuit) =>
-    set((s) => ({ circuit: clone(circuit), message: null, loaded: s.loaded + 1 })),
-  newCircuit: () => set((s) => ({ circuit: createCircuit(), message: null, loaded: s.loaded + 1 })),
+  loadCircuit: (circuit, lesson) =>
+    set((s) => ({
+      circuit: clone(circuit),
+      lesson: lesson ?? null,
+      message: null,
+      loaded: s.loaded + 1,
+    })),
+  newCircuit: () =>
+    set((s) => ({ circuit: createCircuit(), lesson: null, message: null, loaded: s.loaded + 1 })),
   renameCircuit: (name) => set({ circuit: { ...get().circuit, name } }),
   showMessage: (text) => set({ message: text }),
   clearMessage: () => set({ message: null }),

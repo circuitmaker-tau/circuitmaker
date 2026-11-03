@@ -63,16 +63,20 @@ export function Toolbar({ onHome }: ToolbarProps) {
           value=""
           onChange={(e) => {
             const ex = EXAMPLES.find((x) => x.id === e.target.value);
-            if (ex) loadCircuit(ex.circuit);
+            if (ex) loadCircuit(ex.circuit, ex.lesson);
           }}
         >
           <option value="" disabled>
             דוגמאות מהקורס
           </option>
-          {EXAMPLES.map((ex) => (
-            <option key={ex.id} value={ex.id}>
-              {ex.label}
-            </option>
+          {[...new Set(EXAMPLES.map((x) => x.group))].map((group) => (
+            <optgroup key={group} label={group}>
+              {EXAMPLES.filter((x) => x.group === group).map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <button type="button" onClick={() => fileInput.current?.click()}>
