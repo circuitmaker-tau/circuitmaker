@@ -52,7 +52,7 @@ function axisStep(pxPerUnit: number): number {
  * One colour per signal, as in the course's timing diagrams. Green and red are
  * left out on purpose: on the canvas they mean 1 and 0.
  */
-export const SIGNAL_COLORS = [
+const SIGNAL_COLORS = [
   '#4ea1ff', // blue
   '#f2c94c', // yellow
   '#d4506e', // bordeaux
