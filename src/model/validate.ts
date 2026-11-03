@@ -72,6 +72,19 @@ function checkComponent(c: Component, issues: Issue[]): void {
   if (c.type === 'INPUT' && p.value !== undefined && !isBit(p.value)) {
     err('BAD_PROP', 'ערך המתג חייב להיות 0 או 1');
   }
+  if (p.schedule !== undefined) {
+    const ok =
+      c.type === 'INPUT' &&
+      Array.isArray(p.schedule) &&
+      p.schedule.every(
+        (s: unknown) =>
+          typeof s === 'object' &&
+          s !== null &&
+          isValidDelay((s as { time: unknown }).time) &&
+          isBit((s as { value: unknown }).value),
+      );
+    if (!ok) err('BAD_PROP', 'רצף השינויים של מתג חייב להיות רשימה של זמן וערך 0 או 1');
+  }
   if (c.type === 'CLOCK') {
     if (!isValidDelay(p.halfPeriod) || p.halfPeriod === 0) {
       err('BAD_PROP', 'חצי מחזור של השעון חייב להיות חיובי, בקפיצות של 0.1');

@@ -28,7 +28,7 @@ export interface ComponentPatch {
   delay?: number;
   inputs?: number;
   /** Merged into the existing props. */
-  props?: Pick<ComponentProps, 'init' | 'halfPeriod' | 'startLevel'>;
+  props?: Pick<ComponentProps, 'value' | 'init' | 'halfPeriod' | 'startLevel' | 'schedule'>;
 }
 
 export interface CircuitState {

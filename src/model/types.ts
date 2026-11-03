@@ -60,9 +60,18 @@ export interface Position {
  * Optional per-type settings. Only the keys that make sense for a type are
  * checked by validate.ts; anything else is kept but ignored.
  */
+/** One planned change of a switch, e.g. "S0 goes to 0 at t = 5". */
+export interface Stimulus {
+  /** In the circuit's time unit. */
+  time: number;
+  value: 0 | 1;
+}
+
 export interface ComponentProps {
   /** INPUT: current switch value. */
   value?: 0 | 1;
+  /** INPUT: changes that happen by themselves when time runs (exam questions, FSM input). */
+  schedule?: Stimulus[];
   /** CLOCK: half period in the circuit's time unit (rule E6). */
   halfPeriod?: number;
   /** CLOCK: level before the first edge. */
