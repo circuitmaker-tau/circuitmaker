@@ -6,9 +6,45 @@ import { useSimStore } from '../store/simStore';
 import { GateSymbol } from './GateSymbol';
 import { GATE_FORMULA } from './gateFormula';
 import { nodeLayout, portOffset } from './geometry';
+import { BOX_TITLE } from './labels';
 
-/** `lamp` is the value an OUTPUT receives, from the steady-state evaluation. */
-export type ComponentNodeData = { component: Component; lamp?: Signal };
+/**
+ * Live values from the simulation: `lamp` is what an OUTPUT receives, `level`
+ * is a clock's current level, `state` is what a latch, flip-flop, register or
+ * counter stores (Q0 first).
+ */
+export type ComponentNodeData = {
+  component: Component;
+  lamp?: Signal;
+  level?: Signal;
+  state?: Signal[];
+};
+
+const sig = (v: Signal | undefined) => (v === 0 || v === 1 ? String(v) : 'x');
+
+function StoredValue({ type, state }: { type: Component['type']; state: Signal[] }) {
+  if (state.length === 1) {
+    return (
+      <span className="cm-state">
+        Q = <b className={`v-${sig(state[0])}`}>{state[0]}</b>
+      </span>
+    );
+  }
+  const bits = [...state].reverse(); // Q3 … Q0, MSB first as written in the course
+  const n = state.every((b) => b !== 'X')
+    ? state.reduce<number>((acc, b, i) => acc + (b === 1 ? 1 << i : 0), 0)
+    : null;
+  return (
+    <span className="cm-state" dir="ltr">
+      {bits.map((b, i) => (
+        <b key={i} className={`v-${sig(b)}`}>
+          {b}
+        </b>
+      ))}
+      {type === 'COUNTER4' && n !== null && <span className="cm-dec"> = {n}</span>}
+    </span>
+  );
+}
 export type ComponentFlowNode = Node<ComponentNodeData, 'component'>;
 
 export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
@@ -35,7 +71,13 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
           position={Position.Left}
           style={{ top: portOffset(i, ins.length, bodyHeight) }}
         >
-          {showPortNames && <span className="cm-port cm-port-in">{port}</span>}
+          {showPortNames &&
+            (port === 'CLK' ? (
+              // edge-triggered clock input: the triangle of the course symbols
+              <span className="cm-port cm-port-in cm-clk" aria-label="CLK" />
+            ) : (
+              <span className="cm-port cm-port-in">{port}</span>
+            ))}
         </Handle>
       ))}
 
@@ -73,10 +115,28 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
             >
               {data.lamp ?? 'X'}
             </span>
+          ) : c.type === 'CLOCK' ? (
+            <span
+              className={`cm-clock v-${sig(data.level)}`}
+              role="img"
+              aria-label={`שעון ${c.id}: ${data.level ?? 'X'}`}
+            >
+              <svg width="26" height="14" viewBox="0 0 26 14" aria-hidden="true">
+                <path d="M1 12 H7 V2 H13 V12 H19 V2 H25" fill="none" stroke="currentColor" />
+              </svg>
+              {data.level ?? 'X'}
+            </span>
           ) : (
-            <span className="cm-label">{def.label}</span>
+            <>
+              <span className="cm-label">{BOX_TITLE[c.type] ?? def.label}</span>
+              {data.state && <StoredValue type={c.type} state={data.state} />}
+            </>
           )}
-          <span className="cm-id">{c.id}</span>
+          <span className="cm-id">
+            {c.id}
+            {c.type === 'CLOCK' && ` · ½T ${c.props?.halfPeriod ?? 1}`}
+            {def.category !== 'io' && c.delay > 0 && ` · Tp ${c.delay}`}
+          </span>
         </div>
       )}
 

@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { downCounter } from '../examples/downCounter';
+import { jkFromClock } from '../examples/jkFromClock';
 import { mux2FromGates } from '../examples/mux2FromGates';
+import { createComponent, createWire } from '../model';
 import { useCircuitStore } from './circuitStore';
-import { MS_PER_TYPICAL_TP, structureSignature, typicalTpTicks, useSimStore } from './simStore';
+import {
+  MS_PER_TYPICAL_TP,
+  clockPeriodTicks,
+  structureSignature,
+  typicalTpTicks,
+  useSimStore,
+} from './simStore';
 
 const wave = (net: string) =>
   useSimStore
@@ -103,5 +112,60 @@ describe('structure signature', () => {
 
   it('typical Tp is the median gate delay', () => {
     expect(typicalTpTicks(mux2FromGates)).toBe(10);
+  });
+});
+
+describe('circuits with a clock', () => {
+  const load = (c: typeof mux2FromGates) => {
+    useCircuitStore.getState().loadCircuit(c);
+    useSimStore.getState().reset(useCircuitStore.getState().circuit);
+  };
+  const q = (net: string) => useSimStore.getState().sim!.value(net);
+
+  it('one cycle runs exactly one clock period', () => {
+    load(jkFromClock);
+    expect(clockPeriodTicks(jkFromClock)).toBe(20);
+    const seen: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      useSimStore.getState().cycle();
+      seen.push(`${useSimStore.getState().sim!.now / 10}:${q('ff:Q')}`);
+    }
+    expect(seen).toEqual(['2:1', '4:0', '6:1', '8:0']); // TC-T2 (2)
+  });
+
+  it('the down counter example counts 1111, 1110, 1101 (TC-S1)', () => {
+    load(downCounter);
+    const word = () => ['Q3', 'Q2', 'Q1', 'Q0'].map((id) => q(`J${id[1]}:Q`)).join('');
+    const seen: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      useSimStore.getState().cycle();
+      seen.push(word());
+    }
+    expect(seen).toEqual(['1111', '1110', '1101']);
+  });
+
+  it('a clocked circuit can be played from t = 0 and keeps running', () => {
+    load(jkFromClock);
+    useSimStore.getState().play();
+    expect(useSimStore.getState().playing).toBe(true);
+    useSimStore.getState().advance(10_000);
+    expect(useSimStore.getState().playing).toBe(true);
+  });
+
+  it('a forbidden SR input is reported to the user', () => {
+    const c = structuredClone(jkFromClock);
+    c.components = [
+      createComponent('CLOCK', 'CLK'),
+      createComponent('CONST1', 'one'),
+      createComponent('SR_FF', 'ff', undefined, { delay: 0 }),
+    ];
+    c.wires = [
+      createWire('w1', ['one', 'out'], ['ff', 'S']),
+      createWire('w2', ['one', 'out'], ['ff', 'R']),
+      createWire('w3', ['CLK', 'out'], ['ff', 'CLK']),
+    ];
+    load(c);
+    useSimStore.getState().cycle();
+    expect(useCircuitStore.getState().message).toContain('מצב אסור');
   });
 });

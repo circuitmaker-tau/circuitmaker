@@ -497,3 +497,65 @@ button:disabled {
 button:disabled:hover {
   border-color: var(--line);
 }
+
+/* blocks: stored value, clock input, clock source */
+
+.v-1 {
+  color: var(--sig-1);
+}
+
+.v-0 {
+  color: var(--sig-0);
+}
+
+.v-x {
+  color: var(--sig-x);
+}
+
+.cm-state {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.cm-state b {
+  font-weight: 700;
+}
+
+.cm-dec {
+  color: var(--muted);
+}
+
+/* the edge-trigger triangle drawn at the CLK input */
+.cm-clk {
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid var(--stroke);
+  left: 4px;
+}
+
+.cm-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.examples {
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+/* keep the title and value clear of the port names */
+.cm-combinational .cm-box,
+.cm-sequential .cm-box {
+  padding: 0 30px;
+}
