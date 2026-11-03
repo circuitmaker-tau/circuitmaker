@@ -1,12 +1,13 @@
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { CATALOG, inputPortsOf, outputPortsOf } from '../model';
-import type { Component } from '../model';
+import type { Component, Signal } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { GATE_FORMULA, GateSymbol } from './GateSymbol';
 import { nodeLayout, portOffset } from './geometry';
 
-export type ComponentNodeData = { component: Component };
+/** `lamp` is the value an OUTPUT receives, from the steady-state evaluation. */
+export type ComponentNodeData = { component: Component; lamp?: Signal };
 export type ComponentFlowNode = Node<ComponentNodeData, 'component'>;
 
 export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
@@ -64,7 +65,13 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
               {c.type === 'CONST1' ? 1 : 0}
             </span>
           ) : c.type === 'OUTPUT' ? (
-            <span className="cm-lamp" aria-label={`נורה ${c.id}`} />
+            <span
+              className={`cm-lamp lamp-${data.lamp === 'X' || data.lamp === undefined ? 'x' : data.lamp}`}
+              role="img"
+              aria-label={`נורה ${c.id}: ${data.lamp ?? 'X'}`}
+            >
+              {data.lamp ?? 'X'}
+            </span>
           ) : (
             <span className="cm-label">{def.label}</span>
           )}
