@@ -2,6 +2,7 @@ import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { CATALOG, inputPortsOf, outputPortsOf } from '../model';
 import type { Component, Signal } from '../model';
+import { useAnalysisStore } from '../store/analysisStore';
 import { useSimStore } from '../store/simStore';
 import { GateSymbol } from './GateSymbol';
 import { GATE_FORMULA } from './gateFormula';
@@ -67,6 +68,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
   const isGate = def.category === 'gate';
   const showPortNames = !isGate && def.category !== 'io';
   const flip = useSimStore((s) => s.flip);
+  const path = useAnalysisStore((s) => s.highlight.get(c.id));
   // a switch shows its value in the simulation, which planned changes can move
   const live = useLive(c, data.lampNet);
   const lamp = c.type === 'OUTPUT' ? live?.[0] : undefined;
@@ -76,7 +78,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
 
   return (
     <div
-      className={`cm-node cm-${def.category}${selected ? ' is-selected' : ''}`}
+      className={`cm-node cm-${def.category}${selected ? ' is-selected' : ''}${path !== undefined ? ` on-path-${path}` : ''}`}
       style={{ width, height }}
     >
       {ins.map((port, i) => (

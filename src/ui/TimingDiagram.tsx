@@ -16,6 +16,7 @@ import type { Transition } from '../engine/simulator';
 import { useCircuitStore } from '../store/circuitStore';
 import { useSimStore } from '../store/simStore';
 import { allRows, useTimingStore } from '../store/timingStore';
+import { AnalysisPanel } from './AnalysisPanel';
 
 const ROW_H = 30;
 const HIGH = 7;
@@ -88,8 +89,9 @@ export function TimingDiagram() {
   const circuit = useCircuitStore((s) => s.circuit);
   const sim = useSimStore((s) => s.sim);
   const version = useSimStore((s) => s.version);
-  const { open, height: panelHeight, zoom, cursor, cursorB, probes } = useTimingStore();
-  const { setOpen, setHeight, setZoom, setCursor } = useTimingStore.getState();
+  const { open, tab, height: panelHeight, zoom, cursor, cursorB, probes } = useTimingStore();
+  const { setOpen, setTab, setHeight, setZoom, setCursor } = useTimingStore.getState();
+  const timing = open && tab === 'timing';
   const drag = useRef<{ y: number; h: number } | null>(null);
   const unit = circuit.timeUnit === 'none' ? '' : ` ${circuit.timeUnit}`;
 
@@ -163,7 +165,7 @@ export function TimingDiagram() {
     <section
       className={`timing${open ? '' : ' is-closed'}`}
       style={open ? { height: panelHeight } : undefined}
-      aria-label="דיאגרמת זמנים"
+      aria-label="דיאגרמת זמנים וניתוח"
     >
       {open && (
         <div
@@ -188,9 +190,27 @@ export function TimingDiagram() {
           onClick={() => setOpen(!open)}
           aria-expanded={open}
         >
-          {open ? '▾' : '▸'} דיאגרמת זמנים
+          {open ? '▾' : '▸'}
         </button>
-        {open && (
+        <div className="panel-tabs" role="tablist">
+          {(
+            [
+              ['timing', 'דיאגרמת זמנים'],
+              ['analysis', 'ניתוח hazards'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={open && tab === id}
+              onClick={() => (open && tab === id ? setOpen(false) : setTab(id))}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {timing && (
           <>
             <span className="timing-readout" dir="ltr">
               {cursor !== null && `t = ${fmt(cursor)}${unit}`}
@@ -223,7 +243,8 @@ export function TimingDiagram() {
         )}
       </header>
 
-      {open && (
+      {open && tab === 'analysis' && <AnalysisPanel />}
+      {timing && (
         <div className="timing-body" dir="ltr">
           <div className="timing-labels" style={{ paddingTop: AXIS_H }}>
             {data.map(({ row, trace }) => {

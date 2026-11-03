@@ -45,7 +45,7 @@ type Sheet = 'none' | 'palette' | 'props' | 'timing';
 const SHEETS: [Exclude<Sheet, 'none'>, string][] = [
   ['palette', 'רכיבים'],
   ['props', 'מאפיינים'],
-  ['timing', 'דיאגרמת זמנים'],
+  ['timing', 'זמנים וניתוח'],
 ];
 
 export function Editor() {

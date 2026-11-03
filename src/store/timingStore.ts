@@ -75,6 +75,8 @@ interface TimingState {
   /** Nets chosen by the user, or null for the default set. */
   probes: string[] | null;
   open: boolean;
+  /** What the bottom panel shows. */
+  tab: 'timing' | 'analysis';
   /** Panel height in pixels, dragged by its top edge. */
   height: number;
   /** Pixels per time unit, or null to fit the whole run. */
@@ -88,6 +90,7 @@ interface TimingState {
   setProbe: (circuit: Circuit, net: string, on: boolean) => void;
   resetProbes: () => void;
   setOpen: (open: boolean) => void;
+  setTab: (tab: 'timing' | 'analysis') => void;
   setHeight: (height: number) => void;
   setZoom: (zoom: number | null) => void;
   setCursor: (t: number | null, second?: boolean) => void;
@@ -96,6 +99,7 @@ interface TimingState {
 export const useTimingStore = create<TimingState>()((set, get) => ({
   probes: null,
   open: true,
+  tab: 'timing',
   height: 280,
   zoom: null,
   cursor: null,
@@ -114,6 +118,7 @@ export const useTimingStore = create<TimingState>()((set, get) => ({
   },
   resetProbes: () => set({ probes: null, cursor: null, cursorB: null, zoom: null }),
   setOpen: (open) => set({ open }),
+  setTab: (tab) => set({ tab, open: true }),
   setHeight: (height) => set({ height: Math.min(640, Math.max(120, Math.round(height))) }),
   setZoom: (zoom) => set({ zoom }),
   setCursor: (t, second = false) => set(second ? { cursorB: t } : { cursor: t, cursorB: null }),

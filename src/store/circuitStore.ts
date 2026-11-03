@@ -50,6 +50,8 @@ export interface CircuitState {
   connect: (from: PortRef, to: PortRef) => boolean;
   removeWires: (ids: string[]) => void;
   loadCircuit: (circuit: Circuit, lesson?: string) => void;
+  /** Swap in an edited version of the current circuit (keeps the lesson and the view). */
+  replaceCircuit: (circuit: Circuit) => void;
   newCircuit: () => void;
   renameCircuit: (name: string) => void;
   showMessage: (text: string) => void;
@@ -205,6 +207,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => ({
       message: null,
       loaded: s.loaded + 1,
     })),
+  replaceCircuit: (circuit) => set({ circuit, message: null }),
   newCircuit: () =>
     set((s) => ({ circuit: createCircuit(), lesson: null, message: null, loaded: s.loaded + 1 })),
   renameCircuit: (name) => set({ circuit: { ...get().circuit, name } }),
