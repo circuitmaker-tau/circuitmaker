@@ -17,6 +17,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, NodeChange } from '@xyflow/react';
+import { settle } from '../engine/settle';
 import { COMPONENT_TYPES, canConnect, createComponent } from '../model';
 import type { ComponentType, Position } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
@@ -46,16 +47,22 @@ export function Editor() {
   const [nodeMeta, setNodeMeta] = useState<Record<string, NodeMeta>>({});
   const [selectedEdges, setSelectedEdges] = useState<Set<string>>(new Set());
 
+  // steady-state value of every net: recomputed on every edit and switch flip
+  const values = useMemo(() => settle(circuit), [circuit]);
+
   const nodes = useMemo<ComponentFlowNode[]>(
     () =>
       circuit.components.map((c) => ({
         id: c.id,
         type: 'component',
         position: c.position,
-        data: { component: c },
+        data: {
+          component: c,
+          lamp: c.type === 'OUTPUT' ? (values.inputs.get(`${c.id}:in`) ?? 'X') : undefined,
+        },
         ...nodeMeta[c.id],
       })),
-    [circuit.components, nodeMeta],
+    [circuit.components, nodeMeta, values],
   );
 
   // routes are computed from the circuit, so every drag re-routes and re-checks crossings
@@ -71,10 +78,13 @@ export function Editor() {
         target: w.to.component,
         targetHandle: w.to.port,
         selected: selectedEdges.has(w.id),
-        data: { d: r ? wirePath(r.points, r.hops) : '' },
+        data: {
+          d: r ? wirePath(r.points, r.hops) : '',
+          value: values.nets.get(`${w.from.component}:${w.from.port}`) ?? 'X',
+        },
       };
     });
-  }, [circuit, selectedEdges]);
+  }, [circuit, selectedEdges, values]);
 
   const onNodesChange = (changes: NodeChange<ComponentFlowNode>[]) => {
     const next = applyNodeChanges(changes, nodes);
@@ -143,6 +153,7 @@ export function Editor() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           connectionLineType={ConnectionLineType.Step}
+          colorMode="dark"
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -152,7 +163,7 @@ export function Editor() {
           snapGrid={[10, 10]}
           fitView
         >
-          <Background gap={20} />
+          <Background gap={20} color="#2a2a30" />
           <Controls showInteractive={false} />
         </ReactFlow>
         {message && (

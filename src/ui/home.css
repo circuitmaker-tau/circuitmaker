@@ -1,0 +1,472 @@
+/* Home page. Monochrome schematic: colour appears only where it means a signal value. */
+
+.home {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.home-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(16px, 4vw, 48px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.quiet-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.quiet-link:hover {
+  color: var(--fg);
+}
+
+/* hero */
+
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(24px, 4vw, 64px);
+  align-items: center;
+  padding: clamp(24px, 6vw, 80px) clamp(16px, 4vw, 48px) clamp(32px, 6vw, 72px);
+  overflow: hidden;
+}
+
+.traces {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.traces path {
+  stroke: var(--trace);
+  stroke-width: 1.5;
+}
+
+.traces circle {
+  fill: none;
+  stroke: var(--trace);
+  stroke-width: 1.5;
+}
+
+.hero-text {
+  position: relative;
+  max-width: 34rem;
+}
+
+.hero h1 {
+  margin: 0 0 20px;
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  margin: 0 0 32px;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 32rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.primary,
+.secondary {
+  font-size: 1rem;
+  padding: 10px 20px;
+  border-radius: 6px;
+}
+
+.primary {
+  background: var(--fg);
+  color: var(--bg);
+  border: 1px solid var(--fg);
+  font-weight: 600;
+}
+
+.primary:hover {
+  background: #d9d9de;
+}
+
+.secondary {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line-strong);
+}
+
+.secondary:hover {
+  border-color: var(--fg);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+}
+
+.building {
+  margin: 18px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* demo */
+
+.demo {
+  position: relative;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.demo-circuit,
+.demo-timing {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.demo-timing {
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.demo figcaption {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.w {
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.dot {
+  fill: var(--sig-0);
+  animation: v-s0-fill 8s infinite;
+}
+
+.sw {
+  stroke-width: 1.5;
+}
+
+.sw-on {
+  fill: var(--sig-1);
+  stroke: var(--sig-1);
+}
+
+.sw-s0 {
+  animation: v-s0-box 8s infinite;
+}
+
+.sw-text {
+  fill: #000;
+  font-size: 12px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.lamp {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  animation: v-f-lamp 8s infinite;
+}
+
+.lamp-label {
+  fill: var(--muted);
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.w-one {
+  stroke: var(--sig-1);
+}
+
+.w-s0 {
+  animation: v-s0 8s infinite;
+}
+
+.w-ns0 {
+  animation: v-ns0 8s infinite;
+}
+
+.w-a1 {
+  animation: v-a1 8s infinite;
+}
+
+.w-a2 {
+  animation: v-a2 8s infinite;
+}
+
+.w-f {
+  animation: v-f 8s infinite;
+}
+
+.trace {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1.6;
+}
+
+.trace-f {
+  stroke-width: 2.2;
+}
+
+.glitch-band {
+  fill: var(--sig-0);
+  opacity: 0.22;
+}
+
+.trace-name {
+  fill: var(--muted);
+  font-size: 11px;
+  text-anchor: end;
+  font-family: var(--mono);
+}
+
+.playhead {
+  stroke: var(--fg);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  animation: sweep 8s linear infinite;
+}
+
+/*
+ * One 8 s loop, 1 s = 12.5 %. Tp = 0.5 s per gate.
+ * S0 falls at 2 s and rises at 6 s; NOT and AND1 follow 0.5 s later, AND2 1 s later.
+ * F drops to 0 from 3 s to 3.5 s: the static-1 hazard.
+ */
+@keyframes v-s0 {
+  0%,
+  24.99% {
+    stroke: var(--sig-1);
+  }
+  25%,
+  74.99% {
+    stroke: var(--sig-0);
+    stroke-width: 1.6;
+  }
+  75%,
+  100% {
+    stroke: var(--sig-1);
+  }
+}
+
+@keyframes v-s0-fill {
+  0%,
+  24.99% {
+    fill: var(--sig-1);
+  }
+  25%,
+  74.99% {
+    fill: var(--sig-0);
+  }
+  75%,
+  100% {
+    fill: var(--sig-1);
+  }
+}
+
+@keyframes v-s0-box {
+  0%,
+  24.99% {
+    fill: var(--sig-1);
+    stroke: var(--sig-1);
+  }
+  25%,
+  74.99% {
+    fill: var(--sig-0);
+    stroke: var(--sig-0);
+  }
+  75%,
+  100% {
+    fill: var(--sig-1);
+    stroke: var(--sig-1);
+  }
+}
+
+@keyframes v-ns0 {
+  0%,
+  31.24% {
+    stroke: var(--sig-0);
+    stroke-width: 1.6;
+  }
+  31.25%,
+  81.24% {
+    stroke: var(--sig-1);
+  }
+  81.25%,
+  100% {
+    stroke: var(--sig-0);
+    stroke-width: 1.6;
+  }
+}
+
+@keyframes v-a1 {
+  0%,
+  31.24% {
+    stroke: var(--sig-1);
+  }
+  31.25%,
+  81.24% {
+    stroke: var(--sig-0);
+    stroke-width: 1.6;
+  }
+  81.25%,
+  100% {
+    stroke: var(--sig-1);
+  }
+}
+
+@keyframes v-a2 {
+  0%,
+  37.49% {
+    stroke: var(--sig-0);
+    stroke-width: 1.6;
+  }
+  37.5%,
+  87.49% {
+    stroke: var(--sig-1);
+  }
+  87.5%,
+  100% {
+    stroke: var(--sig-0);
+    stroke-width: 1.6;
+  }
+}
+
+@keyframes v-f {
+  0%,
+  37.49% {
+    stroke: var(--sig-1);
+  }
+  37.5%,
+  43.74% {
+    stroke: var(--sig-0);
+    stroke-width: 1.6;
+  }
+  43.75%,
+  100% {
+    stroke: var(--sig-1);
+  }
+}
+
+@keyframes v-f-lamp {
+  0%,
+  37.49% {
+    fill: var(--sig-1);
+  }
+  37.5%,
+  43.74% {
+    fill: transparent;
+  }
+  43.75%,
+  100% {
+    fill: var(--sig-1);
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(400px);
+  }
+}
+
+/* reduced motion: hold the frame at t = 3.2 s, in the middle of the glitch */
+@media (prefers-reduced-motion: reduce) {
+  .w,
+  .dot,
+  .sw-s0,
+  .lamp,
+  .playhead {
+    animation-play-state: paused;
+    animation-delay: -3.2s;
+  }
+}
+
+/* facts */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  margin: 0 clamp(16px, 4vw, 48px);
+}
+
+.fact {
+  padding: 28px 24px 36px 0;
+}
+
+.fact + .fact {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: 24px;
+}
+
+.fact h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.fact p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 30ch;
+}
+
+.home-foot {
+  margin-top: auto;
+  padding: 24px clamp(16px, 4vw, 48px);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .fact,
+  .fact + .fact {
+    border-inline-start: none;
+    padding: 24px 0;
+  }
+
+  .fact + .fact {
+    border-top: 1px solid var(--line);
+  }
+}
