@@ -1,46 +1,28 @@
 :root {
-  --bg: #f7f7f5;
-  --panel: #ffffff;
-  --fg: #1d1d1f;
-  --muted: #6b6b70;
-  --line: #d9d9de;
-  --accent: #2f6fde;
-  --accent-soft: rgba(47, 111, 222, 0.12);
-  --danger: #c4372f;
-  --node: #ffffff;
-  --stroke: #3a3a40;
+  /* black and white; colour is reserved for signal values */
+  --bg: #000000;
+  --panel: #0a0a0b;
+  --fg: #ffffff;
+  --muted: #9a9aa2;
+  --line: #26262b;
+  --line-strong: #4a4a52;
+  --trace: #1a1a1e;
+  --accent: #ffffff;
+  --accent-soft: rgba(255, 255, 255, 0.14);
+  --danger: #ff5c5c;
+  --node: #000000;
+  --stroke: #e8e8ec;
   /* signal values: green 1, red 0, orange dashed X; also told apart by width and dash */
-  --sig-1: #1f9d55;
-  --sig-0: #d64545;
-  --sig-x: #d9822b;
-  --wire: #6b6b70;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Arial,
-    sans-serif;
+  --sig-1: #3ecf7a;
+  --sig-0: #ff5c5c;
+  --sig-x: #f0a050;
+  --wire: #8a8a92;
+  --sans: 'IBM Plex Sans Hebrew', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+  font-family: var(--sans);
   color: var(--fg);
   background: var(--bg);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141416;
-    --panel: #1c1c1f;
-    --fg: #ececee;
-    --muted: #9a9aa2;
-    --line: #34343a;
-    --accent: #6a9cff;
-    --accent-soft: rgba(106, 156, 255, 0.16);
-    --danger: #ff7a70;
-    --node: #232327;
-    --stroke: #c9c9cf;
-    --sig-1: #3ecf7a;
-    --sig-0: #ff6b6b;
-    --sig-x: #f0a050;
-    --wire: #9a9aa2;
-  }
 }
 
 html,
@@ -48,6 +30,12 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  background: var(--bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
 }
 
 button {
@@ -88,6 +76,14 @@ a {
 .topbar h1 {
   margin: 0;
   font-size: 1.15rem;
+}
+
+.home-link {
+  font: inherit;
+  font-weight: 600;
+  border: none;
+  background: none;
+  padding: 0;
 }
 
 .circuit-name {
@@ -242,6 +238,7 @@ a {
 }
 
 .danger {
+  background: transparent;
   color: var(--danger);
   border-color: var(--danger);
 }
@@ -289,7 +286,7 @@ a {
 
 .cm-formula {
   font-size: 0.75rem;
-  font-family: ui-monospace, Menlo, monospace;
+  font-family: var(--mono);
 }
 
 .cm-id {
@@ -333,7 +330,7 @@ a {
 .cm-const.is-on {
   background: var(--sig-1);
   border: 1px solid var(--sig-1);
-  color: #fff;
+  color: #000;
 }
 
 .cm-switch.is-off,
@@ -416,4 +413,10 @@ a {
 .react-flow__connection-path {
   stroke: var(--accent);
   stroke-width: 2;
+}
+
+.react-flow {
+  --xy-background-color: var(--bg);
+  --xy-controls-button-background-color: var(--panel);
+  --xy-controls-button-border-color: var(--line);
 }

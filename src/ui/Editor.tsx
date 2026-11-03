@@ -143,6 +143,7 @@ export function Editor() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           connectionLineType={ConnectionLineType.Step}
+          colorMode="dark"
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -152,7 +153,7 @@ export function Editor() {
           snapGrid={[10, 10]}
           fitView
         >
-          <Background gap={20} />
+          <Background gap={20} color="#2a2a30" />
           <Controls showInteractive={false} />
         </ReactFlow>
         {message && (

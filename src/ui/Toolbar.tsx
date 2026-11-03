@@ -12,7 +12,11 @@ const STATUS_TEXT: Record<SaveStatus, string> = {
   error: 'השמירה בדפדפן נכשלה. כדאי לייצא JSON',
 };
 
-export function Toolbar() {
+interface ToolbarProps {
+  onHome: () => void;
+}
+
+export function Toolbar({ onHome }: ToolbarProps) {
   const name = useCircuitStore((s) => s.circuit.name);
   const saveStatus = useCircuitStore((s) => s.saveStatus);
   const { newCircuit, loadCircuit, renameCircuit, showMessage } = useCircuitStore.getState();
@@ -35,7 +39,11 @@ export function Toolbar() {
 
   return (
     <header className="topbar">
-      <h1>CircuitMaker</h1>
+      <h1>
+        <button type="button" className="home-link" onClick={onHome} aria-label="דף הבית">
+          CircuitMaker
+        </button>
+      </h1>
       <input
         className="circuit-name"
         aria-label="שם המעגל"
