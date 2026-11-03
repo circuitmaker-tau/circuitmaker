@@ -1,4 +1,4 @@
-import { mux2FromGates } from '../examples/mux2FromGates';
+import { EXAMPLES } from '../examples';
 import { useCircuitStore } from '../store/circuitStore';
 import { HazardDemo } from './HazardDemo';
 import './home.css';
@@ -34,7 +34,7 @@ function Traces() {
 
 export function Home({ onOpenEditor }: HomeProps) {
   const openExample = () => {
-    useCircuitStore.getState().loadCircuit(mux2FromGates);
+    useCircuitStore.getState().loadCircuit(EXAMPLES[0].circuit, EXAMPLES[0].lesson);
     onOpenEditor();
   };
 

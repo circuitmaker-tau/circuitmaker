@@ -9,6 +9,7 @@ interface PropertiesPanelProps {
 }
 
 export function PropertiesPanel({ component }: PropertiesPanelProps) {
+  const lesson = useCircuitStore((s) => s.lesson);
   return (
     <aside className="properties" aria-label="מאפייני רכיב">
       <h2>מאפיינים</h2>
@@ -16,7 +17,15 @@ export function PropertiesPanel({ component }: PropertiesPanelProps) {
         // key resets the draft value when another component is selected
         <ComponentFields key={component.id} component={component} />
       ) : (
-        <p className="hint">בחרו רכיב כדי לערוך את ה-Tp ואת מספר הכניסות.</p>
+        <>
+          <p className="hint">בחרו רכיב כדי לערוך את ה-Tp ואת מספר הכניסות.</p>
+          {lesson && (
+            <section className="lesson" aria-label="מה לומדים מהדוגמה">
+              <h3>מה לומדים כאן</h3>
+              <p>{lesson}</p>
+            </section>
+          )}
+        </>
       )}
     </aside>
   );
