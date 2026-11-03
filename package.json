@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:icarus": "vitest run --config verify/vitest.config.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

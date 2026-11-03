@@ -1,6 +1,7 @@
 name: CI
 
-# Runs on every pull request: lint, unit tests and a production build.
+# Runs on every pull request: lint, unit tests, a production build and the
+# comparison with Icarus Verilog.
 on:
   pull_request:
   workflow_dispatch:
@@ -18,3 +19,6 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # our simulator against Icarus Verilog, change by change (docs/ICARUS.md)
+      - run: sudo apt-get update && sudo apt-get install -y iverilog
+      - run: npm run test:icarus
