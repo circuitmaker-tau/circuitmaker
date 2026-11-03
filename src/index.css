@@ -971,3 +971,209 @@ button:disabled:hover {
   line-height: 1.55;
   color: var(--fg);
 }
+
+/* ---------------------------------------------------------------- bottom panel tabs */
+
+.panel-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.panel-tabs button {
+  border: none;
+  background: none;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 2px 8px;
+  border-radius: 0;
+}
+
+.panel-tabs button[aria-selected='true'] {
+  color: var(--fg);
+  box-shadow: inset 0 -2px 0 var(--fg);
+}
+
+/* ---------------------------------------------------------------- hazard analysis */
+
+.analysis {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px;
+  overflow: auto;
+  user-select: text;
+}
+
+.analysis-empty {
+  padding: 14px;
+}
+
+.analysis-side {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analysis-output {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.analysis-output select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.analysis-func {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.analysis-findings {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analysis-findings h3 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.finding {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.finding.is-selected,
+.finding:hover {
+  border-color: var(--line-strong);
+}
+
+.finding p {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.finding .term {
+  font-family: var(--mono);
+  font-weight: 700;
+}
+
+.finding-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.paths {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.ok {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.kmap text {
+  font-family: var(--mono);
+}
+
+.kmap-cell {
+  fill: var(--panel);
+  stroke: var(--line-strong);
+}
+
+.kmap-value {
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  fill: currentColor;
+}
+
+.kmap-value.v-0 {
+  fill: var(--muted);
+}
+
+.kmap-value.v-1 {
+  fill: var(--fg);
+}
+
+.kmap-index {
+  font-size: 7px;
+  fill: var(--muted);
+}
+
+.kmap-head,
+.kmap-axis {
+  font-size: 10px;
+  fill: var(--muted);
+  text-anchor: middle;
+}
+
+.kmap-axis {
+  text-anchor: start;
+}
+
+.kmap-group {
+  fill: none;
+  stroke-width: 2;
+}
+
+.kmap-group.is-dashed {
+  stroke-dasharray: 4 3;
+}
+
+.kmap-mark {
+  fill: rgba(255, 255, 255, 0.16);
+  stroke: var(--fg);
+  stroke-width: 2;
+}
+
+/* the two paths that race, on the canvas */
+.cm-path {
+  fill: none;
+  stroke-width: 8;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.cm-path.on-path-0 {
+  stroke: #4ea1ff;
+}
+
+.cm-path.on-path-1 {
+  stroke: #f2c94c;
+}
+
+.cm-node.on-path-0 .cm-box,
+.cm-node.on-path-0 svg {
+  filter: drop-shadow(0 0 6px #4ea1ff);
+}
+
+.cm-node.on-path-1 .cm-box,
+.cm-node.on-path-1 svg {
+  filter: drop-shadow(0 0 6px #f2c94c);
+}
+
+@media (max-width: 760px) {
+  .analysis {
+    flex-direction: column;
+  }
+}

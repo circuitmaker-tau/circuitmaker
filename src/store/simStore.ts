@@ -88,6 +88,8 @@ export interface SimState {
   period: number;
 
   reset: (circuit: Circuit) => void;
+  /** A change to make right after the next reset, then play (the analysis demo). */
+  prepareDemo: (change: { net: string; value: 0 | 1; at: number }) => void;
   flip: (inputId: string) => void;
   advance: (realMs: number) => void;
   play: () => void;
@@ -107,6 +109,8 @@ export function clockPeriodTicks(circuit: Circuit): number {
 
 const rateFor = (circuit: Circuit, speed: Speed) =>
   (typicalTpTicks(circuit) * speed) / MS_PER_TYPICAL_TP;
+
+let pendingDemo: { net: string; value: 0 | 1; at: number } | null = null;
 
 export const useSimStore = create<SimState>()((set, get) => {
   const bump = () =>
@@ -139,17 +143,27 @@ export const useSimStore = create<SimState>()((set, get) => {
     warned: 0,
     period: 0,
 
+    prepareDemo: (change) => {
+      pendingDemo = change;
+    },
+
     reset: (circuit) =>
-      set((s) => ({
-        sim: new Simulator(circuit),
-        playing: false,
-        carry: 0,
-        warned: 0,
-        period: clockPeriodTicks(circuit),
-        rate: rateFor(circuit, s.speed),
-        version: s.version + 1,
-        fronts: new Map(),
-      })),
+      set((s) => {
+        const sim = new Simulator(circuit);
+        const demo = pendingDemo;
+        pendingDemo = null;
+        if (demo) sim.setNet(demo.net, demo.value, demo.at);
+        return {
+          sim,
+          playing: demo !== null,
+          carry: 0,
+          warned: 0,
+          period: clockPeriodTicks(circuit),
+          rate: rateFor(circuit, s.speed),
+          version: s.version + 1,
+          fronts: new Map(),
+        };
+      }),
 
     flip: (inputId) => {
       const circuit = useCircuitStore.getState();

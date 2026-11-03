@@ -169,3 +169,17 @@ describe('circuits with a clock', () => {
     expect(useCircuitStore.getState().message).toContain('מצב אסור');
   });
 });
+
+describe('analysis demo', () => {
+  it('a prepared change is made right after the next reset, and plays', () => {
+    useCircuitStore.getState().loadCircuit(mux2FromGates);
+    useSimStore.getState().prepareDemo({ net: 'S0:out', value: 0, at: 10 });
+    useSimStore.getState().reset(useCircuitStore.getState().circuit);
+    expect(useSimStore.getState().playing).toBe(true);
+    useSimStore.getState().skipToEnd();
+    expect(wave('o1:out')).toBe('0:1 3:0 4:1');
+    // only once: the next reset is a plain one
+    useSimStore.getState().reset(useCircuitStore.getState().circuit);
+    expect(useSimStore.getState().playing).toBe(false);
+  });
+});
