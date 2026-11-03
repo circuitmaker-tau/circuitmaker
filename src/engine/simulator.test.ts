@@ -215,3 +215,36 @@ describe('changes in flight (wire animation)', () => {
     expect(sim.inFlight().size).toBe(0);
   });
 });
+
+describe('different rise and fall delays (E2)', () => {
+  it('a newer value due earlier cancels an older one due later, so the output matches its inputs', () => {
+    // BUF with tpLH = 3, tpHL = 0.5: a rises at 1 (due at 4), falls at 2 (due at 2.5)
+    const c = createCircuit();
+    c.components.push(
+      createComponent('INPUT', 'a', undefined, { props: { value: 0 } }),
+      createComponent('BUF', 'b', undefined, { props: { tpLH: 3, tpHL: 0.5 } }),
+    );
+    c.wires.push(createWire('w1', ['a', 'out'], ['b', 'in0']));
+    const sim = new Simulator(c);
+    sim.setNet('a:out', 1, 10);
+    sim.setNet('a:out', 0, 20);
+    sim.runToEnd();
+    // without the rule the rise would land at t = 4 and b would stay 1 while a is 0
+    expect(wave(sim, 'b:out')).toBe('0:0');
+    expect(sim.idle).toBe(true);
+  });
+
+  it('with equal delays every pulse still gets through', () => {
+    const c = createCircuit();
+    c.components.push(
+      createComponent('INPUT', 'a', undefined, { props: { value: 0 } }),
+      createComponent('BUF', 'b', undefined, { delay: 3 }),
+    );
+    c.wires.push(createWire('w1', ['a', 'out'], ['b', 'in0']));
+    const sim = new Simulator(c);
+    sim.setNet('a:out', 1, 10);
+    sim.setNet('a:out', 0, 12);
+    sim.runToEnd();
+    expect(wave(sim, 'b:out')).toBe('0:0 4:1 4.2:0');
+  });
+});

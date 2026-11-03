@@ -5,10 +5,16 @@
  * tick for tick:
  * - E1  time is an integer number of ticks, 10 ticks per unit (Tp = 1.5 -> 15).
  * - E2  every change at an input re-evaluates the component, and each new
- *       output is scheduled Tp later. Nothing is cancelled, so even a pulse
- *       shorter than Tp reaches the output, as in the course's timing diagrams
- *       and the official exam solutions. (In simulation jargon: a transport
- *       delay.) A rise uses tpLH and a fall uses tpHL when they are set.
+ *       output is scheduled Tp later. A pulse shorter than Tp still reaches the
+ *       output, as in the course's timing diagrams and the official exam
+ *       solutions. (In simulation jargon: a transport delay.) A rise uses tpLH
+ *       and a fall uses tpHL when they are set. With different rise and fall
+ *       delays a newer value can be due before an older one; then, as in the
+ *       standard transport rule (VHDL), the newer one cancels every pending
+ *       value of that output due at the same time or later. Otherwise the older
+ *       value would land last and the output would disagree with its inputs.
+ *       With equal delays nothing is ever cancelled. (Found by the comparison
+ *       with Icarus Verilog, verify/.)
  * - E3  all events at the same tick are applied together, then the affected
  *       components are evaluated. More than 1000 rounds at one tick (a
  *       zero-delay loop) stops the run and is reported as an oscillation.
@@ -66,6 +72,8 @@ interface SimEvent {
   cause: number;
   /** Tick at which a component scheduled it (its Tp started), for the wire animation. */
   born?: number;
+  /** Cancelled by a newer value of the same output that is due no later (E2). */
+  cancelled?: boolean;
 }
 
 /** A new value on its way through a component's delay (shown travelling along the wire). */
@@ -152,6 +160,9 @@ export class Simulator {
   private seq = 0;
   /** Pending events that are not clock toggles. */
   private pending = 0;
+  private lastPushed: SimEvent | undefined;
+  /** Pending values each component output has scheduled, for the cancelling rule of E2. */
+  private scheduled = new Map<string, SimEvent[]>();
   /** Cause of the latest change of each net. */
   private causeOf = new Map<string, number>();
   /** Changes of each net since the last outside change (E8). */
@@ -211,7 +222,7 @@ export class Simulator {
   inFlight(): Map<string, InFlight[]> {
     const byNet = new Map<string, SimEvent[]>();
     for (const e of this.queue.all()) {
-      if (e.born === undefined || e.time <= e.born) continue;
+      if (e.born === undefined || e.cancelled || e.time <= e.born) continue;
       const list = byNet.get(e.net) ?? [];
       list.push(e);
       byNet.set(e.net, list);
@@ -233,12 +244,12 @@ export class Simulator {
 
   /** Time of the next pending event, or undefined when nothing is scheduled. */
   nextEventTime(): number | undefined {
-    return this.queue.peek()?.time;
+    return this.top()?.time;
   }
 
   /** Nothing will ever happen again (no events, or the run stopped on an oscillation). */
   get idle(): boolean {
-    return this.queue.size === 0 || this.oscillation !== null;
+    return this.top() === undefined || this.oscillation !== null;
   }
 
   /** Nothing is on its way except clock ticks: every change so far has arrived. */
@@ -249,7 +260,7 @@ export class Simulator {
   /** Process every event up to and including `until`, then move the clock there. */
   runUntil(until: number) {
     while (!this.oscillation) {
-      const next = this.queue.peek();
+      const next = this.top();
       if (!next || next.time > until) break;
       this.processTick(next.time);
     }
@@ -273,6 +284,12 @@ export class Simulator {
     }
   }
 
+  /** The earliest live event; cancelled ones are dropped on the way. */
+  private top(): SimEvent | undefined {
+    while (this.queue.peek()?.cancelled) this.queue.pop();
+    return this.queue.peek();
+  }
+
   private push(
     time: number,
     net: string,
@@ -280,21 +297,36 @@ export class Simulator {
     opts: { cause: number; clock?: Clock; external?: boolean; born?: number },
   ) {
     if (!opts.clock) this.pending++;
-    this.queue.push({ time, seq: this.seq++, net, value, ...opts });
+    this.lastPushed = { time, seq: this.seq++, net, value, ...opts };
+    this.queue.push(this.lastPushed);
   }
 
   private emit(d: Device, t: number, values: Logic[], cause: number) {
-    values.forEach((v, i) => this.push(t + delayFor(d, v), d.outputs[i], v, { cause, born: t }));
+    values.forEach((v, i) => {
+      const net = d.outputs[i];
+      const at = t + delayFor(d, v);
+      const list = this.scheduled.get(net) ?? [];
+      // E2: a newer value cancels older ones that are due at the same time or later
+      const keep = list.filter((e) => {
+        if (e.time < at) return true;
+        e.cancelled = true;
+        this.pending--;
+        return false;
+      });
+      this.push(at, net, v, { cause, born: t });
+      keep.push(this.lastPushed!);
+      this.scheduled.set(net, keep);
+    });
   }
 
   private processTick(t: number) {
     this.now = t;
     for (let round = 0; ; round++) {
-      const top = this.queue.peek();
+      const top = this.top();
       if (!top || top.time !== t) return;
       if (round >= MAX_ROUNDS_PER_TICK) {
         const nets = new Set<string>();
-        while (this.queue.peek()?.time === t) nets.add(this.queue.pop()!.net);
+        while (this.top()?.time === t) nets.add(this.queue.pop()!.net);
         this.oscillation = { time: t, nets: [...nets] };
         return;
       }
@@ -303,8 +335,12 @@ export class Simulator {
       const prior = new Map<string, Logic>();
       const outside = new Set<string>();
       const causeNow = new Map<string, number>();
-      while (this.queue.peek()?.time === t) {
+      while (this.top()?.time === t) {
         const e = this.queue.pop()!;
+        if (e.born !== undefined) {
+          const list = this.scheduled.get(e.net)!;
+          list.splice(list.indexOf(e), 1);
+        }
         if (e.clock) {
           const next = t + e.clock.half;
           this.push(next, e.net, e.value === 1 ? 0 : 1, { clock: e.clock, cause: next });
