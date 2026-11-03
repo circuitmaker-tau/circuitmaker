@@ -1,77 +1,99 @@
 /**
- * Steady-state evaluation (milestone 4, first step): the value every net
- * settles to once all delays have passed, with no timing. This is what the
- * lamps and wire colours show while the user flips switches. The event-driven
- * engine with per-gate Tp (rules E1–E3) builds on top of it.
+ * Steady state (rule E5): the value every net settles to before time starts,
+ * with no timing. The simulator starts from here.
  *
- * Every net starts at X and gates are re-evaluated until nothing changes.
- * Three-valued logic is monotone, so this always terminates; whatever is
- * still X at the end is genuinely unknown (an unconnected input, or a
- * feedback loop with no defined state, such as a latch that was never set).
+ * Switches, constants and clocks have their starting values, and flip-flops,
+ * registers and counters hold their `init` value. Every other net starts at X
+ * and gates, blocks and latches are evaluated again and again until nothing
+ * changes. Three-valued logic is monotone (an X can only become 0 or 1), so
+ * this always ends; whatever is still X is genuinely unknown: an unconnected
+ * input, a latch that was never set, or a loop with no stable state such as a
+ * ring of inverters.
  */
 import { inputPortsOf } from '../model';
-import type { Circuit, Component } from '../model';
+import type { Circuit } from '../model';
+import { counterReset, evalBlock, latchStep, stateOutputs } from './behavior';
 import { evalGate } from './logic';
 import type { GateType, Logic } from './logic';
+import { buildNetlist, netKey } from './netlist';
+import type { Device } from './netlist';
 
-const GATES: readonly string[] = ['AND', 'OR', 'NOT', 'BUF', 'NAND', 'NOR', 'XOR', 'XNOR'];
-
-/** Key of a net: the output port that drives it. */
-export const netKey = (component: string, port: string) => `${component}:${port}`;
+export { netKey } from './netlist';
 
 export interface SettledValues {
   /** Value of each driven net, keyed by `component:port` of its driver. */
   nets: Map<string, Logic>;
   /** Value seen at each input port, keyed by `component:port`. */
   inputs: Map<string, Logic>;
+  /** Stored bits of every latch, flip-flop, register and counter. */
+  states: Map<string, Logic[]>;
+}
+
+/** Outputs of a gate or a combinational block for the given input values. */
+export function combinational(d: Device, ins: Logic[]): Logic[] {
+  return d.kind === 'gate'
+    ? [evalGate(d.type as GateType, ins)]
+    : evalBlock(d.type, ins, d.outputs.length);
 }
 
 export function settle(circuit: Circuit): SettledValues {
-  const nets = new Map<string, Logic>();
-  const driverOf = new Map<string, string>(); // input "comp:port" -> net key
-  for (const w of circuit.wires) {
-    driverOf.set(netKey(w.to.component, w.to.port), netKey(w.from.component, w.from.port));
-  }
-  const read = (c: Component, port: string): Logic => {
-    const net = driverOf.get(netKey(c.id, port));
-    return net === undefined ? 'X' : (nets.get(net) ?? 'X');
-  };
+  const { devices, sources } = buildNetlist(circuit);
+  const nets = new Map<string, Logic>(sources);
+  const read = (net: string): Logic => (net ? (nets.get(net) ?? 'X') : 'X');
 
-  const sources = circuit.components.filter((c) =>
-    ['INPUT', 'CONST0', 'CONST1', 'CLOCK'].includes(c.type),
-  );
-  for (const c of sources) {
-    const v: Logic =
-      c.type === 'CONST1'
-        ? 1
-        : c.type === 'CONST0'
-          ? 0
-          : c.type === 'INPUT'
-            ? (c.props?.value ?? 0)
-            : (c.props?.startLevel ?? 0); // a clock shows its level before the first edge
-    nets.set(netKey(c.id, 'out'), v);
+  for (const d of devices) {
+    if (d.kind === 'edge') {
+      if (d.reset >= 0) d.state = counterReset(read(d.inputs[d.reset]), d.state) ?? d.state;
+      stateOutputs(d.type, d.state).forEach((v, i) => nets.set(d.outputs[i], v));
+    } else if (d.kind === 'latch') {
+      stateOutputs(d.type, d.state).forEach((v, i) => nets.set(d.outputs[i], v));
+    } else {
+      for (const o of d.outputs) nets.set(o, 'X');
+    }
   }
 
-  const gates = circuit.components.filter((c) => GATES.includes(c.type));
-  for (const g of gates) nets.set(netKey(g.id, 'out'), 'X');
-  // each pass can only turn an X into 0 or 1, so gates + 1 passes always suffice
-  for (let pass = 0; pass <= gates.length; pass++) {
+  // each pass can only turn some X into 0 or 1, so this many passes always suffice
+  const limit = 2 * devices.length + 2;
+  for (let pass = 0; pass < limit; pass++) {
     let changed = false;
-    for (const g of gates) {
-      const ins = inputPortsOf(g.type, g.inputs).map((p) => read(g, p));
-      const v = evalGate(g.type as GateType, ins);
-      const key = netKey(g.id, 'out');
-      if (nets.get(key) !== v) {
-        nets.set(key, v);
+    const set = (net: string, v: Logic) => {
+      if (nets.get(net) !== v) {
+        nets.set(net, v);
         changed = true;
+      }
+    };
+    for (const d of devices) {
+      const ins = d.inputs.map(read);
+      if (d.kind === 'gate' || d.kind === 'block') {
+        combinational(d, ins).forEach((v, i) => set(d.outputs[i], v));
+      } else if (d.kind === 'latch') {
+        const r = latchStep(d.type, ins, undefined, d.state[0]);
+        d.state = [r.state];
+        r.outputs.forEach((v, i) => set(d.outputs[i], v));
+      } else if (d.reset >= 0) {
+        const r = counterReset(ins[d.reset], d.state);
+        if (r) {
+          d.state = r;
+          stateOutputs(d.type, r).forEach((v, i) => set(d.outputs[i], v));
+        }
       }
     }
     if (!changed) break;
   }
 
   const inputs = new Map<string, Logic>();
-  for (const c of circuit.components) {
-    for (const p of inputPortsOf(c.type, c.inputs)) inputs.set(netKey(c.id, p), read(c, p));
+  const driverOf = new Map<string, string>();
+  for (const w of circuit.wires) {
+    driverOf.set(netKey(w.to.component, w.to.port), netKey(w.from.component, w.from.port));
   }
-  return { nets, inputs };
+  for (const c of circuit.components) {
+    for (const p of inputPortsOf(c.type, c.inputs)) {
+      const key = netKey(c.id, p);
+      inputs.set(key, read(driverOf.get(key) ?? ''));
+    }
+  }
+  const states = new Map(
+    devices.filter((d) => d.state.length > 0).map((d): [string, Logic[]] => [d.id, [...d.state]]),
+  );
+  return { nets, inputs, states };
 }
