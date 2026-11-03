@@ -84,7 +84,7 @@ export function Home({ onOpenEditor }: HomeProps) {
               </button>
             </div>
             <p className="building">
-              בבנייה: העורך כבר פתוח. הסימולציה והניתוח מתווספים בשבועות הקרובים.
+              בבנייה: העורך, הסימולציה ודיאגרמת הזמנים כבר פתוחים. ניתוח ה-hazards מתווסף בקרוב.
             </p>
           </div>
           <HazardDemo />

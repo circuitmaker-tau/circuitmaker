@@ -41,6 +41,13 @@ type NodeMeta = Pick<ComponentFlowNode, 'measured' | 'selected'>;
 const isComponentType = (t: string): t is ComponentType =>
   (COMPONENT_TYPES as readonly string[]).includes(t);
 
+type Sheet = 'none' | 'palette' | 'props' | 'timing';
+const SHEETS: [Exclude<Sheet, 'none'>, string][] = [
+  ['palette', 'רכיבים'],
+  ['props', 'מאפיינים'],
+  ['timing', 'דיאגרמת זמנים'],
+];
+
 export function Editor() {
   const circuit = useCircuitStore((s) => s.circuit);
   const message = useCircuitStore((s) => s.message);
@@ -64,6 +71,9 @@ export function Editor() {
   }, [loaded, fitView, setViewport]);
 
   const [nodeMeta, setNodeMeta] = useState<Record<string, NodeMeta>>({});
+  // on a phone the palette, properties and timing diagram are sheets over the canvas
+  const [sheet, setSheet] = useState<Sheet>('none');
+  const toggleSheet = (next: Sheet) => setSheet((cur) => (cur === next ? 'none' : next));
   const [selectedEdges, setSelectedEdges] = useState<Set<string>>(new Set());
 
   // a structural edit restarts the simulation from the steady state; flipping a switch does not
@@ -171,13 +181,14 @@ export function Editor() {
   // a click in the palette puts the component in the first free spot
   const onPaletteAdd = (type: ComponentType) => {
     addComponent(type, findFreeSpot(circuit, createComponent(type, 'new')));
+    setSheet('none');
   };
 
   const selected = nodes.filter((n) => n.selected);
   const selectedComponent = selected.length === 1 ? selected[0].data.component : null;
 
   return (
-    <div className="editor">
+    <div className={`editor sheet-${sheet}`}>
       <Palette onAdd={onPaletteAdd} />
       <div className="workspace">
         <div className="canvas" dir="ltr" onDrop={onDrop} onDragOver={onDragOver}>
@@ -192,6 +203,7 @@ export function Editor() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onPaneClick={() => setSheet('none')}
             isValidConnection={isValidConnection}
             deleteKeyCode={['Backspace', 'Delete']}
             snapToGrid
@@ -213,6 +225,19 @@ export function Editor() {
         <TimingDiagram />
       </div>
       <PropertiesPanel component={selectedComponent} />
+      <nav className="mobile-tabs" aria-label="חלוניות">
+        {SHEETS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={sheet === id}
+            className={id === 'props' && selectedComponent ? 'has-badge' : undefined}
+            onClick={() => toggleSheet(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
