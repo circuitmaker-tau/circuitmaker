@@ -1,32 +1,33 @@
 /**
- * Event-driven simulator with a propagation delay (Tp) per gate.
+ * Event-driven simulator with a propagation delay (Tp) per component.
  *
  * Semantics follow the course and COMPONENT_SPEC §1, and match reference_sim.py
  * tick for tick:
  * - E1  time is an integer number of ticks, 10 ticks per unit (Tp = 1.5 -> 15).
- * - E2  every change at a gate input re-evaluates the gate, and the new output
- *       is scheduled Tp later. Nothing is cancelled, so even a pulse shorter than
- *       Tp reaches the output, as in the course's timing diagrams and the
- *       official exam solutions. (In simulation jargon: a transport delay.)
- *       A rise uses tpLH and a fall uses tpHL when they are set (recitation 5).
+ * - E2  every change at an input re-evaluates the component, and each new
+ *       output is scheduled Tp later. Nothing is cancelled, so even a pulse
+ *       shorter than Tp reaches the output, as in the course's timing diagrams
+ *       and the official exam solutions. (In simulation jargon: a transport
+ *       delay.) A rise uses tpLH and a fall uses tpHL when they are set.
  * - E3  all events at the same tick are applied together, then the affected
- *       gates are evaluated. More than 1000 rounds at one tick (a zero-delay
- *       loop) stops the run and is reported as an oscillation.
+ *       components are evaluated. More than 1000 rounds at one tick (a
+ *       zero-delay loop) stops the run and is reported as an oscillation.
+ * - E4  flip-flops, registers and counters change on a rising clock edge
+ *       (0 -> 1) and sample their inputs as they were just before the edge
+ *       (exam 2026B, 2D: "the sampling is always just before the clk change").
+ *       A clock going 0 -> X or X -> 1 is not a defined edge, so Q becomes X.
+ * - E6  a clock starts at its start level and toggles every half period.
  *
  * The circuit starts from its steady state (settle.ts), so a simulation shows
- * only what happens after a switch is flipped.
- *
- * Milestone 4 covers gates, switches, constants and lamps. Flip-flops,
- * latches, the clock and the larger blocks are added in milestone 5.
+ * only what happens after a switch is flipped or the clock ticks.
  */
-import { inputPortsOf } from '../model';
-import type { Circuit, Component } from '../model';
-import { delayToTicks } from '../model/time';
-import { evalGate } from './logic';
-import type { GateType, Logic } from './logic';
-import { netKey, settle } from './settle';
+import type { Circuit } from '../model';
+import { counterReset, edgeStep, latchStep, stateOutputs } from './behavior';
+import type { Logic } from './logic';
+import { buildNetlist, delayFor } from './netlist';
+import type { Clock, Device } from './netlist';
+import { combinational, settle } from './settle';
 
-const GATE_TYPES: readonly string[] = ['AND', 'OR', 'NOT', 'BUF', 'NAND', 'NOR', 'XOR', 'XNOR'];
 const MAX_ROUNDS_PER_TICK = 1000;
 
 export interface Transition {
@@ -34,14 +35,10 @@ export interface Transition {
   value: Logic;
 }
 
-interface Gate {
-  id: string;
-  type: GateType;
-  inputs: string[]; // net keys feeding each input, '' when unconnected
-  out: string;
-  rise: number; // ticks
-  fall: number;
-  plain: number;
+export interface SimWarning {
+  time: number; // ticks
+  component: string;
+  message: string;
 }
 
 interface SimEvent {
@@ -49,8 +46,9 @@ interface SimEvent {
   seq: number;
   net: string;
   value: Logic;
+  /** The next toggle of this clock is scheduled when this one is applied. */
+  clock?: Clock;
 }
-
 /** Binary min-heap ordered by (time, seq): earliest first, then in scheduling order. */
 class EventQueue {
   private heap: SimEvent[] = [];
@@ -105,52 +103,35 @@ export class Simulator {
   now = 0;
   /** Set when a zero-delay loop kept changing at one tick; the run stops there. */
   oscillation: { time: number; nets: string[] } | null = null;
+  /** Things the student should know about: a forbidden SR input, a latch race. */
+  warnings: SimWarning[] = [];
 
   private values = new Map<string, Logic>();
   private traces = new Map<string, Transition[]>();
-  private fanout = new Map<string, Gate[]>();
+  private fanout: Map<string, Device[]>;
   private queue = new EventQueue();
   private seq = 0;
+  /** Pending events that are not clock toggles. */
+  private pending = 0;
 
   constructor(circuit: Circuit) {
-    const driverOf = new Map<string, string>();
-    for (const w of circuit.wires) {
-      driverOf.set(netKey(w.to.component, w.to.port), netKey(w.from.component, w.from.port));
-    }
-    for (const c of circuit.components) {
-      if (!GATE_TYPES.includes(c.type)) continue;
-      const g = this.buildGate(c, driverOf);
-      for (const n of g.inputs) {
-        if (!n) continue;
-        const list = this.fanout.get(n) ?? [];
-        list.push(g);
-        this.fanout.set(n, list);
-      }
-    }
-    for (const [net, v] of settle(circuit).nets) {
+    const netlist = buildNetlist(circuit);
+    this.fanout = netlist.fanout;
+    const start = settle(circuit);
+    for (const [net, v] of start.nets) {
       this.values.set(net, v);
       this.traces.set(net, [{ time: 0, value: v }]);
     }
-  }
-
-  private buildGate(c: Component, driverOf: Map<string, string>): Gate {
-    const plain = delayToTicks(c.delay);
-    const rise = c.props?.tpLH !== undefined ? delayToTicks(c.props.tpLH) : plain;
-    const fall = c.props?.tpHL !== undefined ? delayToTicks(c.props.tpHL) : plain;
-    return {
-      id: c.id,
-      type: c.type as GateType,
-      inputs: inputPortsOf(c.type, c.inputs).map((p) => driverOf.get(netKey(c.id, p)) ?? ''),
-      out: netKey(c.id, 'out'),
-      rise,
-      fall,
-      plain,
-    };
+    for (const d of netlist.devices) {
+      d.state = start.states.get(d.id) ?? d.state;
+      if (d.kind === 'latch') d.last = d.inputs.map((n) => this.value(n));
+    }
+    for (const c of netlist.clocks) this.push(c.half, c.net, c.start === 1 ? 0 : 1, c);
   }
 
   /** Value of a net now (X if it does not exist). */
   value(net: string): Logic {
-    return this.values.get(net) ?? 'X';
+    return net ? (this.values.get(net) ?? 'X') : 'X';
   }
 
   /** Snapshot of every net's current value. */
@@ -165,16 +146,22 @@ export class Simulator {
 
   /** Flip a switch (or force any net) at a given tick, default now. */
   setNet(net: string, value: Logic, at = this.now) {
-    this.schedule(Math.max(at, this.now), net, value);
+    this.push(Math.max(at, this.now), net, value);
   }
 
-  /** Time of the next pending event, or undefined when the circuit is at rest. */
+  /** Time of the next pending event, or undefined when nothing is scheduled. */
   nextEventTime(): number | undefined {
     return this.queue.peek()?.time;
   }
 
+  /** Nothing will ever happen again (no events, or the run stopped on an oscillation). */
   get idle(): boolean {
     return this.queue.size === 0 || this.oscillation !== null;
+  }
+
+  /** Nothing is on its way except clock ticks: every change so far has arrived. */
+  get quiet(): boolean {
+    return this.pending === 0 || this.oscillation !== null;
   }
 
   /** Process every event up to and including `until`, then move the clock there. */
@@ -195,17 +182,22 @@ export class Simulator {
     return true;
   }
 
-  /** Run until the circuit is at rest (or a safety limit is hit). */
+  /** Run until only clock ticks are left (or nothing at all), or a safety limit is hit. */
   runToEnd(limit = this.now + 1_000_000) {
-    while (!this.idle) {
+    while (!this.quiet) {
       const t = this.nextEventTime()!;
       if (t > limit) break;
       this.runUntil(t);
     }
   }
 
-  private schedule(time: number, net: string, value: Logic) {
-    this.queue.push({ time, seq: this.seq++, net, value });
+  private push(time: number, net: string, value: Logic, clock?: Clock) {
+    if (!clock) this.pending++;
+    this.queue.push({ time, seq: this.seq++, net, value, clock });
+  }
+
+  private emit(d: Device, t: number, values: Logic[]) {
+    values.forEach((v, i) => this.push(t + delayFor(d, v), d.outputs[i], v));
   }
 
   private processTick(t: number) {
@@ -224,6 +216,8 @@ export class Simulator {
       const prior = new Map<string, Logic>();
       while (this.queue.peek()?.time === t) {
         const e = this.queue.pop()!;
+        if (e.clock) this.push(t + e.clock.half, e.net, e.value === 1 ? 0 : 1, e.clock);
+        else this.pending--;
         if (!prior.has(e.net)) prior.set(e.net, this.value(e.net));
         this.values.set(e.net, e.value);
       }
@@ -234,17 +228,50 @@ export class Simulator {
         this.traces.set(net, list);
       }
 
-      // re-evaluate each affected gate once and schedule its output Tp later
-      const touched = new Set<Gate>();
-      for (const net of changed) for (const g of this.fanout.get(net) ?? []) touched.add(g);
-      for (const g of touched) {
-        const v = evalGate(
-          g.type,
-          g.inputs.map((n) => (n ? this.value(n) : 'X')),
-        );
-        const d = v === 1 ? g.rise : v === 0 ? g.fall : g.plain;
-        this.schedule(t + d, g.out, v);
+      // re-evaluate each affected component once
+      const before = (net: string): Logic => (prior.has(net) ? prior.get(net)! : this.value(net));
+      const changedSet = new Set(changed);
+      const touched = new Set<Device>();
+      for (const net of changed) for (const d of this.fanout.get(net) ?? []) touched.add(d);
+      for (const d of touched) this.evaluate(d, t, before, changedSet);
+    }
+  }
+
+  private evaluate(d: Device, t: number, before: (net: string) => Logic, changed: Set<string>) {
+    const ins = d.inputs.map((n) => this.value(n));
+    if (d.kind === 'gate' || d.kind === 'block') {
+      this.emit(d, t, combinational(d, ins));
+      return;
+    }
+    if (d.kind === 'latch') {
+      const r = latchStep(d.type, ins, d.last, d.state[0]);
+      d.state = [r.state];
+      d.last = ins;
+      if (r.warning) this.warnings.push({ time: t, component: d.id, message: r.warning });
+      this.emit(d, t, r.outputs);
+      return;
+    }
+
+    // edge triggered: only a change of CLK (or of an asynchronous RESET) matters
+    let next: Logic[] | null = null;
+    const clk = d.inputs[d.clock];
+    if (clk && changed.has(clk)) {
+      const from = before(clk);
+      const to = this.value(clk);
+      if (from === 0 && to === 1) {
+        if (d.reset < 0 || before(d.inputs[d.reset]) === 0) {
+          const r = edgeStep(d.type, d.inputs.map(before), d.state);
+          if (r.warning) this.warnings.push({ time: t, component: d.id, message: r.warning });
+          next = r.state;
+        }
+      } else if ((from === 0 && to === 'X') || (from === 'X' && to === 1)) {
+        next = d.state.map(() => 'X' as const);
       }
+    }
+    if (d.reset >= 0) next = counterReset(ins[d.reset], next ?? d.state) ?? next;
+    if (next) {
+      d.state = next;
+      this.emit(d, t, stateOutputs(d.type, next));
     }
   }
 }
