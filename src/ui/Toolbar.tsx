@@ -14,9 +14,10 @@ const STATUS_TEXT: Record<SaveStatus, string> = {
 
 interface ToolbarProps {
   onHome: () => void;
+  onHelp: () => void;
 }
 
-export function Toolbar({ onHome }: ToolbarProps) {
+export function Toolbar({ onHome, onHelp }: ToolbarProps) {
   const name = useCircuitStore((s) => s.circuit.name);
   const saveStatus = useCircuitStore((s) => s.saveStatus);
   const { newCircuit, loadCircuit, renameCircuit, showMessage } = useCircuitStore.getState();
@@ -84,6 +85,9 @@ export function Toolbar({ onHome }: ToolbarProps) {
         </button>
         <button type="button" onClick={() => downloadCircuit(useCircuitStore.getState().circuit)}>
           ייצוא JSON
+        </button>
+        <button type="button" onClick={onHelp} title="מדריך למשתמש">
+          עזרה
         </button>
         <input
           ref={fileInput}

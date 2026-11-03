@@ -1177,3 +1177,71 @@ button:disabled:hover {
     flex-direction: column;
   }
 }
+
+/* ---------------------------------------------------------------- tour */
+
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+/* the light: a hole in a dark layer, drawn with one huge shadow */
+.tour-spot {
+  position: fixed;
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72);
+  outline: 2px solid var(--fg);
+  pointer-events: none;
+  transition:
+    top 0.2s,
+    left 0.2s,
+    width 0.2s,
+    height 0.2s;
+}
+
+.tour-card {
+  position: fixed;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+}
+
+.tour-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.tour-card p {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.tour-count {
+  color: var(--muted);
+  font-size: 0.75rem !important;
+  margin-bottom: 4px !important;
+}
+
+.tour-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tour-next {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot {
+    transition: none;
+  }
+}
