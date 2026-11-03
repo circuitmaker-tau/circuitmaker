@@ -10,6 +10,7 @@
 import { create } from 'zustand';
 import { Simulator } from '../engine/simulator';
 import type { Circuit } from '../model';
+import type { Logic } from '../engine/logic';
 import { delayToTicks } from '../model/time';
 import { useCircuitStore } from './circuitStore';
 
@@ -45,10 +46,36 @@ export function structureSignature(circuit: Circuit): string {
   });
 }
 
+export interface Front {
+  progress: number;
+  value: Logic;
+}
+
+/** Where every in-flight change is, as a share of its component's delay. */
+export function frontsOf(sim: Simulator): Map<string, Front[]> {
+  const fronts = new Map<string, Front[]>();
+  for (const [net, list] of sim.inFlight()) {
+    fronts.set(
+      net,
+      list.map((f) => ({
+        progress: Math.min(1, Math.max(0, (sim.now - f.from) / (f.at - f.from))),
+        value: f.value,
+      })),
+    );
+  }
+  return fronts;
+}
+
 export interface SimState {
   sim: Simulator | null;
   /** Bumped after every change to the simulator, so components re-render. */
   version: number;
+  /**
+   * For each wire's net, the new values travelling through the driving
+   * component's delay, with how far along they are (0 to 1). Rebuilt on every
+   * change, so a wire re-renders only while something is on its way.
+   */
+  fronts: Map<string, Front[]>;
   playing: boolean;
   speed: Speed;
   /** Ticks per real millisecond at the current speed. */
@@ -82,7 +109,8 @@ const rateFor = (circuit: Circuit, speed: Speed) =>
   (typicalTpTicks(circuit) * speed) / MS_PER_TYPICAL_TP;
 
 export const useSimStore = create<SimState>()((set, get) => {
-  const bump = () => set((s) => ({ version: s.version + 1 }));
+  const bump = () =>
+    set((s) => ({ version: s.version + 1, fronts: s.sim ? frontsOf(s.sim) : new Map() }));
   /** Tell the user about an oscillation or a new warning (forbidden SR input, latch race). */
   const report = (sim: Simulator) => {
     const { showMessage } = useCircuitStore.getState();
@@ -103,6 +131,7 @@ export const useSimStore = create<SimState>()((set, get) => {
   return {
     sim: null,
     version: 0,
+    fronts: new Map(),
     playing: false,
     speed: 1,
     rate: 10 / MS_PER_TYPICAL_TP,
@@ -119,6 +148,7 @@ export const useSimStore = create<SimState>()((set, get) => {
         period: clockPeriodTicks(circuit),
         rate: rateFor(circuit, s.speed),
         version: s.version + 1,
+        fronts: new Map(),
       })),
 
     flip: (inputId) => {

@@ -200,3 +200,18 @@ describe('engine rules', () => {
     expect(sim.oscillation?.time).toBe(10);
   });
 });
+
+describe('changes in flight (wire animation)', () => {
+  it('lists each new value travelling through a delay, and only real changes', () => {
+    const sim = new Simulator(mux2FromGates);
+    sim.setNet('S0:out', 0, 0);
+    sim.runUntil(5); // half way through the first Tp
+    const flight = sim.inFlight();
+    expect(flight.get('n1:out')).toEqual([{ from: 0, at: 10, value: 1 }]);
+    expect(flight.get('a1:out')).toEqual([{ from: 0, at: 10, value: 0 }]);
+    // a2 and o1 were re-evaluated to the value they already have: nothing to show
+    expect(flight.has('o1:out')).toBe(false);
+    sim.runToEnd();
+    expect(sim.inFlight().size).toBe(0);
+  });
+});

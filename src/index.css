@@ -753,3 +753,23 @@ button:disabled:hover {
 .timing-resize:hover {
   background: var(--accent-soft);
 }
+
+/* a change travelling along a wire during the driving component's Tp */
+.cm-front {
+  fill: none;
+  pointer-events: none;
+  stroke-width: 2.6;
+  stroke-linecap: butt;
+}
+
+.cm-front.sig-1 {
+  stroke: var(--sig-1);
+}
+
+.cm-front.sig-0 {
+  stroke: var(--sig-0);
+}
+
+.cm-front.sig-x {
+  stroke: var(--sig-x);
+}

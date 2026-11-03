@@ -64,6 +64,17 @@ interface SimEvent {
   external?: boolean;
   /** Tick of the outside change this event follows from. */
   cause: number;
+  /** Tick at which a component scheduled it (its Tp started), for the wire animation. */
+  born?: number;
+}
+
+/** A new value on its way through a component's delay (shown travelling along the wire). */
+export interface InFlight {
+  /** Tick at which the delay started. */
+  from: number;
+  /** Tick at which the value arrives. */
+  at: number;
+  value: Logic;
 }
 /** Binary min-heap ordered by (time, seq): earliest first, then in scheduling order. */
 class EventQueue {
@@ -75,6 +86,11 @@ class EventQueue {
 
   peek(): SimEvent | undefined {
     return this.heap[0];
+  }
+
+  /** Every pending event, in no particular order. */
+  all(): readonly SimEvent[] {
+    return this.heap;
   }
 
   push(e: SimEvent) {
@@ -187,6 +203,34 @@ export class Simulator {
     this.push(t, net, value, { external: true, cause: t });
   }
 
+  /**
+   * Values travelling through a delay right now, per net, earliest first. Only
+   * real changes are listed: an event that would not change the net (given the
+   * ones before it) is left out.
+   */
+  inFlight(): Map<string, InFlight[]> {
+    const byNet = new Map<string, SimEvent[]>();
+    for (const e of this.queue.all()) {
+      if (e.born === undefined || e.time <= e.born) continue;
+      const list = byNet.get(e.net) ?? [];
+      list.push(e);
+      byNet.set(e.net, list);
+    }
+    const result = new Map<string, InFlight[]>();
+    for (const [net, events] of byNet) {
+      events.sort((a, b) => a.time - b.time || a.seq - b.seq);
+      let v = this.value(net);
+      const changes: InFlight[] = [];
+      for (const e of events) {
+        if (e.value === v) continue;
+        v = e.value;
+        changes.push({ from: e.born!, at: e.time, value: e.value });
+      }
+      if (changes.length > 0) result.set(net, changes);
+    }
+    return result;
+  }
+
   /** Time of the next pending event, or undefined when nothing is scheduled. */
   nextEventTime(): number | undefined {
     return this.queue.peek()?.time;
@@ -233,14 +277,14 @@ export class Simulator {
     time: number,
     net: string,
     value: Logic,
-    opts: { cause: number; clock?: Clock; external?: boolean },
+    opts: { cause: number; clock?: Clock; external?: boolean; born?: number },
   ) {
     if (!opts.clock) this.pending++;
     this.queue.push({ time, seq: this.seq++, net, value, ...opts });
   }
 
   private emit(d: Device, t: number, values: Logic[], cause: number) {
-    values.forEach((v, i) => this.push(t + delayFor(d, v), d.outputs[i], v, { cause }));
+    values.forEach((v, i) => this.push(t + delayFor(d, v), d.outputs[i], v, { cause, born: t }));
   }
 
   private processTick(t: number) {
