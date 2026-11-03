@@ -184,6 +184,15 @@ a {
   flex: 1;
   min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* the circuit takes the space under the playback bar, so the bar never covers a component */
+.flow {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .status {
@@ -454,19 +463,16 @@ a {
 /* playback controls, floating at the top of the canvas */
 
 .sim-controls {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 6px 10px;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border-bottom: 1px solid var(--line);
   white-space: nowrap;
+  overflow-x: auto;
 }
 
 .sim-time {
@@ -923,11 +929,7 @@ button:disabled:hover {
 
   /* playback controls: one row across the top that scrolls sideways */
   .sim-controls {
-    left: 8px;
-    right: 8px;
-    top: 8px;
-    transform: none;
-    overflow-x: auto;
+    justify-content: flex-start;
     gap: 6px;
     padding: 4px 6px;
     font-size: 0.85rem;
