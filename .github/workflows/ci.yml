@@ -1,7 +1,8 @@
 name: CI
 
-# Runs on every pull request: lint, unit tests, a production build and the
-# comparison with Icarus Verilog.
+# Runs on every pull request: lint, unit tests, a production build, the
+# comparison with Icarus Verilog, and browser tests on Chromium, Firefox and
+# WebKit (Safari's engine).
 on:
   pull_request:
   workflow_dispatch:
@@ -22,3 +23,12 @@ jobs:
       # our simulator against Icarus Verilog, change by change (docs/ICARUS.md)
       - run: sudo apt-get update && sudo apt-get install -y iverilog
       - run: npm run test:icarus
+      # browser tests on three engines, plus an iPhone layout and the frame rate (e2e/)
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

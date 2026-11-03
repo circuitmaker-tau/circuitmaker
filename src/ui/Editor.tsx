@@ -193,26 +193,28 @@ export function Editor() {
       <div className="workspace">
         <div className="canvas" dir="ltr" onDrop={onDrop} onDragOver={onDragOver}>
           <SimControls />
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            connectionLineType={ConnectionLineType.Step}
-            colorMode="dark"
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onPaneClick={() => setSheet('none')}
-            isValidConnection={isValidConnection}
-            deleteKeyCode={['Backspace', 'Delete']}
-            snapToGrid
-            snapGrid={[10, 10]}
-            fitView
-          >
-            <Background gap={20} color="#2a2a30" />
-            <Controls showInteractive={false} />
-          </ReactFlow>
+          <div className="flow">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              connectionLineType={ConnectionLineType.Step}
+              colorMode="dark"
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onPaneClick={() => setSheet('none')}
+              isValidConnection={isValidConnection}
+              deleteKeyCode={['Backspace', 'Delete']}
+              snapToGrid
+              snapGrid={[10, 10]}
+              fitView
+            >
+              <Background gap={20} color="#2a2a30" />
+              <Controls showInteractive={false} />
+            </ReactFlow>
+          </div>
           {message && (
             <div className="status" role="status" dir="rtl">
               <span>{message}</span>
