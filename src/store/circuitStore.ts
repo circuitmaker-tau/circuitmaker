@@ -15,6 +15,7 @@ import {
   nextId,
 } from '../model';
 import type { Circuit, Component, ComponentType, PortRef, Position } from '../model';
+import type { SaveStatus } from '../persistence/persistence';
 
 export interface ComponentPatch {
   delay?: number;
@@ -23,8 +24,10 @@ export interface ComponentPatch {
 
 export interface CircuitState {
   circuit: Circuit;
-  /** Last user-facing message (a refused wire, a bad value). */
+  /** Last user-facing message (a refused wire, a bad value, a bad file). */
   message: string | null;
+  /** State of the automatic save in the browser. */
+  saveStatus: SaveStatus;
 
   addComponent: (type: ComponentType, position: Position) => string;
   moveComponents: (moves: Record<string, Position>) => void;
@@ -35,7 +38,10 @@ export interface CircuitState {
   removeWires: (ids: string[]) => void;
   loadCircuit: (circuit: Circuit) => void;
   newCircuit: () => void;
+  renameCircuit: (name: string) => void;
+  showMessage: (text: string) => void;
   clearMessage: () => void;
+  setSaveStatus: (status: SaveStatus) => void;
 }
 
 const ID_PREFIX: Partial<Record<ComponentType, string>> = {
@@ -54,6 +60,7 @@ const clone = (c: Circuit): Circuit => structuredClone(c);
 export const useCircuitStore = create<CircuitState>()((set, get) => ({
   circuit: clone(mux2FromGates),
   message: null,
+  saveStatus: 'idle',
 
   addComponent: (type, position) => {
     const { circuit } = get();
@@ -167,5 +174,8 @@ export const useCircuitStore = create<CircuitState>()((set, get) => ({
 
   loadCircuit: (circuit) => set({ circuit: clone(circuit), message: null }),
   newCircuit: () => set({ circuit: createCircuit(), message: null }),
+  renameCircuit: (name) => set({ circuit: { ...get().circuit, name } }),
+  showMessage: (text) => set({ message: text }),
   clearMessage: () => set({ message: null }),
+  setSaveStatus: (status) => set({ saveStatus: status }),
 }));

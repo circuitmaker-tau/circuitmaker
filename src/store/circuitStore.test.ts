@@ -127,4 +127,13 @@ describe('circuit store', () => {
     store().removeWires(['w8']);
     expect(store().circuit.wires).toHaveLength(7);
   });
+
+  it('renames the circuit and shows messages', () => {
+    store().renameCircuit('המונה שלי');
+    expect(store().circuit.name).toBe('המונה שלי');
+    store().showMessage('שגיאה');
+    expect(store().message).toBe('שגיאה');
+    store().clearMessage();
+    expect(store().message).toBeNull();
+  });
 });

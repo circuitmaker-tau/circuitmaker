@@ -80,7 +80,29 @@ a {
 }
 
 .circuit-name {
+  font: inherit;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  min-width: 0;
+  width: 240px;
+}
+
+.circuit-name:hover,
+.circuit-name:focus {
+  border-color: var(--line);
+  outline: none;
+}
+
+.save-status {
+  font-size: 0.8rem;
   color: var(--muted);
+}
+
+.save-status[data-status='error'] {
+  color: var(--danger);
 }
 
 .topbar .actions {
