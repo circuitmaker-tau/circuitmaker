@@ -21,10 +21,10 @@ export function perCycle(bits: (0 | 1)[]): { value: 0 | 1; schedule: Stimulus[] 
 const clock = { halfPeriod: FSM_PERIOD / 2, startLevel: 0 as const };
 
 /**
- * Bamba of 2 and 3 cycles, a gap, a Bamba of 1 cycle and one of 4: only the
- * first two are a normal size.
+ * The input of homework 9 (TEST_CIRCUITS TC-F1): Bambas of 1, 2, 3 and 4
+ * cycles. Only the 2 and the 3 are a normal size.
  */
-export const BAMBA_INPUT: (0 | 1)[] = [0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0];
+export const BAMBA_INPUT: (0 | 1)[] = [0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0];
 
 /**
  * WK9B (design): the Bamba machine with two T flip-flops. a = 00 no Bamba,
