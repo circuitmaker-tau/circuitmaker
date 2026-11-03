@@ -105,7 +105,8 @@ export function TimingDiagram() {
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
     ro.observe(el); // reports the first size too
     return () => ro.disconnect();
-  }, [open]);
+    // the scroller is a new element each time the diagram is shown again (closed, or back from the analysis tab)
+  }, [timing]);
 
   // a signal keeps its colour when others are hidden: it comes from its place among all nets
   const rows = useMemo(() => {
