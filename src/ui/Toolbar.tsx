@@ -1,0 +1,71 @@
+import { useRef } from 'react';
+import type { ChangeEvent } from 'react';
+import { mux2FromGates } from '../examples/mux2FromGates';
+import { downloadCircuit, readCircuitFile } from '../persistence/persistence';
+import type { SaveStatus } from '../persistence/persistence';
+import { useCircuitStore } from '../store/circuitStore';
+
+const STATUS_TEXT: Record<SaveStatus, string> = {
+  idle: '',
+  saving: 'שומר…',
+  saved: 'נשמר בדפדפן',
+  error: 'השמירה בדפדפן נכשלה. כדאי לייצא JSON',
+};
+
+export function Toolbar() {
+  const name = useCircuitStore((s) => s.circuit.name);
+  const saveStatus = useCircuitStore((s) => s.saveStatus);
+  const { newCircuit, loadCircuit, renameCircuit, showMessage } = useCircuitStore.getState();
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const onImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // picking the same file again should still fire
+    if (!file) return;
+    const result = await readCircuitFile(file);
+    if (!result.ok) {
+      showMessage(`לא ניתן לטעון את ${file.name}: ${result.errors.join(' · ')}`);
+      return;
+    }
+    loadCircuit(result.circuit);
+    if (result.warnings.length > 0) {
+      showMessage(`המעגל נטען. ${result.warnings.length} כניסות לא מחוברות (ערכן X).`);
+    }
+  };
+
+  return (
+    <header className="topbar">
+      <h1>CircuitMaker</h1>
+      <input
+        className="circuit-name"
+        aria-label="שם המעגל"
+        value={name}
+        onChange={(e) => renameCircuit(e.target.value)}
+      />
+      <span className="save-status" role="status" data-status={saveStatus}>
+        {STATUS_TEXT[saveStatus]}
+      </span>
+      <div className="actions">
+        <button type="button" onClick={newCircuit}>
+          מעגל חדש
+        </button>
+        <button type="button" onClick={() => loadCircuit(mux2FromGates)}>
+          דוגמה: MUX 2:1
+        </button>
+        <button type="button" onClick={() => fileInput.current?.click()}>
+          ייבוא JSON
+        </button>
+        <button type="button" onClick={() => downloadCircuit(useCircuitStore.getState().circuit)}>
+          ייצוא JSON
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".json,application/json"
+          hidden
+          onChange={(e) => void onImport(e)}
+        />
+      </div>
+    </header>
+  );
+}
