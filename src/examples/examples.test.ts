@@ -141,11 +141,12 @@ describe('state machines of week 9', () => {
       '10': ['00', '11', 1, 0],
       '11': ['00', '00', 1, 0],
     } as const;
-    const want = fromTable(table as never, BAMBA_INPUT);
+    // homework 9 (TC-F1)
+    const want = [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0];
+    expect(fromTable(table as never, BAMBA_INPUT)).toEqual(want);
     expect(sampled(bambaFsm, BAMBA_INPUT.length)).toEqual(want);
-    expect(want.filter((z) => z === 1)).toHaveLength(2);
     // one clean pulse per normal Bamba, no glitches
-    expect(wave(run(bambaFsm, 170), 'z:out')).toBe('0:0 32:1 37:0 72:1 77:0');
+    expect(wave(run(bambaFsm, 190), 'z:out')).toBe('0:0 52:1 57:0 112:1 117:0');
   });
 
   it('the WK9A machine detects 0101 (a → b → d → c), with the equations of the lecture', () => {
@@ -166,6 +167,10 @@ describe('state machines of week 9', () => {
       fromTable(table, DETECTOR_INPUT),
     );
     expect(wave(run(detector0101, 170), 'z:out')).toBe('0:0 41:1 47:0 101:1 107:0');
+    // TC-F2, from the lecture
+    expect(fromTable(table, [0, 1, 0, 1])).toEqual([0, 0, 0, 1]);
+    expect(fromTable(table, [1, 1, 0, 1, 0, 1])).toEqual([0, 0, 0, 0, 0, 1]);
+    expect(fromTable(table, [0, 0, 1, 0])).toEqual([0, 0, 0, 0]);
     // 010101: only once, the machine goes back to a after detecting
     expect(fromTable(table, [0, 1, 0, 1, 0, 1]).filter((z) => z === 1)).toHaveLength(1);
   });
