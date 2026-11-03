@@ -17,6 +17,9 @@
  *       (exam 2026B, 2D: "the sampling is always just before the clk change").
  *       A clock going 0 -> X or X -> 1 is not a defined edge, so Q becomes X.
  * - E6  a clock starts at its start level and toggles every half period.
+ * - E8  a net that keeps changing with no outside change (a switch, a clock
+ *       edge) more than OSCILLATION_LIMIT times is reported as oscillating.
+ *       The run goes on, since a ring oscillator is a legitimate circuit.
  *
  * The circuit starts from its steady state (settle.ts), so a simulation shows
  * only what happens after a switch is flipped or the clock ticks.
@@ -24,15 +27,24 @@
 import type { Circuit } from '../model';
 import { counterReset, edgeStep, latchStep, stateOutputs } from './behavior';
 import type { Logic } from './logic';
-import { buildNetlist, delayFor } from './netlist';
+import { delayToTicks } from '../model/time';
+import { buildNetlist, delayFor, netKey } from './netlist';
 import type { Clock, Device } from './netlist';
 import { combinational, settle } from './settle';
 
 const MAX_ROUNDS_PER_TICK = 1000;
+/** E8: changes of one net between two outside changes before it counts as oscillating. */
+export const OSCILLATION_LIMIT = 50;
 
 export interface Transition {
   time: number; // ticks
   value: Logic;
+  /**
+   * Tick of the outside change (switch or clock) that led to this transition,
+   * -1 for the starting value. Two transitions with the same cause make a
+   * glitch (glitches.ts).
+   */
+  cause: number;
 }
 
 export interface SimWarning {
@@ -48,6 +60,10 @@ interface SimEvent {
   value: Logic;
   /** The next toggle of this clock is scheduled when this one is applied. */
   clock?: Clock;
+  /** A change from outside the circuit: a switch flip or a scheduled stimulus. */
+  external?: boolean;
+  /** Tick of the outside change this event follows from. */
+  cause: number;
 }
 /** Binary min-heap ordered by (time, seq): earliest first, then in scheduling order. */
 class EventQueue {
@@ -103,8 +119,15 @@ export class Simulator {
   now = 0;
   /** Set when a zero-delay loop kept changing at one tick; the run stops there. */
   oscillation: { time: number; nets: string[] } | null = null;
-  /** Things the student should know about: a forbidden SR input, a latch race. */
+  /** Things the student should know about: a forbidden SR input, a latch race, oscillation. */
   warnings: SimWarning[] = [];
+  /**
+   * Ticks at which something outside the circuit changed (a switch or a clock).
+   * A glitch is a pulse between two of these (see glitches.ts).
+   */
+  external: number[] = [];
+  /** Nets reported as oscillating (E8). */
+  oscillating = new Set<string>();
 
   private values = new Map<string, Logic>();
   private traces = new Map<string, Transition[]>();
@@ -113,6 +136,10 @@ export class Simulator {
   private seq = 0;
   /** Pending events that are not clock toggles. */
   private pending = 0;
+  /** Cause of the latest change of each net. */
+  private causeOf = new Map<string, number>();
+  /** Changes of each net since the last outside change (E8). */
+  private changesSinceExternal = new Map<string, number>();
 
   constructor(circuit: Circuit) {
     const netlist = buildNetlist(circuit);
@@ -120,13 +147,23 @@ export class Simulator {
     const start = settle(circuit);
     for (const [net, v] of start.nets) {
       this.values.set(net, v);
-      this.traces.set(net, [{ time: 0, value: v }]);
+      this.traces.set(net, [{ time: 0, value: v, cause: -1 }]);
     }
     for (const d of netlist.devices) {
       d.state = start.states.get(d.id) ?? d.state;
       if (d.kind === 'latch') d.last = d.inputs.map((n) => this.value(n));
     }
-    for (const c of netlist.clocks) this.push(c.half, c.net, c.start === 1 ? 0 : 1, c);
+    for (const c of netlist.clocks) {
+      this.push(c.half, c.net, c.start === 1 ? 0 : 1, { clock: c, cause: c.half });
+    }
+    // planned switch changes (stimuli), as in "S0 goes to 0 at t = 5"
+    for (const comp of circuit.components) {
+      if (comp.type !== 'INPUT') continue;
+      for (const st of comp.props?.schedule ?? []) {
+        const at = delayToTicks(st.time);
+        this.push(at, netKey(comp.id, 'out'), st.value, { external: true, cause: at });
+      }
+    }
   }
 
   /** Value of a net now (X if it does not exist). */
@@ -146,7 +183,8 @@ export class Simulator {
 
   /** Flip a switch (or force any net) at a given tick, default now. */
   setNet(net: string, value: Logic, at = this.now) {
-    this.push(Math.max(at, this.now), net, value);
+    const t = Math.max(at, this.now);
+    this.push(t, net, value, { external: true, cause: t });
   }
 
   /** Time of the next pending event, or undefined when nothing is scheduled. */
@@ -191,13 +229,18 @@ export class Simulator {
     }
   }
 
-  private push(time: number, net: string, value: Logic, clock?: Clock) {
-    if (!clock) this.pending++;
-    this.queue.push({ time, seq: this.seq++, net, value, clock });
+  private push(
+    time: number,
+    net: string,
+    value: Logic,
+    opts: { cause: number; clock?: Clock; external?: boolean },
+  ) {
+    if (!opts.clock) this.pending++;
+    this.queue.push({ time, seq: this.seq++, net, value, ...opts });
   }
 
-  private emit(d: Device, t: number, values: Logic[]) {
-    values.forEach((v, i) => this.push(t + delayFor(d, v), d.outputs[i], v));
+  private emit(d: Device, t: number, values: Logic[], cause: number) {
+    values.forEach((v, i) => this.push(t + delayFor(d, v), d.outputs[i], v, { cause }));
   }
 
   private processTick(t: number) {
@@ -214,18 +257,31 @@ export class Simulator {
 
       // apply everything scheduled for this tick; the last one scheduled for a net wins
       const prior = new Map<string, Logic>();
+      const outside = new Set<string>();
+      const causeNow = new Map<string, number>();
       while (this.queue.peek()?.time === t) {
         const e = this.queue.pop()!;
-        if (e.clock) this.push(t + e.clock.half, e.net, e.value === 1 ? 0 : 1, e.clock);
-        else this.pending--;
+        if (e.clock) {
+          const next = t + e.clock.half;
+          this.push(next, e.net, e.value === 1 ? 0 : 1, { clock: e.clock, cause: next });
+        } else this.pending--;
+        causeNow.set(e.net, e.cause);
+        if (e.clock || e.external) outside.add(e.net);
         if (!prior.has(e.net)) prior.set(e.net, this.value(e.net));
         this.values.set(e.net, e.value);
       }
       const changed = [...prior].filter(([net, old]) => this.value(net) !== old).map(([n]) => n);
+      if (changed.some((n) => outside.has(n))) {
+        if (this.external.at(-1) !== t) this.external.push(t);
+        this.changesSinceExternal.clear();
+      }
       for (const net of changed) {
         const list = this.traces.get(net) ?? [];
-        list.push({ time: t, value: this.value(net) });
+        const cause = causeNow.get(net)!;
+        this.causeOf.set(net, cause);
+        list.push({ time: t, value: this.value(net), cause });
         this.traces.set(net, list);
+        if (!outside.has(net)) this.countChange(net, t);
       }
 
       // re-evaluate each affected component once
@@ -237,10 +293,27 @@ export class Simulator {
     }
   }
 
+  private countChange(net: string, t: number) {
+    const n = (this.changesSinceExternal.get(net) ?? 0) + 1;
+    this.changesSinceExternal.set(net, n);
+    if (n > OSCILLATION_LIMIT && !this.oscillating.has(net)) {
+      this.oscillating.add(net);
+      this.warnings.push({
+        time: t,
+        component: net.split(':')[0],
+        message: `תנודה: ${net.replace(':', '.')} מחליף ערך שוב ושוב בלי שינוי בכניסות`,
+      });
+    }
+  }
+
   private evaluate(d: Device, t: number, before: (net: string) => Logic, changed: Set<string>) {
     const ins = d.inputs.map((n) => this.value(n));
+    // the newest outside change among the inputs that just changed
+    const cause = Math.max(
+      ...d.inputs.filter((n) => changed.has(n)).map((n) => this.causeOf.get(n)!),
+    );
     if (d.kind === 'gate' || d.kind === 'block') {
-      this.emit(d, t, combinational(d, ins));
+      this.emit(d, t, combinational(d, ins), cause);
       return;
     }
     if (d.kind === 'latch') {
@@ -248,7 +321,7 @@ export class Simulator {
       d.state = [r.state];
       d.last = ins;
       if (r.warning) this.warnings.push({ time: t, component: d.id, message: r.warning });
-      this.emit(d, t, r.outputs);
+      this.emit(d, t, r.outputs, cause);
       return;
     }
 
@@ -271,7 +344,7 @@ export class Simulator {
     if (d.reset >= 0) next = counterReset(ins[d.reset], next ?? d.state) ?? next;
     if (next) {
       d.state = next;
-      this.emit(d, t, stateOutputs(d.type, next));
+      this.emit(d, t, stateOutputs(d.type, next), cause);
     }
   }
 }

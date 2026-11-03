@@ -10,7 +10,7 @@ import { BOX_TITLE } from './labels';
 
 /**
  * Live values from the simulation: `lamp` is what an OUTPUT receives, `level`
- * is a clock's current level, `state` is what a latch, flip-flop, register or
+ * is the current value of a switch or a clock, `state` is what a latch, flip-flop, register or
  * counter stores (Q0 first).
  */
 export type ComponentNodeData = {
@@ -56,7 +56,8 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
   const isGate = def.category === 'gate';
   const showPortNames = !isGate && def.category !== 'io';
   const flip = useSimStore((s) => s.flip);
-  const value = c.props?.value ?? 0;
+  // a switch shows its value in the simulation, which planned changes can move
+  const value = data.level ?? c.props?.value ?? 0;
 
   return (
     <div

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { CATALOG } from '../model';
+import { CATALOG, formatSchedule, outputPortsOf, parseSchedule } from '../model';
 import type { Component } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
+import { useTimingStore } from '../store/timingStore';
 
 interface PropertiesPanelProps {
   component: Component | null;
@@ -27,6 +28,11 @@ function ComponentFields({ component }: { component: Component }) {
   const timeUnit = useCircuitStore((s) => s.circuit.timeUnit);
   const [delayText, setDelayText] = useState(String(component.delay));
   const [halfText, setHalfText] = useState(String(component.props?.halfPeriod ?? 1));
+  const [scheduleText, setScheduleText] = useState(formatSchedule(component.props?.schedule));
+  const circuit = useCircuitStore((s) => s.circuit);
+  useTimingStore((s) => s.probes); // re-render when the diagram's nets change
+  const { shown, setProbe } = useTimingStore.getState();
+  const showMessage = useCircuitStore((s) => s.showMessage);
   const def = CATALOG[component.type];
   const hasDelay = def.category !== 'io';
 
@@ -41,6 +47,33 @@ function ComponentFields({ component }: { component: Component }) {
       setHalfText(String(component.props?.halfPeriod ?? 1));
     }
   };
+
+  const commitSchedule = () => {
+    const parsed = parseSchedule(scheduleText);
+    if (!parsed.ok) {
+      showMessage(parsed.error);
+      setScheduleText(formatSchedule(component.props?.schedule));
+      return;
+    }
+    updateComponent(component.id, {
+      props: { schedule: parsed.schedule.length > 0 ? parsed.schedule : undefined },
+    });
+    setScheduleText(formatSchedule(parsed.schedule));
+  };
+
+  // nets of this component that can go in the timing diagram (a lamp shows what feeds it)
+  const probeNets: { net: string; label: string }[] =
+    component.type === 'OUTPUT'
+      ? circuit.wires
+          .filter((w) => w.to.component === component.id)
+          .map((w) => ({ net: `${w.from.component}:${w.from.port}`, label: component.id }))
+      : component.type === 'CONST0' || component.type === 'CONST1'
+        ? []
+        : outputPortsOf(component.type).map((p) => ({
+            net: `${component.id}:${p}`,
+            label: outputPortsOf(component.type).length > 1 ? p : component.id,
+          }));
+  const inDiagram = new Set(shown(circuit));
 
   // decision 8: flip-flops start at 0, latches at X, unless set here
   const isLatch = component.type === 'SR_LATCH' || component.type === 'D_LATCH';
@@ -137,6 +170,37 @@ function ComponentFields({ component }: { component: Component }) {
             </select>
           </label>
         </>
+      )}
+
+      {component.type === 'INPUT' && (
+        <label className="field">
+          <span>שינויים מתוזמנים (זמן:ערך)</span>
+          <input
+            type="text"
+            dir="ltr"
+            placeholder="לדוגמה 5:0 10:1"
+            value={scheduleText}
+            onChange={(e) => setScheduleText(e.target.value)}
+            onBlur={commitSchedule}
+            onKeyDown={(e) => e.key === 'Enter' && commitSchedule()}
+          />
+        </label>
+      )}
+
+      {probeNets.length > 0 && (
+        <fieldset className="field probes">
+          <legend>בדיאגרמת הזמנים</legend>
+          {probeNets.map((p) => (
+            <label key={p.net} className="check">
+              <input
+                type="checkbox"
+                checked={inDiagram.has(p.net)}
+                onChange={(e) => setProbe(circuit, p.net, e.target.checked)}
+              />
+              <bdi>{p.label}</bdi>
+            </label>
+          ))}
+        </fieldset>
       )}
 
       <button type="button" className="danger" onClick={() => removeComponents([component.id])}>

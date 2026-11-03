@@ -22,12 +22,14 @@ import type { Component, ComponentType, Position, Signal } from '../model';
 import { settle } from '../engine/settle';
 import { useCircuitStore } from '../store/circuitStore';
 import { structureSignature, useSimStore } from '../store/simStore';
+import { useTimingStore } from '../store/timingStore';
 import { ComponentNode } from './ComponentNode';
 import type { ComponentFlowNode } from './ComponentNode';
 import { findFreeSpot, routeCircuit, wirePath } from './geometry';
 import { DRAG_MIME, Palette } from './Palette';
 import { PropertiesPanel } from './PropertiesPanel';
 import { SimControls } from './SimControls';
+import { TimingDiagram } from './TimingDiagram';
 import { usePlaybackClock } from './usePlaybackClock';
 import { WireEdge } from './WireEdge';
 import type { WireFlowEdge } from './WireEdge';
@@ -57,6 +59,7 @@ export function Editor() {
   const loaded = useCircuitStore((s) => s.loaded);
   useEffect(() => {
     if (loaded === 0) return;
+    useTimingStore.getState().resetProbes();
     const frame = requestAnimationFrame(() => {
       if (useCircuitStore.getState().circuit.components.length === 0) {
         void setViewport({ x: 40, y: 40, zoom: 1 });
@@ -102,7 +105,8 @@ export function Editor() {
         data: {
           component: c,
           lamp: c.type === 'OUTPUT' ? (values.inputs.get(`${c.id}:in`) ?? 'X') : undefined,
-          level: c.type === 'CLOCK' ? values.nets.get(`${c.id}:out`) : undefined,
+          level:
+            c.type === 'CLOCK' || c.type === 'INPUT' ? values.nets.get(`${c.id}:out`) : undefined,
           state: CATALOG[c.type].stateful ? storedValue(c, values.nets) : undefined,
         },
         ...nodeMeta[c.id],
@@ -191,35 +195,38 @@ export function Editor() {
   return (
     <div className="editor">
       <Palette onAdd={onPaletteAdd} />
-      <div className="canvas" dir="ltr" onDrop={onDrop} onDragOver={onDragOver}>
-        <SimControls />
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          connectionLineType={ConnectionLineType.Step}
-          colorMode="dark"
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          isValidConnection={isValidConnection}
-          deleteKeyCode={['Backspace', 'Delete']}
-          snapToGrid
-          snapGrid={[10, 10]}
-          fitView
-        >
-          <Background gap={20} color="#2a2a30" />
-          <Controls showInteractive={false} />
-        </ReactFlow>
-        {message && (
-          <div className="status" role="status" dir="rtl">
-            <span>{message}</span>
-            <button type="button" onClick={clearMessage} aria-label="סגירת ההודעה">
-              ×
-            </button>
-          </div>
-        )}
+      <div className="workspace">
+        <div className="canvas" dir="ltr" onDrop={onDrop} onDragOver={onDragOver}>
+          <SimControls />
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            connectionLineType={ConnectionLineType.Step}
+            colorMode="dark"
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            isValidConnection={isValidConnection}
+            deleteKeyCode={['Backspace', 'Delete']}
+            snapToGrid
+            snapGrid={[10, 10]}
+            fitView
+          >
+            <Background gap={20} color="#2a2a30" />
+            <Controls showInteractive={false} />
+          </ReactFlow>
+          {message && (
+            <div className="status" role="status" dir="rtl">
+              <span>{message}</span>
+              <button type="button" onClick={clearMessage} aria-label="סגירת ההודעה">
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+        <TimingDiagram />
       </div>
       <PropertiesPanel component={selectedComponent} />
     </div>

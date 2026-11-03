@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { formatSchedule, parseSchedule } from './stimuli';
 import { mux2FromGates } from '../examples/mux2FromGates';
 import { CATALOG, inputPortsOf, outputPortsOf } from './catalog';
 import { createCircuit, createComponent, createWire, nextId } from './factory';
@@ -190,5 +191,37 @@ describe('JSON save and load', () => {
     const result = parseCircuit(serializeCircuit(c));
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.warnings.map((w) => w.code)).toEqual(['UNCONNECTED_INPUT']);
+  });
+});
+
+describe('switch schedules', () => {
+  it('parses "time:value" pairs in any order', () => {
+    expect(parseSchedule('10:1  5:0')).toEqual({
+      ok: true,
+      schedule: [
+        { time: 5, value: 0 },
+        { time: 10, value: 1 },
+      ],
+    });
+    expect(parseSchedule('')).toEqual({ ok: true, schedule: [] });
+    expect(formatSchedule([{ time: 0.5, value: 1 }])).toBe('0.5:1');
+  });
+
+  it('refuses bad entries with a message', () => {
+    expect(parseSchedule('5:2').ok).toBe(false);
+    expect(parseSchedule('0.05:1').ok).toBe(false); // not a multiple of 0.1
+    expect(parseSchedule('5:0 5:1').ok).toBe(false);
+  });
+
+  it('a schedule is valid only on a switch', () => {
+    const c = createCircuit();
+    c.components.push(
+      createComponent('INPUT', 'a', undefined, {
+        props: { value: 0, schedule: [{ time: 1, value: 1 }] },
+      }),
+      createComponent('NOT', 'n', undefined, { props: { schedule: [{ time: 1, value: 1 }] } }),
+    );
+    const bad = validateCircuit(c).filter((i) => i.code === 'BAD_PROP');
+    expect(bad.map((i) => i.componentId)).toEqual(['n']);
   });
 });

@@ -125,9 +125,11 @@ export const useSimStore = create<SimState>()((set, get) => {
       const circuit = useCircuitStore.getState();
       const comp = circuit.circuit.components.find((c) => c.id === inputId);
       if (!comp || comp.type !== 'INPUT') return;
-      const next = comp.props?.value === 1 ? 0 : 1;
-      circuit.toggleInput(inputId); // keeps the saved circuit in sync
       const { sim } = get();
+      // flip what the switch shows now, which a planned change may have moved
+      const current = sim ? sim.value(`${inputId}:out`) : (comp.props?.value ?? 0);
+      const next = current === 1 ? 0 : 1;
+      circuit.updateComponent(inputId, { props: { value: next } }); // the saved circuit keeps it
       if (!sim) return;
       sim.setNet(`${inputId}:out`, next);
       set({ playing: true, carry: 0 });
