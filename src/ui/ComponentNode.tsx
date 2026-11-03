@@ -2,8 +2,9 @@ import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { CATALOG, inputPortsOf, outputPortsOf } from '../model';
 import type { Component, Signal } from '../model';
-import { useCircuitStore } from '../store/circuitStore';
-import { GATE_FORMULA, GateSymbol } from './GateSymbol';
+import { useSimStore } from '../store/simStore';
+import { GateSymbol } from './GateSymbol';
+import { GATE_FORMULA } from './gateFormula';
 import { nodeLayout, portOffset } from './geometry';
 
 /** `lamp` is the value an OUTPUT receives, from the steady-state evaluation. */
@@ -18,7 +19,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
   const outs = outputPortsOf(c.type);
   const isGate = def.category === 'gate';
   const showPortNames = !isGate && def.category !== 'io';
-  const toggleInput = useCircuitStore((s) => s.toggleInput);
+  const flip = useSimStore((s) => s.flip);
   const value = c.props?.value ?? 0;
 
   return (
@@ -56,7 +57,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
               type="button"
               className={`cm-switch nodrag ${value === 1 ? 'is-on' : 'is-off'}`}
               aria-label={`מתג ${c.id}, ערך ${value}`}
-              onClick={() => toggleInput(c.id)}
+              onClick={() => flip(c.id)}
             >
               {value}
             </button>

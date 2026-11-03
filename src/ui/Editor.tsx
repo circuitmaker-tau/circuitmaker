@@ -5,7 +5,7 @@
  * are derived from it on every render; the only things kept locally are what
  * React Flow itself owns (measured size, selection).
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DragEvent } from 'react';
 import {
   Background,
@@ -17,15 +17,18 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, NodeChange } from '@xyflow/react';
-import { settle } from '../engine/settle';
 import { COMPONENT_TYPES, canConnect, createComponent } from '../model';
 import type { ComponentType, Position } from '../model';
+import { settle } from '../engine/settle';
 import { useCircuitStore } from '../store/circuitStore';
+import { structureSignature, useSimStore } from '../store/simStore';
 import { ComponentNode } from './ComponentNode';
 import type { ComponentFlowNode } from './ComponentNode';
 import { findFreeSpot, routeCircuit, wirePath } from './geometry';
 import { DRAG_MIME, Palette } from './Palette';
 import { PropertiesPanel } from './PropertiesPanel';
+import { SimControls } from './SimControls';
+import { usePlaybackClock } from './usePlaybackClock';
 import { WireEdge } from './WireEdge';
 import type { WireFlowEdge } from './WireEdge';
 
@@ -47,8 +50,28 @@ export function Editor() {
   const [nodeMeta, setNodeMeta] = useState<Record<string, NodeMeta>>({});
   const [selectedEdges, setSelectedEdges] = useState<Set<string>>(new Set());
 
-  // steady-state value of every net: recomputed on every edit and switch flip
-  const values = useMemo(() => settle(circuit), [circuit]);
+  // a structural edit restarts the simulation from the steady state; flipping a switch does not
+  const signature = useMemo(() => structureSignature(circuit), [circuit]);
+  useEffect(() => {
+    useSimStore.getState().reset(useCircuitStore.getState().circuit);
+  }, [signature]);
+  usePlaybackClock();
+
+  const sim = useSimStore((s) => s.sim);
+  const version = useSimStore((s) => s.version);
+  // value of every net at the current simulated time
+  const values = useMemo(() => {
+    void version;
+    // before the first reset (one frame) fall back to the steady state
+    const nets = sim?.snapshot() ?? settle(circuit).nets;
+    const inputs = new Map(
+      circuit.wires.map((w) => [
+        `${w.to.component}:${w.to.port}`,
+        nets.get(`${w.from.component}:${w.from.port}`) ?? 'X',
+      ]),
+    );
+    return { nets, inputs };
+  }, [sim, version, circuit]);
 
   const nodes = useMemo<ComponentFlowNode[]>(
     () =>
@@ -147,6 +170,7 @@ export function Editor() {
     <div className="editor">
       <Palette onAdd={onPaletteAdd} />
       <div className="canvas" dir="ltr" onDrop={onDrop} onDragOver={onDragOver}>
+        <SimControls />
         <ReactFlow
           nodes={nodes}
           edges={edges}
