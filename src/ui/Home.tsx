@@ -5,6 +5,7 @@ import './home.css';
 
 interface HomeProps {
   onOpenEditor: () => void;
+  onHelp: () => void;
 }
 
 /** A thin printed-circuit trace pattern behind the hero. Decorative only. */
@@ -32,7 +33,7 @@ function Traces() {
   );
 }
 
-export function Home({ onOpenEditor }: HomeProps) {
+export function Home({ onOpenEditor, onHelp }: HomeProps) {
   const openExample = () => {
     useCircuitStore.getState().loadCircuit(EXAMPLES[0].circuit, EXAMPLES[0].lesson);
     onOpenEditor();
@@ -61,9 +62,14 @@ export function Home({ onOpenEditor }: HomeProps) {
           </svg>
           CircuitMaker
         </span>
-        <a href="https://github.com/circuitmaker-tau/circuitmaker" className="quiet-link">
-          קוד מקור
-        </a>
+        <nav className="home-links">
+          <button type="button" className="quiet-link" onClick={onHelp}>
+            מדריך
+          </button>
+          <a href="https://github.com/circuitmaker-tau/circuitmaker" className="quiet-link">
+            קוד מקור
+          </a>
+        </nav>
       </header>
 
       <main>
@@ -84,7 +90,10 @@ export function Home({ onOpenEditor }: HomeProps) {
               </button>
             </div>
             <p className="building">
-              בבנייה: העורך, הסימולציה ודיאגרמת הזמנים כבר פתוחים. ניתוח ה-hazards מתווסף בקרוב.
+              11 מעגלים מוכנים מההרצאות ומהמבחנים, דיאגרמת זמנים וניתוח hazards.{' '}
+              <button type="button" className="inline-link" onClick={onHelp}>
+                איך משתמשים
+              </button>
             </p>
           </div>
           <HazardDemo />

@@ -470,3 +470,28 @@
     border-top: 1px solid var(--line);
   }
 }
+
+.home-links {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.home-links button.quiet-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.inline-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--fg);
+  text-decoration: underline;
+  cursor: pointer;
+}

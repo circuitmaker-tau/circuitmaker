@@ -1,0 +1,149 @@
+/* User guide: the same black and white as the app; colour only for signal values. */
+
+.help {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.help-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px clamp(16px, 4vw, 48px);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.help-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.help-actions .primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  font-weight: 600;
+}
+
+.help-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: clamp(16px, 4vw, 48px);
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 48px) 64px;
+}
+
+.help-toc {
+  position: sticky;
+  top: 72px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.help-toc a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.help-toc a:hover {
+  color: var(--fg);
+}
+
+.help-body {
+  max-width: 68ch;
+  line-height: 1.7;
+}
+
+.help-body h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+}
+
+.help-body .lead {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.help-body section {
+  scroll-margin-top: 72px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  margin-top: 28px;
+}
+
+.help-body h2 {
+  font-size: 1.25rem;
+  margin: 12px 0 8px;
+}
+
+.help-body li {
+  margin-bottom: 6px;
+}
+
+.help-body code {
+  font-family: var(--mono);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.help-body dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+}
+
+.help-body dt {
+  font-weight: 700;
+}
+
+.help-body dd {
+  margin: 0;
+}
+
+.help-body .note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.sig1 {
+  color: var(--sig-1);
+}
+
+.sig0 {
+  color: var(--sig-0);
+}
+
+.sigx {
+  color: var(--sig-x);
+}
+
+@media (max-width: 760px) {
+  .help-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .help-toc {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+
+  .help-body dl {
+    grid-template-columns: 1fr;
+  }
+}
