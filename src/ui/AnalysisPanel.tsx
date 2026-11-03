@@ -4,14 +4,12 @@
  * and by simulation, an explanation in Hebrew, a demo that plays the change
  * in the timing diagram, and the consensus term as a one-click fix.
  */
-import { useMemo, useState } from 'react';
-import { truthTable, unsupportedReason, variablesOf } from '../analysis/func';
+import { useState } from 'react';
 import type { Cube } from '../analysis/func';
 import { addConsensus } from '../analysis/fix';
 import { fixedOthers, minterms, product, sum } from '../analysis/format';
-import { analyse, pathsFrom, scanTransitions } from '../analysis/hazards';
-import type { AnalyticHazard, SimulatedHazard } from '../analysis/hazards';
-import type { Circuit } from '../model';
+import type { AnalyticHazard } from '../analysis/hazards';
+import { analysisReport } from '../analysis/report';
 import { useAnalysisStore } from '../store/analysisStore';
 import { useCircuitStore } from '../store/circuitStore';
 import { structureSignature, useSimStore } from '../store/simStore';
@@ -23,19 +21,6 @@ const TERM_COLORS = ['#4ea1ff', '#f2c94c', '#d4506e', '#a77bff', '#3fd0d0', '#ff
 const PATH_COLORS = ['#4ea1ff', '#f2c94c'];
 
 const bitOf = (m: number, k: number, n: number) => ((m >> (n - 1 - k)) & 1) as 0 | 1;
-
-function compute(circuit: Circuit, net: string) {
-  const reason = unsupportedReason(circuit);
-  if (reason) return { ok: false, reason } as const;
-  const vars = variablesOf(circuit).map((v) => v.id);
-  return {
-    ok: true,
-    vars,
-    table: truthTable(circuit, net),
-    analytic: analyse(circuit, net),
-    simulated: scanTransitions(circuit, net),
-  } as const;
-}
 
 export function AnalysisPanel() {
   const circuit = useCircuitStore((s) => s.circuit);
@@ -54,8 +39,8 @@ export function AnalysisPanel() {
     .filter((l): l is { id: string; net: string } => l.net !== null);
   const lamp = lamps.find((l) => l.id === chosen) ?? lamps[0];
 
-  const net = lamp?.net;
-  const result = useMemo(() => (net ? compute(circuit, net) : null), [circuit, net]);
+  // cached per circuit and output, so re-renders do not redo the scan
+  const result = lamp ? analysisReport(circuit, lamp.net) : null;
 
   if (!lamp) {
     return (
@@ -65,7 +50,7 @@ export function AnalysisPanel() {
   if (!result) return null;
   if (!result.ok) return <p className="hint analysis-empty">{result.reason}</p>;
 
-  const { vars, table, analytic, simulated } = result;
+  const { vars, table, analytic, simulated, races } = result;
   const n = vars.length;
   const sop = analytic?.structure.form !== 'pos';
   const termText = (c: Cube) => (sop ? product(vars, c) : `(${sum(vars, c)})`);
@@ -109,7 +94,8 @@ export function AnalysisPanel() {
     h.minterms[0];
 
   const fix = (h: AnalyticHazard) => {
-    const r = addConsensus(circuit, analytic!.structure, h.consensus);
+    // the current circuit from the store: this runs later, on a click
+    const r = addConsensus(useCircuitStore.getState().circuit, analytic!.structure, h.consensus);
     const store = useCircuitStore.getState();
     if (!r.ok) store.showMessage(r.error);
     else {
@@ -121,37 +107,24 @@ export function AnalysisPanel() {
     }
   };
 
-  /** Colour the two paths that race: the fastest and the slowest from the switch to the output. */
-  const showPaths = (h: SimulatedHazard) => {
-    const paths = pathsFrom(circuit, vars[h.variable], lamp.net);
-    if (paths.length < 2) return clearHighlight();
-    const pair = [paths[0], paths[paths.length - 1]];
-    const map = new Map<string, number>();
-    pair.forEach((p, i) => {
-      const chain = [vars[h.variable], ...p.through];
-      chain.forEach((id, j) => {
-        if (j > 0) map.set(id, map.has(id) ? map.get(id)! : i);
-        const next = chain[j + 1];
-        const w = circuit.wires.find((x) => x.from.component === id && x.to.component === next);
-        if (w) map.set(w.id, i);
-      });
-    });
-    setHighlight(map);
-  };
-
-  const pathText = (h: SimulatedHazard) => {
-    const paths = pathsFrom(circuit, vars[h.variable], lamp.net);
-    if (paths.length < 2) return null;
-    const [fast, slow] = [paths[0], paths[paths.length - 1]];
-    const show = (p: typeof fast) =>
+  const pathText = (i: number) => {
+    const race = races[i];
+    if (!race) return null;
+    const h = simulated[i];
+    const show = (p: typeof race.fast) =>
       `${[vars[h.variable], ...p.through].join(' → ')} (${fmt(p.delay)}${p.inversions % 2 ? ', עם היפוך' : ''})`;
     return (
       <span className="paths" dir="ltr">
-        <span style={{ color: PATH_COLORS[0] }}>{show(fast)}</span>
+        <span style={{ color: PATH_COLORS[0] }}>{show(race.fast)}</span>
         {' · '}
-        <span style={{ color: PATH_COLORS[1] }}>{show(slow)}</span>
+        <span style={{ color: PATH_COLORS[1] }}>{show(race.slow)}</span>
       </span>
     );
+  };
+  const showPaths = (i: number) => {
+    const race = races[i];
+    if (race) setHighlight(race.highlight);
+    else clearHighlight();
   };
 
   return (
@@ -258,9 +231,9 @@ export function AnalysisPanel() {
             <article
               key={i}
               className="finding"
-              onMouseEnter={() => showPaths(h)}
+              onMouseEnter={() => showPaths(i)}
               onMouseLeave={clearHighlight}
-              onFocus={() => showPaths(h)}
+              onFocus={() => showPaths(i)}
             >
               <p>
                 <b>{h.kind === 'dynamic' ? 'dynamic hazard' : `${h.kind} hazard`}</b>:{' '}
@@ -278,7 +251,7 @@ export function AnalysisPanel() {
                   </span>
                 ))}
               </p>
-              <p className="hint">הנתיבים שמתחרים: {pathText(h)}</p>
+              {races[i] && <p className="hint">הנתיבים שמתחרים: {pathText(i)}</p>}
               <div className="finding-actions">
                 <button type="button" onClick={() => demo(h.from, h.variable)}>
                   הדגמה
