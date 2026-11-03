@@ -17,9 +17,8 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, NodeChange } from '@xyflow/react';
-import { CATALOG, COMPONENT_TYPES, canConnect, createComponent, outputPortsOf } from '../model';
-import type { Component, ComponentType, Position, Signal } from '../model';
-import { settle } from '../engine/settle';
+import { COMPONENT_TYPES, canConnect, createComponent } from '../model';
+import type { ComponentType, Position } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { structureSignature, useSimStore } from '../store/simStore';
 import { useTimingStore } from '../store/timingStore';
@@ -41,12 +40,6 @@ type NodeMeta = Pick<ComponentFlowNode, 'measured' | 'selected'>;
 
 const isComponentType = (t: string): t is ComponentType =>
   (COMPONENT_TYPES as readonly string[]).includes(t);
-
-/** What a stateful component holds, read from its Q outputs (Q0 first). */
-function storedValue(c: Component, nets: Map<string, Signal>): Signal[] {
-  const qs = outputPortsOf(c.type).filter((p) => p.startsWith('Q') && !p.endsWith("'"));
-  return qs.map((p) => nets.get(`${c.id}:${p}`) ?? 'X');
-}
 
 export function Editor() {
   const circuit = useCircuitStore((s) => s.circuit);
@@ -80,60 +73,51 @@ export function Editor() {
   }, [signature]);
   usePlaybackClock();
 
-  const sim = useSimStore((s) => s.sim);
-  const version = useSimStore((s) => s.version);
-  // value of every net at the current simulated time
-  const values = useMemo(() => {
-    void version;
-    // before the first reset (one frame) fall back to the steady state
-    const nets = sim?.snapshot() ?? settle(circuit).nets;
-    const inputs = new Map(
-      circuit.wires.map((w) => [
-        `${w.to.component}:${w.to.port}`,
-        nets.get(`${w.from.component}:${w.from.port}`) ?? 'X',
-      ]),
-    );
-    return { nets, inputs };
-  }, [sim, version, circuit]);
-
+  // nodes and wires read their live values themselves (see ComponentNode and
+  // WireEdge), so nothing here changes while time runs
+  const lampNet = useMemo(
+    () =>
+      new Map(
+        circuit.wires
+          .filter((w) => w.to.port === 'in')
+          .map((w) => [w.to.component, `${w.from.component}:${w.from.port}`]),
+      ),
+    [circuit.wires],
+  );
   const nodes = useMemo<ComponentFlowNode[]>(
     () =>
       circuit.components.map((c) => ({
         id: c.id,
         type: 'component',
         position: c.position,
-        data: {
-          component: c,
-          lamp: c.type === 'OUTPUT' ? (values.inputs.get(`${c.id}:in`) ?? 'X') : undefined,
-          level:
-            c.type === 'CLOCK' || c.type === 'INPUT' ? values.nets.get(`${c.id}:out`) : undefined,
-          state: CATALOG[c.type].stateful ? storedValue(c, values.nets) : undefined,
-        },
+        data: { component: c, lampNet: c.type === 'OUTPUT' ? lampNet.get(c.id) : undefined },
         ...nodeMeta[c.id],
       })),
-    [circuit.components, nodeMeta, values],
+    [circuit.components, nodeMeta, lampNet],
   );
 
-  // routes are computed from the circuit, so every drag re-routes and re-checks crossings
-  const edges = useMemo<WireFlowEdge[]>(() => {
-    const routes = new Map(routeCircuit(circuit).map((r) => [r.id, r]));
-    return circuit.wires.map((w) => {
-      const r = routes.get(w.id);
-      return {
-        id: w.id,
-        type: 'wire',
-        source: w.from.component,
-        sourceHandle: w.from.port,
-        target: w.to.component,
-        targetHandle: w.to.port,
-        selected: selectedEdges.has(w.id),
-        data: {
-          d: r ? wirePath(r.points, r.hops) : '',
-          value: values.nets.get(`${w.from.component}:${w.from.port}`) ?? 'X',
-        },
-      };
-    });
-  }, [circuit, selectedEdges, values]);
+  // routes depend on the layout only, so dragging re-routes and re-checks crossings
+  const routes = useMemo(() => new Map(routeCircuit(circuit).map((r) => [r.id, r])), [circuit]);
+  const edges = useMemo<WireFlowEdge[]>(
+    () =>
+      circuit.wires.map((w) => {
+        const r = routes.get(w.id);
+        return {
+          id: w.id,
+          type: 'wire',
+          source: w.from.component,
+          sourceHandle: w.from.port,
+          target: w.to.component,
+          targetHandle: w.to.port,
+          selected: selectedEdges.has(w.id),
+          data: {
+            d: r ? wirePath(r.points, r.hops) : '',
+            net: `${w.from.component}:${w.from.port}`,
+          },
+        };
+      }),
+    [circuit.wires, routes, selectedEdges],
+  );
 
   const onNodesChange = (changes: NodeChange<ComponentFlowNode>[]) => {
     const next = applyNodeChanges(changes, nodes);

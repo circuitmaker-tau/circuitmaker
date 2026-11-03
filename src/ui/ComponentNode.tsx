@@ -8,17 +8,28 @@ import { GATE_FORMULA } from './gateFormula';
 import { nodeLayout, portOffset } from './geometry';
 import { BOX_TITLE } from './labels';
 
+/** `lampNet` is the net that feeds an OUTPUT. */
+export type ComponentNodeData = { component: Component; lampNet?: string };
+
 /**
- * Live values from the simulation: `lamp` is what an OUTPUT receives, `level`
- * is the current value of a switch or a clock, `state` is what a latch, flip-flop, register or
- * counter stores (Q0 first).
+ * The live values a node shows, read straight from the simulation as a short
+ * string so the node re-renders only when one of them changes: what a lamp
+ * receives, the level of a switch or clock, or the stored bits (Q0 first).
  */
-export type ComponentNodeData = {
-  component: Component;
-  lamp?: Signal;
-  level?: Signal;
-  state?: Signal[];
-};
+function useLive(c: Component, lampNet: string | undefined): Signal[] | null {
+  const key = useSimStore((s) => {
+    if (s.version < 0 || !s.sim) return null;
+    const sim = s.sim;
+    if (c.type === 'OUTPUT') return String(sim.value(lampNet ?? ''));
+    if (c.type === 'INPUT' || c.type === 'CLOCK') return String(sim.value(`${c.id}:out`));
+    if (!CATALOG[c.type].stateful) return null;
+    return outputPortsOf(c.type)
+      .filter((p) => p.startsWith('Q') && !p.endsWith("'"))
+      .map((p) => sim.value(`${c.id}:${p}`))
+      .join('');
+  });
+  return key === null ? null : [...key].map((ch) => (ch === 'X' ? 'X' : ch === '1' ? 1 : 0));
+}
 
 const sig = (v: Signal | undefined) => (v === 0 || v === 1 ? String(v) : 'x');
 
@@ -57,7 +68,11 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
   const showPortNames = !isGate && def.category !== 'io';
   const flip = useSimStore((s) => s.flip);
   // a switch shows its value in the simulation, which planned changes can move
-  const value = data.level ?? c.props?.value ?? 0;
+  const live = useLive(c, data.lampNet);
+  const lamp = c.type === 'OUTPUT' ? live?.[0] : undefined;
+  const level = c.type === 'INPUT' || c.type === 'CLOCK' ? live?.[0] : undefined;
+  const state = def.stateful ? live : null;
+  const value = level ?? c.props?.value ?? 0;
 
   return (
     <div
@@ -110,27 +125,27 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
             </span>
           ) : c.type === 'OUTPUT' ? (
             <span
-              className={`cm-lamp lamp-${data.lamp === 'X' || data.lamp === undefined ? 'x' : data.lamp}`}
+              className={`cm-lamp lamp-${lamp === 'X' || lamp === undefined ? 'x' : lamp}`}
               role="img"
-              aria-label={`נורה ${c.id}: ${data.lamp ?? 'X'}`}
+              aria-label={`נורה ${c.id}: ${lamp ?? 'X'}`}
             >
-              {data.lamp ?? 'X'}
+              {lamp ?? 'X'}
             </span>
           ) : c.type === 'CLOCK' ? (
             <span
-              className={`cm-clock v-${sig(data.level)}`}
+              className={`cm-clock v-${sig(level)}`}
               role="img"
-              aria-label={`שעון ${c.id}: ${data.level ?? 'X'}`}
+              aria-label={`שעון ${c.id}: ${level ?? 'X'}`}
             >
               <svg width="26" height="14" viewBox="0 0 26 14" aria-hidden="true">
                 <path d="M1 12 H7 V2 H13 V12 H19 V2 H25" fill="none" stroke="currentColor" />
               </svg>
-              {data.level ?? 'X'}
+              {level ?? 'X'}
             </span>
           ) : (
             <>
               <span className="cm-label">{BOX_TITLE[c.type] ?? def.label}</span>
-              {data.state && <StoredValue type={c.type} state={data.state} />}
+              {state && <StoredValue type={c.type} state={state} />}
             </>
           )}
           <span className="cm-id">
