@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mux2FromGates } from '../examples/mux2FromGates';
 import { canConnect, validateCircuit } from '../model';
-import { useCircuitStore } from './circuitStore';
+import { analyse } from '../analysis/hazards';
+import { Simulator } from '../engine/simulator';
+import { useAnalysisStore } from './analysisStore';
+import { componentNameProblem, useCircuitStore } from './circuitStore';
+import { useTimingStore } from './timingStore';
 
 const store = () => useCircuitStore.getState();
 
@@ -135,5 +139,54 @@ describe('circuit store', () => {
     expect(store().message).toBe('שגיאה');
     store().clearMessage();
     expect(store().message).toBeNull();
+  });
+});
+
+describe('renaming a component', () => {
+  const fresh = () => {
+    store().loadCircuit(mux2FromGates);
+    useTimingStore.getState().resetProbes();
+    useAnalysisStore.getState().setOutput(null);
+  };
+
+  it('renames the component and every wire that touches it, and the circuit still works', () => {
+    fresh();
+    expect(store().renameComponent('S0', 'S')).toBe(true);
+    const c = store().circuit;
+    expect(c.components.some((x) => x.id === 'S0')).toBe(false);
+    expect(c.wires.filter((w) => w.from.component === 'S')).toHaveLength(2);
+    expect(validateCircuit(c).filter((i) => i.severity === 'error')).toEqual([]);
+    const sim = new Simulator(c);
+    sim.setNet('S:out', 0, 0);
+    sim.runToEnd();
+    expect(sim.trace('o1:out').map((t) => t.time / 10)).toEqual([0, 2, 3]); // the same glitch
+    // the analysis uses the new name
+    expect(analyse(c, 'o1:out')!.hazards.length).toBe(1);
+  });
+
+  it('the timing diagram and the analysed lamp follow the new name', () => {
+    fresh();
+    const c = store().circuit;
+    useTimingStore.getState().setProbe(c, 'a1:out', false); // a user choice, so probes are kept
+    useAnalysisStore.getState().setOutput('F');
+    store().renameComponent('S0', 'S');
+    store().renameComponent('F', 'Y');
+    const probes = useTimingStore.getState().probes!;
+    expect(probes).toContain('S:out');
+    expect(probes.some((n) => n.startsWith('S0:'))).toBe(false);
+    expect(useAnalysisStore.getState().output).toBe('Y');
+  });
+
+  it('refuses an empty, a taken or an odd name, and says why', () => {
+    fresh();
+    for (const bad of ['', 'I0', '0X', 'X 1', 'שם', "x'", 'a:b', 'ABCDEFGHIJKLM']) {
+      expect(store().renameComponent('S0', bad)).toBe(false);
+      expect(store().message).not.toBeNull();
+      store().clearMessage();
+    }
+    expect(store().circuit.components.some((x) => x.id === 'S0')).toBe(true);
+    expect(componentNameProblem('Cin', store().circuit)).toBeNull();
+    expect(componentNameProblem('X_1', store().circuit)).toBeNull();
+    expect(store().renameComponent('S0', 'S0')).toBe(true); // no change
   });
 });

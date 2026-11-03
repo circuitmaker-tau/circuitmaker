@@ -226,7 +226,12 @@ export function Editor() {
         </div>
         <TimingDiagram />
       </div>
-      <PropertiesPanel component={selectedComponent} />
+      <PropertiesPanel
+        component={selectedComponent}
+        onRenamed={(from, to) =>
+          setNodeMeta(({ [from]: meta, ...rest }) => (meta ? { ...rest, [to]: meta } : rest))
+        }
+      />
       <nav className="mobile-tabs" aria-label="חלוניות">
         {SHEETS.map(([id, label]) => (
           <button

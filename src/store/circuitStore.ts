@@ -23,6 +23,24 @@ import type {
   Position,
 } from '../model';
 import type { SaveStatus } from '../persistence/persistence';
+import { useAnalysisStore } from './analysisStore';
+import { useTimingStore } from './timingStore';
+
+/**
+ * A component name is what the course writes: a letter, then letters, digits
+ * or "_" (A, X0, Cin, S_1), up to 12 characters. Returns why a name cannot be
+ * used, or null.
+ */
+export function componentNameProblem(name: string, circuit: Circuit, self?: string): string | null {
+  if (!name) return 'צריך לתת לרכיב שם.';
+  if (!/^[A-Za-z][A-Za-z0-9_]{0,11}$/.test(name)) {
+    return `השם "${name}" לא מתאים: מתחילים באות לועזית, ואחריה אותיות, ספרות או _ (עד 12 תווים), למשל X0 או Cin.`;
+  }
+  if (circuit.components.some((c) => c.id === name && c.id !== self)) {
+    return `כבר יש במעגל רכיב בשם ${name}.`;
+  }
+  return null;
+}
 
 export interface ComponentPatch {
   delay?: number;
@@ -45,6 +63,8 @@ export interface CircuitState {
   addComponent: (type: ComponentType, position: Position) => string;
   moveComponents: (moves: Record<string, Position>) => void;
   removeComponents: (ids: string[]) => void;
+  /** Give a component another name (its id); wires, the timing diagram and the analysis follow. */
+  renameComponent: (id: string, name: string) => boolean;
   updateComponent: (id: string, patch: ComponentPatch) => boolean;
   toggleInput: (id: string) => void;
   connect: (from: PortRef, to: PortRef) => boolean;
@@ -118,6 +138,39 @@ export const useCircuitStore = create<CircuitState>()((set, get) => ({
         ),
       },
     });
+  },
+
+  renameComponent: (id, name) => {
+    const { circuit } = get();
+    const next = name.trim();
+    if (next === id) return true;
+    const problem = componentNameProblem(next, circuit, id);
+    if (problem) {
+      set({ message: problem });
+      return false;
+    }
+    const swap = (c: string) => (c === id ? next : c);
+    set({
+      circuit: {
+        ...circuit,
+        components: circuit.components.map((c) => (c.id === id ? { ...c, id: next } : c)),
+        wires: circuit.wires.map((w) => ({
+          ...w,
+          from: { ...w.from, component: swap(w.from.component) },
+          to: { ...w.to, component: swap(w.to.component) },
+        })),
+      },
+      message: null,
+    });
+    // the nets chosen for the timing diagram, and the lamp being analysed, keep following it
+    const timing = useTimingStore.getState();
+    if (timing.probes) {
+      useTimingStore.setState({
+        probes: timing.probes.map((n) => (n.startsWith(`${id}:`) ? next + n.slice(id.length) : n)),
+      });
+    }
+    if (useAnalysisStore.getState().output === id) useAnalysisStore.getState().setOutput(next);
+    return true;
   },
 
   updateComponent: (id, patch) => {

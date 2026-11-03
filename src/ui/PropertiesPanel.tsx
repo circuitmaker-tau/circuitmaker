@@ -7,19 +7,21 @@ import { splitLesson } from './lessonText';
 
 interface PropertiesPanelProps {
   component: Component | null;
+  /** Called after a rename, so the editor can keep the component selected. */
+  onRenamed?: (from: string, to: string) => void;
 }
 
-export function PropertiesPanel({ component }: PropertiesPanelProps) {
+export function PropertiesPanel({ component, onRenamed }: PropertiesPanelProps) {
   const lesson = useCircuitStore((s) => s.lesson);
   return (
     <aside className="properties" aria-label="מאפייני רכיב">
       <h2>מאפיינים</h2>
       {component ? (
         // key resets the draft value when another component is selected
-        <ComponentFields key={component.id} component={component} />
+        <ComponentFields key={component.id} component={component} onRenamed={onRenamed} />
       ) : (
         <>
-          <p className="hint">בחרו רכיב כדי לערוך את ה-Tp ואת מספר הכניסות.</p>
+          <p className="hint">בחרו רכיב כדי לערוך את השם, ה-Tp ומספר הכניסות.</p>
           {lesson && (
             <section className="lesson" aria-label="מה לומדים מהדוגמה">
               <h3>מה לומדים כאן</h3>
@@ -42,8 +44,15 @@ export function PropertiesPanel({ component }: PropertiesPanelProps) {
   );
 }
 
-function ComponentFields({ component }: { component: Component }) {
+function ComponentFields({
+  component,
+  onRenamed,
+}: {
+  component: Component;
+  onRenamed?: (from: string, to: string) => void;
+}) {
   const updateComponent = useCircuitStore((s) => s.updateComponent);
+  const [nameText, setNameText] = useState(component.id);
   const removeComponents = useCircuitStore((s) => s.removeComponents);
   const timeUnit = useCircuitStore((s) => s.circuit.timeUnit);
   const [delayText, setDelayText] = useState(String(component.delay));
@@ -55,6 +64,14 @@ function ComponentFields({ component }: { component: Component }) {
   const showMessage = useCircuitStore((s) => s.showMessage);
   const def = CATALOG[component.type];
   const hasDelay = def.category !== 'io';
+
+  const commitName = () => {
+    const from = component.id;
+    const to = nameText.trim();
+    if (to === from) return;
+    if (useCircuitStore.getState().renameComponent(from, to)) onRenamed?.(from, to);
+    else setNameText(from);
+  };
 
   const commitDelay = () => {
     const value = Number(delayText);
@@ -102,9 +119,22 @@ function ComponentFields({ component }: { component: Component }) {
 
   return (
     <div className="fields">
-      <p className="field-title">
-        {def.label} · <bdi>{component.id}</bdi>
-      </p>
+      <p className="field-title">{def.label}</p>
+
+      <label className="field">
+        <span>שם</span>
+        <input
+          type="text"
+          dir="ltr"
+          maxLength={12}
+          spellCheck={false}
+          autoComplete="off"
+          value={nameText}
+          onChange={(e) => setNameText(e.target.value)}
+          onBlur={commitName}
+          onKeyDown={(e) => e.key === 'Enter' && commitName()}
+        />
+      </label>
 
       {hasDelay && (
         <label className="field">
