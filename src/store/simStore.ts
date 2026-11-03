@@ -55,6 +55,10 @@ export interface SimState {
   rate: number;
   /** Fraction of a tick carried over between animation frames. */
   carry: number;
+  /** Warnings already shown to the user. */
+  warned: number;
+  /** Ticks in one period of the first clock, or 0 when the circuit has no clock. */
+  period: number;
 
   reset: (circuit: Circuit) => void;
   flip: (inputId: string) => void;
@@ -63,7 +67,15 @@ export interface SimState {
   pause: () => void;
   step: () => void;
   skipToEnd: () => void;
+  /** Run exactly one clock period. */
+  cycle: () => void;
   setSpeed: (speed: Speed) => void;
+}
+
+/** Ticks in one period of the first clock (two half periods), 0 without a clock. */
+export function clockPeriodTicks(circuit: Circuit): number {
+  const clk = circuit.components.find((c) => c.type === 'CLOCK');
+  return clk ? 2 * Math.max(1, delayToTicks(clk.props?.halfPeriod ?? 1)) : 0;
 }
 
 const rateFor = (circuit: Circuit, speed: Speed) =>
@@ -71,13 +83,20 @@ const rateFor = (circuit: Circuit, speed: Speed) =>
 
 export const useSimStore = create<SimState>()((set, get) => {
   const bump = () => set((s) => ({ version: s.version + 1 }));
-  const reportOscillation = (sim: Simulator) => {
+  /** Tell the user about an oscillation or a new warning (forbidden SR input, latch race). */
+  const report = (sim: Simulator) => {
+    const { showMessage } = useCircuitStore.getState();
     if (sim.oscillation) {
-      useCircuitStore
-        .getState()
-        .showMessage(
-          `המעגל לא מתייצב בזמן t = ${sim.oscillation.time / 10}: יש לולאה שבה כל ה-Tp הם 0`,
-        );
+      showMessage(
+        `המעגל לא מתייצב בזמן t = ${sim.oscillation.time / 10}: יש לולאה שבה כל ה-Tp הם 0`,
+      );
+      return;
+    }
+    const { warned } = get();
+    if (sim.warnings.length > warned) {
+      const w = sim.warnings[sim.warnings.length - 1];
+      showMessage(`t = ${w.time / 10}, ${w.component}: ${w.message}`);
+      set({ warned: sim.warnings.length });
     }
   };
 
@@ -88,12 +107,16 @@ export const useSimStore = create<SimState>()((set, get) => {
     speed: 1,
     rate: 10 / MS_PER_TYPICAL_TP,
     carry: 0,
+    warned: 0,
+    period: 0,
 
     reset: (circuit) =>
       set((s) => ({
         sim: new Simulator(circuit),
         playing: false,
         carry: 0,
+        warned: 0,
+        period: clockPeriodTicks(circuit),
         rate: rateFor(circuit, s.speed),
         version: s.version + 1,
       })),
@@ -120,7 +143,7 @@ export const useSimStore = create<SimState>()((set, get) => {
       set({ carry: total - ticks });
       if (ticks === 0) return;
       sim.runUntil(sim.now + ticks);
-      reportOscillation(sim);
+      report(sim);
       if (sim.idle) {
         set({ playing: false, carry: 0 });
       }
@@ -139,7 +162,7 @@ export const useSimStore = create<SimState>()((set, get) => {
       if (!sim) return;
       set({ playing: false });
       sim.step();
-      reportOscillation(sim);
+      report(sim);
       bump();
     },
 
@@ -148,7 +171,16 @@ export const useSimStore = create<SimState>()((set, get) => {
       if (!sim) return;
       set({ playing: false });
       sim.runToEnd();
-      reportOscillation(sim);
+      report(sim);
+      bump();
+    },
+
+    cycle: () => {
+      const { sim, period } = get();
+      if (!sim || period === 0) return;
+      set({ playing: false });
+      sim.runUntil(sim.now + period);
+      report(sim);
       bump();
     },
 

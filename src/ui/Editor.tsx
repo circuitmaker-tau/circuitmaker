@@ -17,8 +17,8 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, NodeChange } from '@xyflow/react';
-import { COMPONENT_TYPES, canConnect, createComponent } from '../model';
-import type { ComponentType, Position } from '../model';
+import { CATALOG, COMPONENT_TYPES, canConnect, createComponent, outputPortsOf } from '../model';
+import type { Component, ComponentType, Position, Signal } from '../model';
 import { settle } from '../engine/settle';
 import { useCircuitStore } from '../store/circuitStore';
 import { structureSignature, useSimStore } from '../store/simStore';
@@ -40,12 +40,32 @@ type NodeMeta = Pick<ComponentFlowNode, 'measured' | 'selected'>;
 const isComponentType = (t: string): t is ComponentType =>
   (COMPONENT_TYPES as readonly string[]).includes(t);
 
+/** What a stateful component holds, read from its Q outputs (Q0 first). */
+function storedValue(c: Component, nets: Map<string, Signal>): Signal[] {
+  const qs = outputPortsOf(c.type).filter((p) => p.startsWith('Q') && !p.endsWith("'"));
+  return qs.map((p) => nets.get(`${c.id}:${p}`) ?? 'X');
+}
+
 export function Editor() {
   const circuit = useCircuitStore((s) => s.circuit);
   const message = useCircuitStore((s) => s.message);
   const { addComponent, moveComponents, removeComponents, connect, removeWires, clearMessage } =
     useCircuitStore.getState();
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView, setViewport } = useReactFlow();
+
+  // a loaded circuit (example, import, restore) is shown whole; a new one at 100%
+  const loaded = useCircuitStore((s) => s.loaded);
+  useEffect(() => {
+    if (loaded === 0) return;
+    const frame = requestAnimationFrame(() => {
+      if (useCircuitStore.getState().circuit.components.length === 0) {
+        void setViewport({ x: 40, y: 40, zoom: 1 });
+      } else {
+        void fitView({ padding: 0.15, duration: 200 });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loaded, fitView, setViewport]);
 
   const [nodeMeta, setNodeMeta] = useState<Record<string, NodeMeta>>({});
   const [selectedEdges, setSelectedEdges] = useState<Set<string>>(new Set());
@@ -82,6 +102,8 @@ export function Editor() {
         data: {
           component: c,
           lamp: c.type === 'OUTPUT' ? (values.inputs.get(`${c.id}:in`) ?? 'X') : undefined,
+          level: c.type === 'CLOCK' ? values.nets.get(`${c.id}:out`) : undefined,
+          state: CATALOG[c.type].stateful ? storedValue(c, values.nets) : undefined,
         },
         ...nodeMeta[c.id],
       })),

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { ChangeEvent } from 'react';
-import { mux2FromGates } from '../examples/mux2FromGates';
+import { EXAMPLES } from '../examples';
 import { downloadCircuit, readCircuitFile } from '../persistence/persistence';
 import type { SaveStatus } from '../persistence/persistence';
 import { useCircuitStore } from '../store/circuitStore';
@@ -57,9 +57,24 @@ export function Toolbar({ onHome }: ToolbarProps) {
         <button type="button" onClick={newCircuit}>
           מעגל חדש
         </button>
-        <button type="button" onClick={() => loadCircuit(mux2FromGates)}>
-          דוגמה: MUX 2:1
-        </button>
+        <select
+          className="examples"
+          aria-label="טעינת מעגל דוגמה"
+          value=""
+          onChange={(e) => {
+            const ex = EXAMPLES.find((x) => x.id === e.target.value);
+            if (ex) loadCircuit(ex.circuit);
+          }}
+        >
+          <option value="" disabled>
+            דוגמאות מהקורס
+          </option>
+          {EXAMPLES.map((ex) => (
+            <option key={ex.id} value={ex.id}>
+              {ex.label}
+            </option>
+          ))}
+        </select>
         <button type="button" onClick={() => fileInput.current?.click()}>
           ייבוא JSON
         </button>

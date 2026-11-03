@@ -15,10 +15,13 @@ export function SimControls() {
   useSimStore((s) => s.version); // re-render on every simulation change
   const playing = useSimStore((s) => s.playing);
   const speed = useSimStore((s) => s.speed);
-  const { play, pause, step, skipToEnd, setSpeed, reset } = useSimStore.getState();
+  const period = useSimStore((s) => s.period);
+  const { play, pause, step, skipToEnd, cycle, setSpeed, reset } = useSimStore.getState();
   const unit = useCircuitStore((s) => s.circuit.timeUnit);
 
+  // idle: nothing will ever happen; quiet: only clock ticks are left
   const idle = !sim || sim.idle;
+  const quiet = !sim || sim.quiet;
   const time = sim ? (sim.now / 10).toFixed(1) : '0.0';
 
   return (
@@ -27,22 +30,32 @@ export function SimControls() {
         t = <bdi>{time}</bdi>
         {unit !== 'none' && ` ${unit}`}
       </span>
-      <span className="sim-state">{idle ? 'במנוחה' : playing ? 'בתנועה' : 'בהשהיה'}</span>
+      <span className="sim-state">{playing ? 'בתנועה' : quiet ? 'במנוחה' : 'בהשהיה'}</span>
       {playing ? (
         <button type="button" onClick={pause}>
           עצירה
         </button>
       ) : (
         <button type="button" onClick={play} disabled={idle}>
-          המשך
+          {sim && sim.now > 0 ? 'המשך' : 'הפעלה'}
         </button>
       )}
       <button type="button" onClick={step} disabled={idle}>
         צעד
       </button>
-      <button type="button" onClick={skipToEnd} disabled={idle}>
+      <button
+        type="button"
+        onClick={skipToEnd}
+        disabled={quiet}
+        title="עד שכל השינויים שבדרך מגיעים ליעדם"
+      >
         דלג לסוף
       </button>
+      {period > 0 && (
+        <button type="button" onClick={cycle} title="מחזור שעון אחד קדימה">
+          מחזור
+        </button>
+      )}
       <label className="sim-speed">
         מהירות
         <select value={speed} onChange={(e) => setSpeed(Number(e.target.value) as Speed)}>

@@ -31,11 +31,15 @@ export function nodeLayout(c: Component): NodeLayout {
   const def = CATALOG[c.type];
   const ins = inputPortsOf(c.type, c.inputs).length;
   const outs = outputPortsOf(c.type).length;
-  const bodyHeight = Math.max(ins, outs, 2) * ROW + 8;
-  if (def.category === 'gate') return { width: 96, bodyHeight, height: bodyHeight + LABEL_H };
   // every body is n*20+8 high, so with positions on the 10px grid all ports land on the same grid
+  if (def.category === 'gate') {
+    const bodyHeight = Math.max(ins, outs, 2) * ROW + 8;
+    return { width: 96, bodyHeight, height: bodyHeight + LABEL_H };
+  }
   if (def.category === 'io') return { width: 72, bodyHeight: 48, height: 48 };
-  return { width: 112, bodyHeight, height: bodyHeight };
+  // blocks need three rows for the title, the stored value and the id
+  const bodyHeight = Math.max(ins, outs, 3) * ROW + 8;
+  return { width: 128, bodyHeight, height: bodyHeight };
 }
 
 /** Vertical offset of the i-th of n ports, centred on the body. */

@@ -14,16 +14,27 @@ import {
   isValidDelay,
   nextId,
 } from '../model';
-import type { Circuit, Component, ComponentType, PortRef, Position } from '../model';
+import type {
+  Circuit,
+  Component,
+  ComponentProps,
+  ComponentType,
+  PortRef,
+  Position,
+} from '../model';
 import type { SaveStatus } from '../persistence/persistence';
 
 export interface ComponentPatch {
   delay?: number;
   inputs?: number;
+  /** Merged into the existing props. */
+  props?: Pick<ComponentProps, 'init' | 'halfPeriod' | 'startLevel'>;
 }
 
 export interface CircuitState {
   circuit: Circuit;
+  /** Bumped whenever a whole circuit is loaded, so the canvas can fit it to the view. */
+  loaded: number;
   /** Last user-facing message (a refused wire, a bad value, a bad file). */
   message: string | null;
   /** State of the automatic save in the browser. */
@@ -59,6 +70,7 @@ const clone = (c: Circuit): Circuit => structuredClone(c);
 
 export const useCircuitStore = create<CircuitState>()((set, get) => ({
   circuit: clone(mux2FromGates),
+  loaded: 0,
   message: null,
   saveStatus: 'idle',
 
@@ -123,7 +135,18 @@ export const useCircuitStore = create<CircuitState>()((set, get) => ({
       return false;
     }
 
-    const updated: Component = { ...current, ...patch };
+    const hp = patch.props?.halfPeriod;
+    if (hp !== undefined && (!isValidDelay(hp) || hp === 0)) {
+      set({ message: 'חצי מחזור חייב להיות מספר חיובי בקפיצות של 0.1' });
+      return false;
+    }
+
+    const updated: Component = {
+      ...current,
+      ...patch,
+      props: patch.props ? { ...current.props, ...patch.props } : current.props,
+    };
+    if (updated.props === undefined) delete updated.props;
     const ports = new Set(inputPortsOf(updated.type, updated.inputs));
     set({
       message: null,
@@ -172,8 +195,9 @@ export const useCircuitStore = create<CircuitState>()((set, get) => ({
     set({ circuit: { ...circuit, wires: circuit.wires.filter((w) => !gone.has(w.id)) } });
   },
 
-  loadCircuit: (circuit) => set({ circuit: clone(circuit), message: null }),
-  newCircuit: () => set({ circuit: createCircuit(), message: null }),
+  loadCircuit: (circuit) =>
+    set((s) => ({ circuit: clone(circuit), message: null, loaded: s.loaded + 1 })),
+  newCircuit: () => set((s) => ({ circuit: createCircuit(), message: null, loaded: s.loaded + 1 })),
   renameCircuit: (name) => set({ circuit: { ...get().circuit, name } }),
   showMessage: (text) => set({ message: text }),
   clearMessage: () => set({ message: null }),
