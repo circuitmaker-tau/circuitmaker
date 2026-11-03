@@ -121,7 +121,7 @@ _אין כרגע החלטות פתוחות._ (החלטות 1–6 נסגרו ב-1
 
 ## 3. מבנה הנתונים (Data Schema) — טיוטה
 
-> טיוטה ראשונה. לעדכן כאן כל שינוי לפני שמשנים בקוד.
+> **ממומש ב-`src/model/`** (PR מודל הנתונים, 03.11): `types.ts`, `catalog.ts` (פורטים וברירות מחדל לכל רכיב), `validate.ts`, `serialize.ts`, `factory.ts`. פורטים של שערים: `in0..in(n−1)` ו-`out`; נורה: `in`; מקורות: `out`. לעדכן כאן כל שינוי לפני שמשנים בקוד.
 
 ```ts
 type Signal = 0 | 1 | 'X';
@@ -141,7 +141,7 @@ interface Component {
   id: string;                 // "g1"
   type: ComponentType;        // "AND" | "OR" | "NOT" | "NAND" | "NOR" | "XOR" | "MUX2" | "DEC2x4" | "HALF_ADDER" | "FULL_ADDER"
                               // | "ENC4x2" | "PRIORITY_ENC4x2" | "DEC3x8" | "MUX4" | "MUX8"
-                              // | "SR_LATCH" | "D_LATCH" | "D_FF" | "T_FF" | "JK_FF" | "SR_FF" | "REGISTER" | "COUNTER"
+                              // | "SR_LATCH" | "D_LATCH" | "D_FF" | "T_FF" | "JK_FF" | "SR_FF" | "REGISTER4" | "COUNTER4"
                               // | "INPUT" | "OUTPUT" | "CLOCK" | "CONST0" | "CONST1" | "BUF" | "XNOR"
                               // רשימה מלאה, פורטים והתנהגות: COMPONENT_SPEC.md §2
   position: { x: number; y: number };
@@ -207,7 +207,7 @@ simulate(circuit: Circuit, stimuli: SimEvent[], until: number): Waveform
 | # | אבן דרך | תאריך יעד | סטטוס |
 |---|---|---|---|
 | 1 | הגשת תכנית העבודה | 15.10.2026 | ✅ **הושלם.** המנחה אישר את הגרסה המתוקנת (כולל פרק Vite ושמירת נתונים) |
-| 2 | סקירת ספרות ואפיון (רקע תיאורטי, כלים קיימים, דרישות, wireframes) | 5.11.2026 | בעבודה. **יעד פנימי, לא הגשה.** סיכום הקורס והמפרט הושלמו |
+| 2 | סקירת ספרות ואפיון (רקע תיאורטי, כלים קיימים, דרישות, wireframes) | 5.11.2026 | ✅ **טיוטה מלאה 03.11** במסמך Docs: https://claude.ai/artifact/L9oNYxoYiTBw6nX6dh69dB (10 פרקים, דרישות F1–F19 ו-N1–N9, דיאגרמת ארכיטקטורה, 3 wireframes). יעד פנימי, לא הגשה |
 | 3 | תשתית ומשטח עבודה: שלד Vite, **צינור פריסה ל-GitHub Pages ואימותו**, מודל נתונים, עורך עם שערים בסיסיים וחיווט | 26.11.2026 | |
 | 4 | מנוע מבוסס אירועים עם **השהיה אחידה** (צביעה ואנימציה של 1/0, שמירה וטעינה) | 17.12.2026 | |
 | 5 | רכיבים עקיבים וספרייה מורחבת + **פריסה ראשונה ברשת** | 31.12.2026 | |
@@ -251,6 +251,7 @@ simulate(circuit: Circuit, stimuli: SimEvent[], until: number): Waveform
 - **03.11: נפתח ה-repo** `https://github.com/circuitmaker-tau/circuitmaker` (ארגון `circuitmaker-tau`, ציבורי, MIT), הועלו המסמכים, הוגדרו ruleset על main ו-Pages מ-GitHub Actions. הסביבה המקומית הותקנה (Git 2.39, Node 26, VS Code).
 - **03.11: שלד הקוד ב-PR** (branch `setup/vite-skeleton`): Vite 8.3, React 19, TypeScript 5.9, Vitest 5.1, ESLint 10, Prettier; `src/engine/logic.ts` (לוגיקה תלת-ערכית לפי E7) עם 30 בדיקות; workflows `ci.yml` (lint, test, build בכל PR) ו-`deploy.yml` (פריסה בכל merge ל-main). נבדק מקומית: בדיקות, lint ו-build עוברים. נשארו 12 אזהרות audit מסוג moderate (minimatch בתוך typescript-eslint, כלי פיתוח בלבד).
 - **המשימות הבאות:**
+  0. **PR מודל הנתונים (אבן דרך 3, חלק 1):** טיפוסים, קטלוג פורטים, ולידציה, JSON, מעגל דוגמה TC-H1, 20 בדיקות. הבאים: העורך (React Flow) ואז חיבור Zustand + ייצוא/ייבוא.
   1. **למזג את PR השלד** ולוודא שהאתר עלה ב-`https://circuitmaker-tau.github.io/circuitmaker/`. אחר כך להוסיף ל-ruleset את **Require status checks to pass** עם הבדיקה `check`.
   2. **אבן דרך 2 (יעד פנימי, 5.11):** מסמך סקירה ואפיון, ו-wireframes ב-Figma.
   3. **אבן דרך 3 (26.11):** השלד וצינור הפריסה כבר ב-PR. נשארו מודל הנתונים ועורך עם שערים בסיסיים.
@@ -300,6 +301,7 @@ simulate(circuit: Circuit, stimuli: SimEvent[], until: number): Waveform
 | 03.11.2026 | שם ה-repo: `circuitmaker`, ציבורי, רישיון MIT | עומרי |
 | 03.11.2026 | ה-repo תחת ארגון GitHub בשם `circuitmaker-tau`, כדי שהשם הפרטי לא יופיע בכתובת. האתר: `https://circuitmaker-tau.github.io/circuitmaker/` | עומרי |
 | 03.11.2026 | עבודה ב-GitHub מחשבון אחד (של עומרי). ב-ruleset של main: PR חובה עם 0 אישורים, חסימת force push ומחיקה; בהמשך תתווסף חובת CI ירוק | עומרי |
+| 03.11.2026 | מסמך אבן דרך 2 נכתב כמסמך Docs; ה-wireframes צוירו בתוך המסמך במקום ב-Figma; מספרי הפרקים אומתו מול תוכני העניינים: Even & Medina 11.7, 11.9, 17, 19.6–19.7 (הוצאה 2012, לא 2016 כמו בתכנית העבודה); Langholz פרקים 4 ו-7. נבדק שב-Digital וב-Logisim-evolution אין השהיה לכל שער (Digital #1302, Logisim-evolution #1840) | עומרי |
 | 03.11.2026 | גרסאות: Vite 8, Vitest 5, ESLint 10; TypeScript נשאר 5.9 (גרסה 7 עדיין לא נתמכת ב-typescript-eslint). commits נחתמים בכתובת noreply של GitHub | עומרי |
 
 ---
