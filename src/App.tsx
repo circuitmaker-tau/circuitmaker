@@ -1,53 +1,34 @@
-import { evalGate, type GateType, type Logic } from './engine/logic';
+import { ReactFlowProvider } from '@xyflow/react';
+import { mux2FromGates } from './examples/mux2FromGates';
+import { useCircuitStore } from './store/circuitStore';
+import { Editor } from './ui/Editor';
 
-const values: Logic[] = [0, 1, 'X'];
-const gates: GateType[] = ['AND', 'OR', 'XOR'];
-
-/**
- * Placeholder home page for milestone 3. It shows that the engine module is
- * wired into the UI by rendering three-valued truth tables computed live.
- */
 export default function App() {
+  const name = useCircuitStore((s) => s.circuit.name);
+  const { newCircuit, loadCircuit } = useCircuitStore.getState();
+
   return (
-    <main className="page">
-      <header>
+    <div className="app">
+      <header className="topbar">
         <h1>CircuitMaker</h1>
-        <p className="subtitle">הדמיה אינטראקטיבית של מעגלים ספרתיים · בבנייה</p>
-      </header>
-
-      <section aria-labelledby="tables-title">
-        <h2 id="tables-title">בדיקת מנוע: טבלאות אמת עם X</h2>
-        <div className="tables">
-          {gates.map((g) => (
-            <table key={g} dir="ltr">
-              <caption>{g}</caption>
-              <thead>
-                <tr>
-                  <th>a \ b</th>
-                  {values.map((b) => (
-                    <th key={String(b)}>{b}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {values.map((a) => (
-                  <tr key={String(a)}>
-                    <th>{a}</th>
-                    {values.map((b) => (
-                      <td key={String(b)}>{evalGate(g, [a, b])}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ))}
+        <span className="circuit-name">{name}</span>
+        <div className="actions">
+          <button type="button" onClick={newCircuit}>
+            מעגל חדש
+          </button>
+          <button type="button" onClick={() => loadCircuit(mux2FromGates)}>
+            דוגמה: MUX 2:1 משערים
+          </button>
         </div>
-      </section>
-
-      <footer>
+      </header>
+      <ReactFlowProvider>
+        <Editor />
+      </ReactFlowProvider>
+      <footer className="footer">
         פרויקט 26-1-203 · אוניברסיטת תל אביב ·{' '}
-        <a href="https://github.com/circuitmaker-tau/circuitmaker">קוד מקור</a>
+        <a href="https://github.com/circuitmaker-tau/circuitmaker">קוד מקור</a> · הסימולציה תתווסף
+        באבן דרך 4
       </footer>
-    </main>
+    </div>
   );
 }

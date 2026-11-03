@@ -4,3 +4,4 @@ export * from './catalog';
 export * from './factory';
 export * from './validate';
 export * from './serialize';
+export * from './connect';
