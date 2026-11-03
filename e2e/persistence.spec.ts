@@ -21,3 +21,12 @@ test('export gives a JSON file that import reads back', async ({ page }) => {
   await page.locator('input[type=file]').setInputFiles(file!);
   await expect(page.locator('.react-flow__node')).toHaveCount(7);
 });
+
+test('the speed and the bottom panel are remembered too', async ({ page }) => {
+  await openExample(page, 'bamba');
+  await page.locator('.sim-controls select').selectOption('4');
+  await page.getByRole('tab', { name: 'ניתוח hazards' }).click();
+  await page.reload();
+  await expect(page.locator('.sim-controls select')).toHaveValue('4');
+  await expect(page.locator('.analysis, .analysis-empty').first()).toBeVisible();
+});

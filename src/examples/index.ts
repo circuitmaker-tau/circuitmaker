@@ -1,6 +1,7 @@
 import type { Circuit } from '../model/types';
 import { counter4 } from './counter4';
 import { downCounter } from './downCounter';
+import { bambaFsm, detector0101 } from './fsm';
 import { jkFromClock } from './jkFromClock';
 import { asymmetric, dffFeedback, mux2Fixed, norLatch, staticZero, tffPulses } from './lessons';
 import { mux2FromGates } from './mux2FromGates';
@@ -105,5 +106,21 @@ export const EXAMPLES: Example[] = [
     circuit: downCounter,
     lesson:
       'מונה מטה סינכרוני: J0 = K0 = 1, ו-J ו-K של כל שלב הם AND של ה-Q\' של השלבים שלפניו. מ-0000 הוא סופר 1111, 1110, 1101 וכן הלאה. "מחזור" מתקדם עלייה אחת, ובדיאגרמה רואים את כל ה-Q.',
+  },
+  {
+    id: 'bamba',
+    group: 'מכונות מצבים (FSM)',
+    label: 'מכונת הבמבה עם שני T-FF (WK9B)',
+    circuit: bambaFsm,
+    lesson:
+      "התכנון מההרצאה: במבה תקינה היא 2 או 3 מחזורים של X = 1, ואז Z = 1 למחזור אחד. a = 00 אין במבה, b = 01, c = 10, d = 11. מהמפות: T1 = x'y1 + xy2, T2 = x + y2, z = x'y1 (מכונת Mealy, ושער ה-AND של z משמש גם ב-T1). X משתנה מעצמו באמצע כל מחזור: במבה של 2, במבה של 3, במבה של 1 ובמבה של 4. לוחצים ״מחזור״ שוב ושוב ורואים בדיאגרמה ש-Z קופץ רק אחרי שתי הראשונות, ו-y1 y2 עוברים a → b → c → a.",
+  },
+  {
+    id: 'detector',
+    group: 'מכונות מצבים (FSM)',
+    label: 'מזהה הרצף 0101 עם JK ו-D (WK9A)',
+    circuit: detector0101,
+    lesson:
+      "הניתוח מההרצאה: J = xy2, K = x + y2', D = x'y2' + y1'y2, z = xy1y2'. מריצים את הרצף (X משתנה מעצמו כל מחזור) ועוקבים אחרי y1 y2 בדיאגרמה: a → b → d → c, ו-Z = 1 כשמגיע ה-1 האחרון של 0101, גם אחרי קלט שרירותי. אחרי זיהוי המכונה חוזרת ל-a, ולכן ב-010101 היא מזהה רק פעם אחת. אפשר לערוך את הרצף בשינויים המתוזמנים של X ולבדוק.",
   },
 ];

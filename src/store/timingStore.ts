@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import { CATALOG, outputPortsOf } from '../model';
 import type { Circuit } from '../model';
+import { loadPrefs, savePrefs } from './prefs';
 
 /** Up to this many nets, the diagram shows them all. */
 const SHOW_ALL_UP_TO = 10;
@@ -96,11 +97,14 @@ interface TimingState {
   setCursor: (t: number | null, second?: boolean) => void;
 }
 
+const initial = loadPrefs();
+
 export const useTimingStore = create<TimingState>()((set, get) => ({
   probes: null,
-  open: true,
-  tab: 'timing',
-  height: 280,
+  // the panel as it was left on the last visit
+  open: initial.panelOpen,
+  tab: initial.panelTab,
+  height: initial.panelHeight,
   zoom: null,
   cursor: null,
   cursorB: null,
@@ -123,3 +127,8 @@ export const useTimingStore = create<TimingState>()((set, get) => ({
   setZoom: (zoom) => set({ zoom }),
   setCursor: (t, second = false) => set(second ? { cursorB: t } : { cursor: t, cursorB: null }),
 }));
+
+// remember the panel for the next visit (savePrefs writes only on a change)
+useTimingStore.subscribe((s) =>
+  savePrefs({ panelOpen: s.open, panelTab: s.tab, panelHeight: s.height }),
+);
