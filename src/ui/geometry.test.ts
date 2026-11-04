@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mux2FromGates } from '../examples/mux2FromGates';
-import { createComponent } from '../model';
+import { createComponent, createWire } from '../model';
 import type { Circuit } from '../model';
 import {
   findFreeSpot,
@@ -15,6 +15,41 @@ import type { Point, RoutedWire } from './geometry';
 
 const isOrthogonal = (pts: Point[]) =>
   pts.slice(1).every((b, i) => b.x === pts[i].x || b.y === pts[i].y);
+
+describe('multiplexer', () => {
+  const mux = createComponent('MUX4', 'm', { x: 200, y: 100 });
+  const { width, bodyHeight } = nodeLayout(mux);
+
+  it('takes the data inputs on the long side and the selects from below', () => {
+    // only the four data inputs set the height
+    expect(bodyHeight).toBe(4 * 20 + 8);
+    expect(portPosition(mux, 'I0')).toEqual({ x: 200, y: 100 + 14 });
+    expect(portPosition(mux, 'f')!.x).toBe(200 + width);
+    const s1 = portPosition(mux, 'S1')!;
+    const s0 = portPosition(mux, 'S0')!;
+    // S1 left of S0, both on the grid, on the slanted bottom side
+    expect([s1.x, s0.x]).toEqual([250, 270]);
+    expect(s0.y).toBeLessThan(s1.y);
+    expect(s1.y).toBeLessThan(100 + bodyHeight);
+    expect(s1.y).toBeGreaterThan(100 + bodyHeight - 20);
+  });
+
+  it('routes a select up into its port from below, whether the source is before or after it', () => {
+    const before = createComponent('INPUT', 'a', { x: 0, y: 100 });
+    const after = createComponent('COUNTER4', 'c', { x: 500, y: 100 });
+    const circuit: Circuit = {
+      ...mux2FromGates,
+      components: [before, after, mux],
+      wires: [createWire('w1', ['a', 'out'], ['m', 'S1']), createWire('w2', ['c', 'Q0'], ['m', 'S0'])],
+    };
+    for (const r of routeCircuit(circuit)) {
+      expect(isOrthogonal(r.points)).toBe(true);
+      const [p, q] = r.points.slice(-2);
+      expect(p.x).toBe(q.x);
+      expect(p.y).toBeGreaterThan(100 + bodyHeight); // comes up from under the body
+    }
+  });
+});
 
 describe('layout', () => {
   it('puts inputs on the left edge and outputs on the right', () => {

@@ -27,9 +27,19 @@ export interface NodeLayout {
   height: number;
 }
 
+/** A multiplexer is drawn as a trapezoid: data in on the long side, selects from below. */
+export const isMux = (c: Component) => c.type.startsWith('MUX');
+
+/** The select inputs, which enter a multiplexer from below. */
+export const bottomPorts = (c: Component): string[] =>
+  isMux(c) ? inputsOfComponent(c).filter((p) => p.startsWith('S')) : [];
+
+/** How far the narrow side is set in from the top and the bottom. */
+export const muxInset = (bodyHeight: number) => Math.min(40, Math.round(bodyHeight * 0.2));
+
 export function nodeLayout(c: Component): NodeLayout {
   const def = CATALOG[c.type];
-  const ins = inputsOfComponent(c).length;
+  const ins = inputsOfComponent(c).length - bottomPorts(c).length;
   const outs = outputPortsOf(c.type).length;
   // every body is n*20+8 high, so with positions on the 10px grid all ports land on the same grid
   if (def.category === 'gate') {
@@ -39,25 +49,42 @@ export function nodeLayout(c: Component): NodeLayout {
   if (def.category === 'io') return { width: 72, bodyHeight: 48, height: 48 };
   // blocks need three rows for the title, the stored value and the id
   const bodyHeight = Math.max(ins, outs, 3) * ROW + 8;
-  return { width: 128, bodyHeight, height: bodyHeight };
+  // a width of 120 puts the selects of a multiplexer on the 10px grid too
+  return { width: isMux(c) ? 120 : 128, bodyHeight, height: bodyHeight };
 }
 
 /** Vertical offset of the i-th of n ports, centred on the body. */
 export const portOffset = (i: number, n: number, bodyHeight: number) =>
   bodyHeight / 2 + (i - (n - 1) / 2) * ROW;
 
-/** Port position in flow coordinates, or null if the port does not exist. */
-export function portPosition(c: Component, port: string): Point | null {
+export type PortSide = 'left' | 'right' | 'bottom';
+
+/** Where a port sits on its component, relative to the top left corner. */
+export function portLocal(c: Component, port: string): (Point & { side: PortSide }) | null {
   const { width, bodyHeight } = nodeLayout(c);
-  const ins = inputsOfComponent(c);
+  const below = bottomPorts(c);
+  const b = below.indexOf(port);
+  if (b >= 0) {
+    // the highest select on the left, S0 on the right, as S1S0 is written
+    const k = below.length;
+    const x = width / 2 + (k - 1 - b - (k - 1) / 2) * ROW;
+    // on the slanted bottom side, from (0, H) down the left to (W, H - inset)
+    const y = bodyHeight - (muxInset(bodyHeight) * x) / width;
+    return { x, y, side: 'bottom' };
+  }
+  const ins = inputsOfComponent(c).filter((p) => !below.includes(p));
   const outs = outputPortsOf(c.type);
   const i = ins.indexOf(port);
-  if (i >= 0) return { x: c.position.x, y: c.position.y + portOffset(i, ins.length, bodyHeight) };
+  if (i >= 0) return { x: 0, y: portOffset(i, ins.length, bodyHeight), side: 'left' };
   const o = outs.indexOf(port);
-  if (o >= 0) {
-    return { x: c.position.x + width, y: c.position.y + portOffset(o, outs.length, bodyHeight) };
-  }
+  if (o >= 0) return { x: width, y: portOffset(o, outs.length, bodyHeight), side: 'right' };
   return null;
+}
+
+/** Port position in flow coordinates, or null if the port does not exist. */
+export function portPosition(c: Component, port: string): Point | null {
+  const p = portLocal(c, port);
+  return p && { x: c.position.x + p.x, y: c.position.y + p.y };
 }
 
 const STUB = 16;
@@ -85,6 +112,20 @@ export function routeWire(from: Point, to: Point, inputIndex = 0, lane?: number)
     { x: laneX, y: to.y },
     to,
   ];
+}
+
+/**
+ * Orthogonal route into an input on the bottom of a component: across to a
+ * vertical lane, down below the component, along under it, and up into the
+ * port. `below` is the y the wire runs at under the component.
+ */
+export function routeUp(from: Point, to: Point, below: number, lane?: number): Point[] {
+  // the source is already lower and to the left: along, then straight up
+  if (lane === undefined && from.y >= below && from.x < to.x) {
+    return [from, { x: to.x, y: from.y }, to];
+  }
+  const laneX = lane ?? from.x + STUB;
+  return [from, { x: laneX, y: from.y }, { x: laneX, y: below }, { x: to.x, y: below }, to];
 }
 
 export interface RoutedWire {
@@ -173,7 +214,30 @@ export function routeCircuit(circuit: Circuit): RoutedWire[] {
     };
 
     let best = routeWire(a, b, index);
-    if (best.length === 4) {
+    const select = bottomPorts(dst).indexOf(w.to.port);
+    if (select >= 0) {
+      // a select comes in from below: one row under the component per select
+      const below = dst.position.y + nodeLayout(dst).bodyHeight + STUB + LANE * select;
+      const self = boxOf(dst);
+      // the last run goes up into the port, through the corner under the slant
+      const selfCost = (pts: Point[]) =>
+        10 * segments(pts.slice(0, -1)).filter((sg) => cuts(sg, self)).length;
+      best = routeUp(a, b, below);
+      let bestCost = score(best) + selfCost(best);
+      const lanes: number[] = [];
+      for (let k = 0; k < 8; k++) lanes.push(a.x + STUB + LANE * k);
+      for (let k = 0; k < 8; k++) lanes.push(dst.position.x - STUB - LANE * (select + k));
+      for (const x of lanes) {
+        if (bestCost === 0) break;
+        if (x <= a.x + 4) continue;
+        const pts = routeUp(a, b, below, x);
+        const cost = score(pts) + selfCost(pts);
+        if (cost < bestCost) {
+          bestCost = cost;
+          best = pts;
+        }
+      }
+    } else if (best.length === 4) {
       const lanes: number[] = [];
       for (let k = 0; k < 8; k++) lanes.push(b.x - STUB - LANE * (index + k));
       for (let k = 0; k < 8; k++) lanes.push(a.x + STUB + LANE * k);

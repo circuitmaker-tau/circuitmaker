@@ -80,24 +80,78 @@ export function minimalSop(table: readonly Value[], n: number): Cube[] {
   const candidates = primes.filter((p) => !chosen.has(p) && p.covers.some((m) => left.includes(m)));
 
   // the rest: the smallest set of candidates (then the fewest literals) that covers what is left
-  let best: Implicant[] | null = null;
-  const cost = (set: Implicant[]) => set.reduce((s, p) => s + popcount(p.mask), 0);
-  for (let size = 0; size <= candidates.length && !best; size++) {
-    const pick = (start: number, set: Implicant[]) => {
-      if (set.length === size) {
-        const all = new Set(set.flatMap((p) => p.covers));
-        if (left.every((m) => all.has(m)) && (!best || cost(set) < cost(best))) best = [...set];
-        return;
-      }
-      for (let i = start; i < candidates.length; i++) pick(i + 1, [...set, candidates[i]]);
-    };
-    pick(0, []);
-  }
+  const best = smallestCover(left, candidates);
 
   const terms = [...chosen, ...(best ?? [])];
   return terms
     .map((p) => toCube(p, n))
     .sort((a, b) => order(a, n) - order(b, n));
+}
+
+/**
+ * Exact smallest cover, by branch and bound on bit sets of the minterms (two
+ * 32-bit halves, enough for 6 variables): take the uncovered 1 with the fewest
+ * candidates and try each of them, the one that covers most first. A branch is
+ * dropped when it cannot beat the best cover found so far; the bound counts
+ * uncovered 1s that no single candidate covers together.
+ */
+function smallestCover(left: number[], candidates: Implicant[]): Implicant[] {
+  type Bits = [number, number];
+  const bitsOf = (ms: number[]): Bits => {
+    const b: Bits = [0, 0];
+    for (const m of ms) b[m >> 5] |= 1 << (m & 31);
+    return b;
+  };
+  const count = (b: Bits) => popcount(b[0] >>> 0) + popcount(b[1] >>> 0);
+  const and = (x: Bits, y: Bits): Bits => [x[0] & y[0], x[1] & y[1]];
+  const has = (b: Bits, m: number) => (b[m >> 5] >>> (m & 31)) & 1;
+  const sets = candidates.map((p) => bitsOf(p.covers));
+  const lits = candidates.map((p) => popcount(p.mask));
+  // for every 1, the candidates that cover it
+  const coverers = new Map(left.map((m) => [m, sets.flatMap((s, i) => (has(s, m) ? [i] : []))]));
+
+  let best: number[] | null = null;
+  let bestLits = Infinity;
+  const chosen: number[] = [];
+
+  const search = (uncovered: Bits, used: number) => {
+    if (count(uncovered) === 0) {
+      // the bound keeps every complete cover at most as long as the best one
+      if (!best || chosen.length < best.length || used < bestLits) {
+        best = [...chosen];
+        bestLits = used;
+      }
+      return;
+    }
+    const open = left.filter((m) => has(uncovered, m));
+    // lower bound: 1s whose candidates are all different need a term each
+    let bound = 0;
+    let blocked: Bits = [0, 0];
+    for (const m of open) {
+      if (has(blocked, m)) continue;
+      bound++;
+      for (const i of coverers.get(m)!) blocked = [blocked[0] | sets[i][0], blocked[1] | sets[i][1]];
+    }
+    const needed = chosen.length + bound;
+    if (best !== null) {
+      const b: number[] = best;
+      if (needed > b.length || (needed === b.length && used >= bestLits)) return;
+    }
+    let pick = open[0];
+    for (const m of open) if (coverers.get(m)!.length < coverers.get(pick)!.length) pick = m;
+    const options = coverers
+      .get(pick)!
+      .map((i) => ({ i, gain: count(and(sets[i], uncovered)) }))
+      .sort((x, y) => y.gain - x.gain || lits[x.i] - lits[y.i] || x.i - y.i);
+    for (const { i } of options) {
+      chosen.push(i);
+      search([uncovered[0] & ~sets[i][0], uncovered[1] & ~sets[i][1]], used + lits[i]);
+      chosen.pop();
+    }
+  };
+  search(bitsOf(left), 0);
+  const found = best as number[] | null; // set inside search()
+  return (found ?? []).sort((a, b) => a - b).map((i) => candidates[i]);
 }
 
 /** A minimal product of sums, as the cubes of the sum terms: (x + y') is {x: 0, y: 1}, like the zeros it covers. */
