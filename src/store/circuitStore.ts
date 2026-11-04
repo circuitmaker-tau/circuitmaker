@@ -10,7 +10,7 @@ import {
   canConnect,
   createCircuit,
   createComponent,
-  inputPortsOf,
+  inputsOfComponent,
   isValidDelay,
   nextId,
 } from '../model';
@@ -46,7 +46,7 @@ export interface ComponentPatch {
   delay?: number;
   inputs?: number;
   /** Merged into the existing props. */
-  props?: Pick<ComponentProps, 'value' | 'init' | 'halfPeriod' | 'startLevel' | 'schedule'>;
+  props?: Pick<ComponentProps, 'value' | 'init' | 'halfPeriod' | 'startLevel' | 'schedule' | 'async'>;
 }
 
 export interface CircuitState {
@@ -205,7 +205,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => ({
       props: patch.props ? { ...current.props, ...patch.props } : current.props,
     };
     if (updated.props === undefined) delete updated.props;
-    const ports = new Set(inputPortsOf(updated.type, updated.inputs));
+    const ports = new Set(inputsOfComponent(updated));
     set({
       message: null,
       circuit: {

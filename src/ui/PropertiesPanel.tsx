@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CATALOG, formatSchedule, outputPortsOf, parseSchedule } from '../model';
+import { CATALOG, formatSchedule, hasAsyncOption, outputPortsOf, parseSchedule } from '../model';
 import type { Component } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { useTimingStore } from '../store/timingStore';
@@ -187,6 +187,19 @@ function ComponentFields({
             <option value="1">1</option>
             <option value="X">X (לא ידוע)</option>
           </select>
+        </label>
+      )}
+
+      {hasAsyncOption(component.type) && (
+        <label className="check field">
+          <input
+            type="checkbox"
+            checked={component.props?.async === true}
+            onChange={(e) => updateComponent(component.id, { props: { async: e.target.checked } })}
+          />
+          <span>
+            כניסות אסינכרוניות <bdi>CLR&apos;</bdi> ו-<bdi>PRE&apos;</bdi> (פעילות ב-0)
+          </span>
         </label>
       )}
 

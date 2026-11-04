@@ -17,6 +17,7 @@ const GROUPS: { title: string; types: ComponentType[] }[] = [
       'MUX2',
       'MUX4',
       'MUX8',
+      'MUX16',
       'DEC2x4',
       'DEC3x8',
       'ENC4x2',

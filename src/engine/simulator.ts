@@ -31,7 +31,7 @@
  * only what happens after a switch is flipped or the clock ticks.
  */
 import type { Circuit } from '../model';
-import { counterReset, edgeStep, latchStep, stateOutputs } from './behavior';
+import { counterReset, edgeStep, flipFlopAsync, latchStep, stateOutputs } from './behavior';
 import type { Logic } from './logic';
 import { delayToTicks } from '../model/time';
 import { buildNetlist, delayFor, netKey } from './netlist';
@@ -405,14 +405,16 @@ export class Simulator {
       return;
     }
 
-    // edge triggered: only a change of CLK (or of an asynchronous RESET) matters
+    // edge triggered: only a change of CLK (or of an asynchronous RESET, CLR' or PRE') matters
     let next: Logic[] | null = null;
+    // a held CLR' or PRE' blocks the clock
+    const free = (k: number) => k < 0 || before(d.inputs[k]) === 1;
     const clk = d.inputs[d.clock];
     if (clk && changed.has(clk)) {
       const from = before(clk);
       const to = this.value(clk);
       if (from === 0 && to === 1) {
-        if (d.reset < 0 || before(d.inputs[d.reset]) === 0) {
+        if ((d.reset < 0 || before(d.inputs[d.reset]) === 0) && free(d.clr) && free(d.pre)) {
           const r = edgeStep(d.type, d.inputs.map(before), d.state);
           if (r.warning) this.warnings.push({ time: t, component: d.id, message: r.warning });
           next = r.state;
@@ -422,6 +424,20 @@ export class Simulator {
       }
     }
     if (d.reset >= 0) next = counterReset(ins[d.reset], next ?? d.state) ?? next;
+    if (d.clr >= 0 || d.pre >= 0) {
+      const current = next ?? d.state;
+      const r = flipFlopAsync(
+        d.clr >= 0 ? ins[d.clr] : 1,
+        d.pre >= 0 ? ins[d.pre] : 1,
+        current,
+      );
+      if (r) {
+        if (r.warning && current[0] !== 'X') {
+          this.warnings.push({ time: t, component: d.id, message: r.warning });
+        }
+        next = r.state;
+      }
+    }
     if (next) {
       d.state = next;
       this.emit(d, t, stateOutputs(d.type, next), cause);

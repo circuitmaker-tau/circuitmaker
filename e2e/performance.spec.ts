@@ -3,12 +3,13 @@
  * The fixture has 232 components and 231 wires, all changing all the time.
  * CI machines are slower and share their CPU, so the bar here is lower than
  * the target; the measured rate is printed and attached to the report.
+ * Not on the phone project: an emulated iPhone runs on the CI machine's CPU.
  */
 import { expect, test } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 
+// measured on every engine: Chromium, Firefox and WebKit (Safari)
 test('playback stays smooth with 232 components', async ({ page, browserName }, info) => {
-  test.skip(browserName !== 'chromium', 'measured once, on Chromium');
   await page.goto('./#/editor');
   await page
     .locator('input[type=file]')
@@ -29,6 +30,7 @@ test('playback stays smooth with 232 components', async ({ page, browserName }, 
       }),
   );
   info.annotations.push({ type: 'fps', description: fps.toFixed(1) });
-  console.log(`playback with 232 components: ${fps.toFixed(1)} fps`);
-  expect(fps).toBeGreaterThan(25);
+  console.log(`${browserName}: playback with 232 components: ${fps.toFixed(1)} fps`);
+  // Firefox and WebKit draw without a GPU on the CI machines, so their bar is lower
+  expect(fps).toBeGreaterThan(browserName === 'chromium' ? 25 : 15);
 });

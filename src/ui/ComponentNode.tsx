@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { CATALOG, inputPortsOf, outputPortsOf } from '../model';
+import { CATALOG, inputsOfComponent, outputPortsOf } from '../model';
 import type { Component, Signal } from '../model';
 import { useAnalysisStore } from '../store/analysisStore';
 import { useSimStore } from '../store/simStore';
@@ -63,7 +63,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
   const c = data.component;
   const def = CATALOG[c.type];
   const { width, bodyHeight, height } = nodeLayout(c);
-  const ins = inputPortsOf(c.type, c.inputs);
+  const ins = inputsOfComponent(c);
   const outs = outputPortsOf(c.type);
   const isGate = def.category === 'gate';
   const showPortNames = !isGate && def.category !== 'io';

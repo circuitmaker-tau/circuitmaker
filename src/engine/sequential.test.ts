@@ -414,3 +414,62 @@ describe('register and counter', () => {
     expect(count()).toBe(1); // counts again from the edge at 39
   });
 });
+
+describe("asynchronous CLR' and PRE' (WK8A, active low)", () => {
+  // D = 1 all the time; edges at 1, 3, 5, …; Tp(FF) = 1
+  const circuit = (clrAt: [number, 0 | 1][], preAt: [number, 0 | 1][] = []) =>
+    build(
+      [
+        ['CLK', 'CLOCK'],
+        ['one', 'CONST1'],
+        ['C', 'INPUT', 0, { value: 1, schedule: clrAt.map(([time, value]) => ({ time, value })) }],
+        ['P', 'INPUT', 0, { value: 1, schedule: preAt.map(([time, value]) => ({ time, value })) }],
+        ['ff', 'D_FF', 1, { async: true, init: 0 }],
+      ],
+      [
+        ['one', 'ff.D'],
+        ['CLK', 'ff.CLK'],
+        ['C', "ff.CLR'"],
+        ['P', "ff.PRE'"],
+      ],
+    );
+
+  it("CLR' = 0 clears Q at once, between clock edges, and holds it while it stays 0", () => {
+    const sim = new Simulator(circuit([[3.6, 0], [8, 1]]));
+    sim.runUntil(120);
+    // Q rises at 1 + 1, is cleared at 3.6 + 1, ignores the edges at 5 and 7, rises after 9
+    expect(wave(sim, 'ff:Q')).toBe('0:0 2:1 4.6:0 10:1');
+    expect(wave(sim, "ff:Q'")).toBe('0:1 2:0 4.6:1 10:0');
+  });
+
+  it("PRE' = 0 sets Q to 1 at once", () => {
+    const c = circuit([], [[0.5, 0], [0.8, 1]]);
+    c.components.find((x) => x.id === 'ff')!.props = { async: true, init: 0 };
+    c.wires = c.wires.filter((w) => w.to.port !== 'D'); // D unconnected is X, so look only before the first edge
+    const sim = new Simulator(c);
+    sim.runUntil(18);
+    expect(wave(sim, 'ff:Q')).toBe('0:0 1.5:1');
+  });
+
+  it('both active together is not allowed: Q is X, with a warning', () => {
+    const sim = new Simulator(circuit([[2.2, 0]], [[2.2, 0]]));
+    sim.runUntil(40);
+    expect(at(sim, 'ff:Q', 3.5)).toBe('X');
+    expect(sim.warnings.some((w) => w.message.includes('מצב אסור'))).toBe(true);
+  });
+
+  it('unconnected, they are inactive: the flip-flop works as without them', () => {
+    const c = circuit([]);
+    c.wires = c.wires.filter((w) => !w.to.port.endsWith("'"));
+    const sim = new Simulator(c);
+    sim.runUntil(40);
+    expect(wave(sim, 'ff:Q')).toBe('0:0 2:1');
+  });
+
+  it('a held CLR\' at the start is applied before t = 0', () => {
+    const c = circuit([]);
+    c.components.find((x) => x.id === 'ff')!.props = { async: true, init: 1 };
+    c.components.find((x) => x.id === 'C')!.props = { value: 0 };
+    expect(settle(c).nets.get('ff:Q')).toBe(0);
+  });
+});

@@ -7,7 +7,7 @@
  * horizontal run crosses a vertical run of a different net, the horizontal one
  * gets a small hop, so a crossing is never mistaken for a connection.
  */
-import { CATALOG, inputPortsOf, outputPortsOf } from '../model';
+import { CATALOG, inputsOfComponent, outputPortsOf } from '../model';
 import type { Circuit, Component, Wire } from '../model';
 
 export const ROW = 20;
@@ -29,7 +29,7 @@ export interface NodeLayout {
 
 export function nodeLayout(c: Component): NodeLayout {
   const def = CATALOG[c.type];
-  const ins = inputPortsOf(c.type, c.inputs).length;
+  const ins = inputsOfComponent(c).length;
   const outs = outputPortsOf(c.type).length;
   // every body is n*20+8 high, so with positions on the 10px grid all ports land on the same grid
   if (def.category === 'gate') {
@@ -49,7 +49,7 @@ export const portOffset = (i: number, n: number, bodyHeight: number) =>
 /** Port position in flow coordinates, or null if the port does not exist. */
 export function portPosition(c: Component, port: string): Point | null {
   const { width, bodyHeight } = nodeLayout(c);
-  const ins = inputPortsOf(c.type, c.inputs);
+  const ins = inputsOfComponent(c);
   const outs = outputPortsOf(c.type);
   const i = ins.indexOf(port);
   if (i >= 0) return { x: c.position.x, y: c.position.y + portOffset(i, ins.length, bodyHeight) };
@@ -153,7 +153,7 @@ export function routeCircuit(circuit: Circuit): RoutedWire[] {
     const a = portPosition(src, w.from.port);
     const b = portPosition(dst, w.to.port);
     if (!a || !b) continue;
-    const index = inputPortsOf(dst.type, dst.inputs).indexOf(w.to.port);
+    const index = inputsOfComponent(dst).indexOf(w.to.port);
     const net = netOf(w);
     const others = boxes.filter((box) => box.id !== src.id && box.id !== dst.id);
 

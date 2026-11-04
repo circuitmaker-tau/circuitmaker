@@ -7,6 +7,7 @@ export const BOX_TITLE: Partial<Record<ComponentType, string>> = {
   MUX2: 'MUX 2:1',
   MUX4: 'MUX 4:1',
   MUX8: 'MUX 8:1',
+  MUX16: 'MUX 16:1',
   DEC2x4: 'DEC 2:4',
   DEC3x8: 'DEC 3:8',
   ENC4x2: 'ENC 4:2',

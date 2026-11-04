@@ -34,6 +34,7 @@ export const COMPONENT_TYPES = [
   'MUX2',
   'MUX4',
   'MUX8',
+  'MUX16',
   'DEC2x4',
   'DEC3x8',
   'ENC4x2',
@@ -74,6 +75,8 @@ export interface ComponentProps {
   schedule?: Stimulus[];
   /** CLOCK: half period in the circuit's time unit (rule E6). */
   halfPeriod?: number;
+  /** D/T/JK/SR flip-flops: show the active-low asynchronous inputs CLR' and PRE'. */
+  async?: boolean;
   /** CLOCK: level before the first edge. */
   startLevel?: 0 | 1;
   /** Latches and flip-flops: value before the first event (rule E5). */

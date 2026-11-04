@@ -24,7 +24,7 @@
  *
  * Latches and encoders are not exported yet; `unsupported` lists any such part.
  */
-import { CATALOG, inputPortsOf, outputPortsOf } from '../model';
+import { CATALOG, inputPortsOf, inputsOfComponent, outputPortsOf } from '../model';
 import type { Circuit, Component } from '../model';
 import { delayToTicks } from '../model/time';
 import type { Logic } from '../engine/logic';
@@ -157,9 +157,10 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
         break;
       case 'MUX2':
       case 'MUX4':
-      case 'MUX8': {
+      case 'MUX8':
+      case 'MUX16': {
         // nested ?: — with an X select Verilog merges both sides bit by bit, as rule E7 does
-        const n = { MUX2: 1, MUX4: 2, MUX8: 3 }[c.type];
+        const n = { MUX2: 1, MUX4: 2, MUX8: 3, MUX16: 4 }[c.type];
         const pick = (level: number, base: number): string =>
           level < 0
             ? i(`I${base}`)
@@ -167,6 +168,19 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
         comb(c, 'f', pick(n - 1, 0));
         break;
       }
+      case 'ENC4x2': {
+        // a plain encoder is defined only when exactly one input is on (exam 2026A, 2C)
+        const one = `({2'b00, ${i('D0')}} + {2'b00, ${i('D1')}} + {2'b00, ${i('D2')}} + {2'b00, ${i('D3')}}) == 3'd1`;
+        const code = (expr: string) => `(${i('En')} == 1'b0) ? 1'b0 : ((${one}) ? (${expr}) : 1'bx)`;
+        comb(c, 'X1', code(`${i('D3')} | ${i('D2')}`));
+        comb(c, 'X0', code(`${i('D3')} | ${i('D1')}`));
+        break;
+      }
+      case 'PRIORITY_ENC4x2':
+        comb(c, 'X1', `${i('En')} & (${i('D3')} | ${i('D2')})`);
+        comb(c, 'X0', `${i('En')} & (${i('D3')} | (~${i('D2')} & ${i('D1')}))`);
+        comb(c, 'V', `${i('En')} & (${i('D0')} | ${i('D1')} | ${i('D2')} | ${i('D3')})`);
+        break;
       case 'DEC2x4':
       case 'DEC3x8': {
         const n = c.type === 'DEC2x4' ? 2 : 3;
@@ -215,9 +229,12 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
           })
           .join(' ');
         const reset = c.type === 'COUNTER4' ? driverOf.get(`${c.id}:RESET`) : undefined;
-        if (!clk && !reset) break;
+        // active-low CLR' and PRE'; unconnected means inactive
+        const clr = driverOf.get(`${c.id}:CLR'`);
+        const pre = driverOf.get(`${c.id}:PRE'`);
+        if (!clk && !reset && !clr && !pre) break;
         // remember what this block saw last time: the values from just before this tick
-        const watched = inputPortsOf(c.type, c.inputs)
+        const watched = inputsOfComponent(c)
           .map((p) => driverOf.get(`${c.id}:${p}`))
           .filter((n): n is string => n !== undefined)
           .map((n) => nameOf.get(n)!);
@@ -232,10 +249,18 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
         const c1 = clk ? nameOf.get(clk)! : "1'b0";
         const r = reset ? nameOf.get(reset)! : "1'b0";
         const rOld = reset ? old(r) : "1'b0";
+        const C = clr ? nameOf.get(clr)! : "1'b1";
+        const P = pre ? nameOf.get(pre)! : "1'b1";
+        const free = clr || pre ? ` && ${clr ? old(C) : "1'b1"} === 1'b1 && ${pre ? old(P) : "1'b1"} === 1'b1` : '';
+        const forced =
+          `(${C} === 1'b0 && ${P} === 1'b1) ? 1'b0 : (${P} === 1'b0 && ${C} === 1'b1) ? 1'b1 : ` +
+          `(${C} === 1'bx && ${P} === 1'b1 && ${st} === 1'b0) ? 1'b0 : ` +
+          `(${P} === 1'bx && ${C} === 1'b1 && ${st} === 1'b1) ? 1'b1 : 1'bx`;
         const body = [
-          `if (${c0} === 1'b0 && ${c1} === 1'b1) begin if (${rOld} === 1'b0) begin ${nextFromOld} ${drive} end end`,
+          `if (${c0} === 1'b0 && ${c1} === 1'b1) begin if (${rOld} === 1'b0${free}) begin ${nextFromOld} ${drive} end end`,
           `else if ((${c0} === 1'b0 && ${c1} === 1'bx) || (${c0} === 1'bx && ${c1} === 1'b1)) begin ${st} = {${width}{1'bx}}; ${drive} end`,
           reset ? `if (${r} === 1'b1) begin ${st} = 0; ${drive} end` : '',
+          clr || pre ? `if (!(${C} === 1'b1 && ${P} === 1'b1)) begin ${st} = ${forced}; ${drive} end` : '',
           ...[...new Set(watched)].map((name) => `${prev(name)}_${st} = ${name};`),
         ].join(' ');
         lines.push(`  always @(${[...new Set(watched)].join(' or ')}) if (go) begin ${body} end`);

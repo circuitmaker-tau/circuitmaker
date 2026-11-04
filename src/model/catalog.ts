@@ -2,7 +2,7 @@
  * Port layout and defaults for every component type (COMPONENT_SPEC §2).
  * Port names follow the 2026 exams: indices start at 0, and 0 is the LSB.
  */
-import type { ComponentType } from './types';
+import type { Component, ComponentType } from './types';
 
 export type Category = 'io' | 'gate' | 'combinational' | 'sequential';
 
@@ -80,6 +80,7 @@ export const CATALOG: Record<ComponentType, ComponentDef> = {
   MUX2: block('combinational', 'MUX 2:1', [...seq('I', 2), 'S0'], ['f']),
   MUX4: block('combinational', 'MUX 4:1', [...seq('I', 4), ...seq('S', 2)], ['f']),
   MUX8: block('combinational', 'MUX 8:1', [...seq('I', 8), ...seq('S', 3)], ['f']),
+  MUX16: block('combinational', 'MUX 16:1', [...seq('I', 16), ...seq('S', 4)], ['f']),
   DEC2x4: block('combinational', 'מפענח 2:4', [...seq('I', 2), 'En'], seq('D', 4)),
   DEC3x8: block('combinational', 'מפענח 3:8', [...seq('I', 3), 'En'], seq('D', 8)),
   ENC4x2: block('combinational', 'מקודד 4:2 (לימודי)', [...seq('D', 4), 'En'], ['X1', 'X0']),
@@ -103,6 +104,26 @@ export const CATALOG: Record<ComponentType, ComponentDef> = {
 export function inputPortsOf(type: ComponentType, inputs: number): string[] {
   return CATALOG[type].inputPorts(inputs);
 }
+
+/**
+ * Active-low asynchronous clear and preset of a flip-flop (WK8A: "nullifying
+ * inputs will always be async"). They are shown only when the component's
+ * `async` prop is on, and an unconnected one is inactive (1).
+ */
+export const ASYNC_PORTS = ["CLR'", "PRE'"] as const;
+
+const WITH_ASYNC: ReadonlySet<ComponentType> = new Set(['D_FF', 'T_FF', 'JK_FF', 'SR_FF']);
+
+export const hasAsyncOption = (type: ComponentType) => WITH_ASYNC.has(type);
+
+/** Every input port of this component, including CLR' and PRE' when they are turned on. */
+export function inputsOfComponent(c: Pick<Component, 'type' | 'inputs' | 'props'>): string[] {
+  const base = inputPortsOf(c.type, c.inputs);
+  return c.props?.async && hasAsyncOption(c.type) ? [...base, ...ASYNC_PORTS] : base;
+}
+
+/** An input that may stay unconnected without becoming X. */
+export const isOptionalInput = (port: string) => (ASYNC_PORTS as readonly string[]).includes(port);
 
 export function outputPortsOf(type: ComponentType): readonly string[] {
   return CATALOG[type].outputPorts;

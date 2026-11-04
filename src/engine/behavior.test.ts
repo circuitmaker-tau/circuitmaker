@@ -48,6 +48,15 @@ describe('multiplexers', () => {
     }
   });
 
+  it('MUX 16:1 with constants gives F = Σ(0,1,3,6,7,8,11,12,14) (WK6B, TEST_CIRCUITS B2.1)', () => {
+    const minterms = [0, 1, 3, 6, 7, 8, 11, 12, 14];
+    const data = Array.from({ length: 16 }, (_, k) => (minterms.includes(k) ? 1 : 0) as Logic);
+    for (let m = 0; m < 16; m++) {
+      const s = [0, 1, 2, 3].map((b) => ((m >> b) & 1) as Logic); // S0 = LSB
+      expect(evalBlock('MUX16', [...data, ...s], 1)).toEqual([minterms.includes(m) ? 1 : 0]);
+    }
+  });
+
   it('select X: the output is defined only when every selectable input agrees (E7)', () => {
     expect(evalBlock('MUX2', [1, 1, 'X'], 1)).toEqual([1]);
     expect(evalBlock('MUX2', [0, 1, 'X'], 1)).toEqual(['X']);

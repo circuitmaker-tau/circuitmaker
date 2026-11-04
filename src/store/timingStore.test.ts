@@ -24,6 +24,12 @@ describe('timing diagram rows', () => {
     ]);
   });
 
+  it("Q' is not shown by default (it is the opposite of Q), but it can be added", () => {
+    expect(defaultProbes(jkFromClock)).toEqual(['CLK:out', 'nJ:out', 'nK:out', 'ff:Q']);
+    useTimingStore.getState().setProbe(jkFromClock, "ff:Q'", true);
+    expect(useTimingStore.getState().shown(jkFromClock)).toContain("ff:Q'");
+  });
+
   it('a larger circuit shows the clock, the switches, the Q outputs and the lamps', () => {
     const nets = defaultProbes(downCounter);
     expect(nets).toContain('CLK:out');
