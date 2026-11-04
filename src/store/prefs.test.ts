@@ -9,6 +9,7 @@ describe('view preferences', () => {
     expect(cleanPrefs({ speed: 3, panelOpen: 'yes', panelTab: 'x', panelHeight: 9999 })).toEqual(
       DEFAULT_PREFS,
     );
+    expect(cleanPrefs({ panelTab: 'truth' }).panelTab).toBe('truth');
     expect(cleanPrefs(null)).toEqual(DEFAULT_PREFS);
     expect(cleanPrefs('garbage')).toEqual(DEFAULT_PREFS);
   });
