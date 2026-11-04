@@ -6,7 +6,7 @@ import { useAnalysisStore } from '../store/analysisStore';
 import { useSimStore } from '../store/simStore';
 import { GateSymbol } from './GateSymbol';
 import { GATE_FORMULA } from './gateFormula';
-import { nodeLayout, portOffset } from './geometry';
+import { isMux, muxInset, nodeLayout, portLocal } from './geometry';
 import { BOX_TITLE } from './labels';
 
 /** `lampNet` is the net that feeds an OUTPUT. */
@@ -75,29 +75,49 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
   const level = c.type === 'INPUT' || c.type === 'CLOCK' ? live?.[0] : undefined;
   const state = def.stateful ? live : null;
   const value = level ?? c.props?.value ?? 0;
+  const mux = isMux(c);
+  const inset = muxInset(bodyHeight);
 
   return (
     <div
       className={`cm-node cm-${def.category}${selected ? ' is-selected' : ''}${path !== undefined ? ` on-path-${path}` : ''}`}
       style={{ width, height }}
     >
-      {ins.map((port, i) => (
-        <Handle
-          key={port}
-          id={port}
-          type="target"
-          position={Position.Left}
-          style={{ top: portOffset(i, ins.length, bodyHeight) }}
-        >
-          {showPortNames &&
-            (port === 'CLK' ? (
-              // edge-triggered clock input: the triangle of the course symbols
-              <span className="cm-port cm-port-in cm-clk" aria-label="CLK" />
-            ) : (
-              <span className="cm-port cm-port-in">{port}</span>
-            ))}
-        </Handle>
-      ))}
+      {mux && (
+        // the course's multiplexer: a trapezoid, long side to the data inputs
+        <svg className="cm-mux-svg" width={width} height={bodyHeight} aria-hidden="true">
+          <polygon
+            className="cm-outline cm-body-fill"
+            points={`1,1 ${width - 1},${inset} ${width - 1},${bodyHeight - inset} 1,${bodyHeight - 1}`}
+          />
+        </svg>
+      )}
+
+      {ins.map((port) => {
+        const at = portLocal(c, port)!;
+        const below = at.side === 'bottom';
+        return (
+          <Handle
+            key={port}
+            id={port}
+            type="target"
+            position={below ? Position.Bottom : Position.Left}
+            style={
+              below
+                ? { left: at.x, top: at.y, bottom: 'auto', transform: 'translate(-50%, -50%)' }
+                : { top: at.y }
+            }
+          >
+            {showPortNames &&
+              (port === 'CLK' ? (
+                // edge-triggered clock input: the triangle of the course symbols
+                <span className="cm-port cm-port-in cm-clk" aria-label="CLK" />
+              ) : (
+                <span className={`cm-port ${below ? 'cm-port-below' : 'cm-port-in'}`}>{port}</span>
+              ))}
+          </Handle>
+        );
+      })}
 
       {isGate ? (
         <>
@@ -111,7 +131,10 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
           </div>
         </>
       ) : (
-        <div className="cm-box" style={{ height: bodyHeight }}>
+        <div
+          className={`cm-box${mux ? ' cm-mux' : ''}`}
+          style={mux ? { height: bodyHeight, paddingBottom: inset } : { height: bodyHeight }}
+        >
           {c.type === 'INPUT' ? (
             <button
               type="button"
@@ -158,13 +181,13 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
         </div>
       )}
 
-      {outs.map((port, i) => (
+      {outs.map((port) => (
         <Handle
           key={port}
           id={port}
           type="source"
           position={Position.Right}
-          style={{ top: portOffset(i, outs.length, bodyHeight) }}
+          style={{ top: portLocal(c, port)!.y }}
         >
           {showPortNames && <span className="cm-port cm-port-out">{port}</span>}
         </Handle>

@@ -1476,3 +1476,32 @@ button:disabled:hover {
     max-height: 50vh;
   }
 }
+
+/* multiplexer: a trapezoid, data in on the long side, selects from below */
+
+.cm-mux-svg {
+  position: absolute;
+  inset: 0 auto auto 0;
+  overflow: visible;
+}
+
+.cm-box.cm-mux {
+  position: relative;
+  border: none;
+  background: transparent;
+}
+
+.cm-node.is-selected .cm-box.cm-mux {
+  box-shadow: none;
+}
+
+.cm-node.is-selected .cm-mux-svg .cm-outline {
+  filter: drop-shadow(0 0 3px var(--accent-soft));
+}
+
+.cm-port-below {
+  top: auto;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
