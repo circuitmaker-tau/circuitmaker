@@ -3,7 +3,7 @@
  * Errors make the circuit unusable; warnings are shown but allowed
  * (an unconnected input simply reads X, rule E7).
  */
-import { CATALOG, inputPortsOf, outputPortsOf } from './catalog';
+import { CATALOG, inputsOfComponent, isOptionalInput, outputPortsOf } from './catalog';
 import { isValidDelay } from './time';
 import { COMPONENT_TYPES } from './types';
 import type { Circuit, Component, ComponentType, PortRef } from './types';
@@ -124,7 +124,7 @@ export function validateCircuit(circuit: Circuit): Issue[] {
       err('WIRE_UNKNOWN_COMPONENT', `חוט ${wireId} מחובר לרכיב שלא קיים: ${ref.component}`);
       return false;
     }
-    const ins = inputPortsOf(c.type, c.inputs);
+    const ins = inputsOfComponent(c);
     const outs = outputPortsOf(c.type);
     if (!ins.includes(ref.port) && !outs.includes(ref.port)) {
       err('WIRE_UNKNOWN_PORT', `לרכיב ${c.id} אין פורט בשם ${ref.port}`);
@@ -174,8 +174,9 @@ export function validateCircuit(circuit: Circuit): Issue[] {
 
   for (const c of byId.values()) {
     if (!isType(c.type)) continue;
-    for (const port of inputPortsOf(c.type, c.inputs)) {
-      if (!drivers.has(`${c.id}:${port}`)) {
+    for (const port of inputsOfComponent(c)) {
+      // an unconnected CLR' or PRE' is simply inactive
+      if (!drivers.has(`${c.id}:${port}`) && !isOptionalInput(port)) {
         issues.push({
           severity: 'warning',
           code: 'UNCONNECTED_INPUT',

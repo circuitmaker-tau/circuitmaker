@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { node, openExample } from './helpers';
+import { lamp, node, openExample } from './helpers';
 
 test('a component can be renamed, and stays selected', async ({ page }) => {
   await openExample(page, 'mux2');
@@ -28,4 +28,23 @@ test('the timing diagram is drawn again after a visit to the analysis tab', asyn
   const width = await page.locator('.timing-svg').evaluate((el) => el.getBoundingClientRect().width);
   expect(width).toBeGreaterThan(400);
   await expect(page.locator('.timing-svg')).toContainText('1 ns');
+});
+
+test("CLR' and PRE' can be turned on for a flip-flop, and CLR' clears it at once", async ({ page }) => {
+  await openExample(page, 'mod6');
+  // the modulo 6 counter already uses CLR': after 5 cycles it shows 5 (0101), after the 6th 0
+  const cycle = page.getByRole('button', { name: 'מחזור' });
+  for (let i = 0; i < 5; i++) await cycle.click();
+  const word = async () =>
+    (await Promise.all(['Q3', 'Q2', 'Q1', 'Q0'].map((id) => lamp(page, id).innerText()))).join('');
+  await expect.poll(word).toBe('0101');
+  await cycle.click();
+  await expect.poll(word).toBe('0000');
+  // on another flip-flop the inputs appear when the box is ticked
+  await openExample(page, 'ffchain');
+  await node(page, 'f1').click({ position: { x: 6, y: 6 } });
+  await expect(node(page, 'f1').locator('[data-handleid="CLR\'"]')).toHaveCount(0);
+  await page.getByLabel(/כניסות אסינכרוניות/).check();
+  await expect(node(page, 'f1').locator('[data-handleid="CLR\'"]')).toHaveCount(1);
+  await expect(node(page, 'f1').locator('[data-handleid="PRE\'"]')).toHaveCount(1);
 });

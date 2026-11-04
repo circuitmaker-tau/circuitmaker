@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Simulator } from '../engine/simulator';
 import { hasErrors, validateCircuit } from '../model';
 import { counter4 } from './counter4';
+import { modulo6, rippleCounter } from './counters';
+import { encoders, ffChain } from './more';
 import { BAMBA_INPUT, DETECTOR_INPUT, FSM_PERIOD, bambaFsm, detector0101 } from './fsm';
 import { EXAMPLES } from './index';
 import { asymmetric, dffFeedback, mux2Fixed, norLatch, staticZero, tffPulses } from './lessons';
@@ -173,5 +175,57 @@ describe('state machines of week 9', () => {
     expect(fromTable(table, [0, 0, 1, 0])).toEqual([0, 0, 0, 0]);
     // 010101: only once, the machine goes back to a after detecting
     expect(fromTable(table, [0, 1, 0, 1, 0, 1]).filter((z) => z === 1)).toHaveLength(1);
+  });
+});
+
+describe('counters of week 8B', () => {
+  /** Q3Q2Q1Q0 at every time it changes, as "time:word". */
+  const words = (c: Circuit, until: number) => {
+    const sim = new Simulator(c);
+    sim.runUntil(until * 10);
+    const nets = ['FF3:Q', 'FF2:Q', 'FF1:Q', 'FF0:Q'];
+    const times = [...new Set(nets.flatMap((n) => sim.trace(n).map((t) => t.time)))].sort(
+      (a, b) => a - b,
+    );
+    const at = (n: string, t: number) => sim.trace(n).filter((x) => x.time <= t).at(-1)!.value;
+    return times.map((t) => `${t / 10}:${nets.map((n) => at(n, t)).join('')}`).join(' ');
+  };
+
+  it("modulo 6: counts 0 to 5, and 6 shows for 2 Tp before CLR' clears it", () => {
+    expect(words(modulo6, 100)).toBe(
+      '0:0000 6:0001 16:0010 26:0011 36:0100 46:0101 56:0110 58:0000 66:0001 76:0010 86:0011 96:0100',
+    );
+  });
+
+  it('ripple counter: from 7 to 8 it passes through 6, 4 and 0, and settles 4 Tp after the edge', () => {
+    const w = words(rippleCounter, 90);
+    expect(w).toContain('66:0111 76:0110 77:0100 78:0000 79:1000');
+  });
+});
+
+describe('more exam circuits', () => {
+  it('2024B 2E: Q2Q1Q0 runs 001, 110, 101, 010 and repeats; one period sums to 14', () => {
+    const sim = new Simulator(ffChain);
+    const seen: number[] = [];
+    for (let edge = 1; edge <= 8; edge++) {
+      sim.runUntil(edge * 20 + 5); // just after the edge at 2·edge − 1
+      seen.push(['f2:Q', 'f1:Q', 'f0:Q'].reduce((n, net) => 2 * n + (sim.value(net) as number), 0));
+    }
+    expect(seen.slice(0, 4)).toEqual([1, 6, 5, 2]);
+    expect(seen.slice(4)).toEqual(seen.slice(0, 4));
+    expect(seen.slice(0, 4).reduce((a, b) => a + b)).toBe(14);
+  });
+
+  it('WK7A: with two inputs on, the plain encoder gives X and the priority encoder the higher one', () => {
+    const c = structuredClone(encoders);
+    const word = (sim: Simulator, a: string, b: string) => `${sim.value(a)}${sim.value(b)}`;
+    let sim = new Simulator(c);
+    expect([word(sim, 'enc:X1', 'enc:X0'), word(sim, 'penc:X1', 'penc:X0')]).toEqual(['10', '10']);
+    c.components.find((x) => x.id === 'D1')!.props = { value: 1 };
+    sim = new Simulator(c);
+    expect([word(sim, 'enc:X1', 'enc:X0'), word(sim, 'penc:X1', 'penc:X0')]).toEqual(['XX', '10']);
+    for (const id of ['D1', 'D2']) c.components.find((x) => x.id === id)!.props = { value: 0 };
+    sim = new Simulator(c);
+    expect(sim.value('penc:V')).toBe(0);
   });
 });

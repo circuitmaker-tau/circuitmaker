@@ -3,7 +3,7 @@
  * becomes a device that reads nets and drives nets. A net is named after the
  * output port that drives it (`component:port`).
  */
-import { inputPortsOf, outputPortsOf } from '../model';
+import { inputsOfComponent, outputPortsOf } from '../model';
 import type { Circuit, Component, ComponentType } from '../model';
 import { delayToTicks } from '../model/time';
 import { EDGE_TRIGGERED, LATCHES, isCombinationalBlock, stateWidth } from './behavior';
@@ -41,6 +41,9 @@ export interface Device {
   clock: number;
   /** Index of the asynchronous RESET input (COUNTER4), -1 otherwise or when unconnected. */
   reset: number;
+  /** Indices of the active-low CLR' and PRE' of a flip-flop, -1 when off or unconnected. */
+  clr: number;
+  pre: number;
   /** Stored bits of a latch, flip-flop, register or counter. */
   state: Logic[];
   /** Latch inputs at the previous evaluation (to spot the SR race). */
@@ -101,7 +104,7 @@ export function buildNetlist(circuit: Circuit): Netlist {
 
     const kind = kindOf(c.type);
     if (!kind) continue;
-    const ports = inputPortsOf(c.type, c.inputs);
+    const ports = inputsOfComponent(c);
     const plain = delayToTicks(c.delay);
     const device: Device = {
       id: c.id,
@@ -114,11 +117,18 @@ export function buildNetlist(circuit: Circuit): Netlist {
       plain,
       clock: kind === 'edge' ? ports.indexOf('CLK') : -1,
       reset: -1,
+      clr: -1,
+      pre: -1,
       state: kind === 'latch' || kind === 'edge' ? initialState(c, kind) : [],
     };
     // an unconnected RESET means the counter is never reset (otherwise X would spread)
     const reset = c.type === 'COUNTER4' ? ports.indexOf('RESET') : -1;
     if (reset >= 0 && device.inputs[reset]) device.reset = reset;
+    // the same for an unconnected CLR' or PRE': inactive
+    for (const [key, port] of [['clr', "CLR'"], ['pre', "PRE'"]] as const) {
+      const k = ports.indexOf(port);
+      if (k >= 0 && device.inputs[k]) device[key] = k;
+    }
     devices.push(device);
     for (const n of new Set(device.inputs)) {
       if (!n) continue;

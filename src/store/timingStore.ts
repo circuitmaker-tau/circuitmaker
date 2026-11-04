@@ -1,8 +1,8 @@
 /**
  * Which nets appear in the timing diagram, and how it is viewed.
  *
- * By default a small circuit shows every net (as the exam timing questions
- * do), and a larger one shows the clocks, switches, flip-flop outputs and
+ * By default a small circuit shows every net but Q' (as the exam timing
+ * questions do), and a larger one shows the clocks, switches, flip-flop outputs and
  * lamps. The user can add or remove any net from the properties panel.
  */
 import { create } from 'zustand';
@@ -56,8 +56,10 @@ export function allRows(circuit: Circuit): Row[] {
 }
 
 export function defaultProbes(circuit: Circuit): string[] {
-  const rows = allRows(circuit);
-  if (rows.length <= SHOW_ALL_UP_TO) return rows.map((r) => r.net);
+  // Q' is always the opposite of Q, and the exam diagrams draw only Q, so it is left out
+  const all = allRows(circuit);
+  const rows = all.filter((r) => !r.net.endsWith(":Q'"));
+  if (all.length <= SHOW_ALL_UP_TO) return rows.map((r) => r.net);
   const lampFed = new Set(
     circuit.wires
       .filter((w) => circuit.components.find((c) => c.id === w.to.component)?.type === 'OUTPUT')

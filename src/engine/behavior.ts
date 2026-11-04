@@ -50,6 +50,7 @@ const COMBINATIONAL: Partial<Record<ComponentType, (x: Bit[]) => Logic[]>> = {
   MUX2: (x) => [x[index(x.slice(2))]],
   MUX4: (x) => [x[index(x.slice(4))]],
   MUX8: (x) => [x[index(x.slice(8))]],
+  MUX16: (x) => [x[index(x.slice(16))]],
   DEC2x4: (x) => decode(x.slice(0, 2), x[2]),
   DEC3x8: (x) => decode(x.slice(0, 3), x[3]),
   ENC4x2: (x) => {
@@ -194,6 +195,29 @@ export function stateWidth(type: ComponentType): number {
  * is held at 0 and ignores the clock (WK8A: "nullifying inputs will always be
  * async"). With RESET = X, any bit that is not already 0 becomes X.
  */
+/**
+ * Active-low asynchronous clear and preset of a flip-flop (WK8A). They act at
+ * once, whatever the clock does. Returns the forced state, or null when both
+ * are inactive. An unconnected one is passed as 1. Both active is not allowed
+ * and gives X; an X keeps the state only where it agrees with what it might force.
+ */
+export function flipFlopAsync(
+  clr: Logic,
+  pre: Logic,
+  state: Logic[],
+): { state: Logic[]; warning?: string } | null {
+  if (clr === 1 && pre === 1) return null;
+  if (clr === 0 && pre === 0) {
+    return { state: ['X'], warning: "CLR' ו-PRE' פעילים יחד (שניהם 0): מצב אסור, Q לא מוגדר" };
+  }
+  if (clr === 0) return { state: [pre === 1 ? 0 : 'X'] };
+  if (pre === 0) return { state: [clr === 1 ? 1 : 'X'] };
+  // an X on one of them, the other inactive or X
+  if (clr === 'X' && pre === 1) return { state: [state[0] === 0 ? 0 : 'X'] };
+  if (pre === 'X' && clr === 1) return { state: [state[0] === 1 ? 1 : 'X'] };
+  return { state: ['X'] };
+}
+
 export function counterReset(reset: Logic, state: Logic[]): Logic[] | null {
   if (reset === 1) return [0, 0, 0, 0];
   if (reset === 'X') return state.map((v) => (v === 0 ? 0 : 'X'));

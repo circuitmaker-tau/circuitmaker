@@ -91,7 +91,42 @@ export const COURSE_CASES: Case[] = [
   { name: 'TC-S1 down counter', circuit: example('down'), until: 340 },
   { name: 'WK9B Bamba FSM (T-FF), homework 9 input', circuit: example('bamba'), until: 1900 },
   { name: 'WK9A 0101 detector (JK + D)', circuit: example('detector'), until: 1700 },
+  { name: "WK8B ripple counter", circuit: example('ripplecount'), until: 1800 },
+  { name: '2024B 2E FF chain', circuit: example('ffchain'), until: 200 },
+  {
+    name: 'WK7A encoders',
+    circuit: edit(example('encoders'), {
+      D1: { schedule: at([2, 1], [6, 0]) },
+      D3: { schedule: at([4, 1], [5, 0]) },
+      D2: { schedule: at([8, 0]) },
+    }),
+    until: 120,
+  },
+
+  { name: "WK8B modulo 6 with CLR'", circuit: example('mod6'), until: 1800 },
 ];
+
+/** MUX 16:1 with the constants of B2.1, F = Σ(0,1,3,6,7,8,11,12,14), the selects counting 0 to 15. */
+function mux16Case(): Case {
+  const ones = [0, 1, 3, 6, 7, 8, 11, 12, 14];
+  const c: Circuit = { version: 1, name: 'B2.1 MUX16', timeUnit: 'ns', components: [], wires: [] };
+  c.components.push(createComponent('CONST0', 'k0'), createComponent('CONST1', 'k1'));
+  c.components.push(createComponent('MUX16', 'm', undefined, { delay: 1.5 }));
+  for (let k = 0; k < 16; k++) {
+    c.wires.push(createWire(`d${k}`, [ones.includes(k) ? 'k1' : 'k0', 'out'], ['m', `I${k}`]));
+  }
+  for (let b = 0; b < 4; b++) {
+    // S_b toggles every 2^b units: the selects run through 0..15
+    const schedule = Array.from({ length: 16 >> b }, (_, j) => ({
+      time: (j + 1) * (1 << b) * 2,
+      value: ((j + 1) % 2) as 0 | 1,
+    }));
+    c.components.push(createComponent('INPUT', `s${b}`, undefined, { props: { value: 0, schedule } }));
+    c.wires.push(createWire(`ws${b}`, [`s${b}`, 'out'], ['m', `S${b}`]));
+  }
+  return { name: c.name, circuit: c, until: 700 };
+}
+COURSE_CASES.push(mux16Case());
 
 // ---------------------------------------------------------------- random circuits
 
@@ -111,7 +146,7 @@ const GATES: ComponentType[] = ['AND', 'OR', 'NOT', 'BUF', 'NAND', 'NOR', 'XOR',
 const DELAYS = [0, 0.5, 1, 1, 1.5, 2, 3];
 
 /** A random circuit: switches with random changes, a DAG of gates, and optionally clocked FFs. */
-export function randomCase(seed: number, sequential: boolean): Case {
+export function randomCase(seed: number, sequential: boolean, async = false): Case {
   const r = rng(seed);
   const pick = <T>(xs: readonly T[]) => xs[Math.floor(r() * xs.length)];
   const c: Circuit = {
@@ -180,6 +215,13 @@ export function randomCase(seed: number, sequential: boolean): Case {
     wire(['clk', 'out'], [id, 'CLK']);
     for (const port of type === 'JK_FF' ? ['J', 'K'] : type === 'T_FF' ? ['T'] : ['D'])
       wire(pick(nets), [id, port]);
+    // CLR' or PRE' from a switch (no loop through them), or none. Never both: both
+    // active gives X, and Verilog and rule E7 then differ in a known way (docs/ICARUS.md)
+    if (async) {
+      c.components.find((x) => x.id === id)!.props!.async = true;
+      const port = pick(["CLR'", "PRE'", null]);
+      if (port) wire(pick(nets.slice(0, 4)), [id, port]);
+    }
   }
   return { name: c.name, circuit: c, until: 400 };
 }
@@ -187,4 +229,6 @@ export function randomCase(seed: number, sequential: boolean): Case {
 export const RANDOM_CASES: Case[] = [
   ...Array.from({ length: 200 }, (_, i) => randomCase(1000 + i, false)),
   ...Array.from({ length: 200 }, (_, i) => randomCase(5000 + i, true)),
+  // flip-flops with asynchronous CLR' and PRE'
+  ...Array.from({ length: 100 }, (_, i) => randomCase(9000 + i, true, true)),
 ];

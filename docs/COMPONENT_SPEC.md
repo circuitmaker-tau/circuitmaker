@@ -104,7 +104,7 @@
 | `MUX2` | I0, I1, S0 | f | f = S0'·I0 + S0·I1 |
 | `MUX4` | I0–I3, S0, S1 | f | f = Σ mᵢ·Iᵢ, כאשר `S1S0=01 → I1` |
 | `MUX8` | I0–I7, S0–S2 | f | כנ"ל. רצוי, כי מופיע במבחנים |
-| `MUX16` | I0–I15, S0–S3 | f | הרחבה. מופיע במבחנים כ"MUX 16:1 + 0/1" |
+| `MUX16` | I0–I15, S0–S3 | f | מופיע במבחנים כ"MUX 16:1 + 0/1" (B2.1, 2025א 2C). **ממומש (04.11)** |
 | `DEC2x4` | I0, I1, En | D0–D3 | Dᵢ = En·mᵢ (I0 = LSB) |
 | `DEC3x8` | I0–I2, En | D0–D7 | כנ"ל |
 | `ENC4x2` (לימודי) | D0–D3, En | X1, X0 | קלט חוקי = בדיוק כניסה אחת 1. אחרת **X** בשתי היציאות (2026א 2C: "a normal encoder expects a 1 in a single input only… the outputs are undefined") |
@@ -122,7 +122,7 @@
 | `SR_FF` | S, R, CLK | Q, Q' | E4. הרחבה, כי מופיע במבחנים (FSM עם 2 SR-FF) |
 | `REGISTER4` | D0–D3, CLK | Q0–Q3 | 4×D-FF על אותו שעון |
 | `COUNTER4` | CLK, RESET | Q0–Q3 | סופר למעלה בכל עליית שעון; RESET=1 מאפס |
-| — | CLR / PRE אסינכרוניים | | הרחבה: Active Low לפי WK8A ("nullifying inputs will always be async") |
+| — | CLR' / PRE' אסינכרוניים | | **ממומש (04.11)** ב-D/T/JK/SR flip-flop, כשהמאפיין `async` דולק. Active Low לפי WK8A ("nullifying inputs will always be async"): CLR' = 0 → Q = 0 מיד (אחרי Tp), PRE' = 0 → Q = 1, בלי קשר לשעון, ובזמן שאחד מהם פעיל קצה השעון לא משפיע. שניהם 0 יחד → X עם אזהרה. כניסה לא מחוברת = לא פעילה (1), בלי אזהרה. X באחד מהם משאיר את Q רק אם הוא כבר שווה לערך שהכניסה הייתה כופה |
 
 - props משותפים ל-FF ול-latch: `init: 0 | 1 | 'X'` ו-`Tp`.
 - **סדר פורטים בסמל:** CLK עם משולש (Edge Triggered); עיגול מסמן Active Low.

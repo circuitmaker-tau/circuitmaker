@@ -10,9 +10,9 @@
  * input, a latch that was never set, or a loop with no stable state such as a
  * ring of inverters.
  */
-import { inputPortsOf } from '../model';
+import { inputsOfComponent } from '../model';
 import type { Circuit } from '../model';
-import { counterReset, evalBlock, latchStep, stateOutputs } from './behavior';
+import { counterReset, evalBlock, flipFlopAsync, latchStep, stateOutputs } from './behavior';
 import { evalGate } from './logic';
 import type { GateType, Logic } from './logic';
 import { buildNetlist, netKey } from './netlist';
@@ -36,6 +36,17 @@ export function combinational(d: Device, ins: Logic[]): Logic[] {
     : evalBlock(d.type, ins, d.outputs.length);
 }
 
+/** The state a flip-flop's CLR' and PRE' force right now, or null. */
+function asyncState(d: Device, read: (net: string) => Logic): Logic[] | null {
+  if (d.clr < 0 && d.pre < 0) return null;
+  const r = flipFlopAsync(
+    d.clr >= 0 ? read(d.inputs[d.clr]) : 1,
+    d.pre >= 0 ? read(d.inputs[d.pre]) : 1,
+    d.state,
+  );
+  return r?.state ?? null;
+}
+
 export function settle(circuit: Circuit): SettledValues {
   const { devices, sources } = buildNetlist(circuit);
   const nets = new Map<string, Logic>(sources);
@@ -44,6 +55,7 @@ export function settle(circuit: Circuit): SettledValues {
   for (const d of devices) {
     if (d.kind === 'edge') {
       if (d.reset >= 0) d.state = counterReset(read(d.inputs[d.reset]), d.state) ?? d.state;
+      d.state = asyncState(d, read) ?? d.state;
       stateOutputs(d.type, d.state).forEach((v, i) => nets.set(d.outputs[i], v));
     } else if (d.kind === 'latch') {
       stateOutputs(d.type, d.state).forEach((v, i) => nets.set(d.outputs[i], v));
@@ -76,6 +88,12 @@ export function settle(circuit: Circuit): SettledValues {
           d.state = r;
           stateOutputs(d.type, r).forEach((v, i) => set(d.outputs[i], v));
         }
+      } else if (d.clr >= 0 || d.pre >= 0) {
+        const r = asyncState(d, read);
+        if (r) {
+          d.state = r;
+          stateOutputs(d.type, r).forEach((v, i) => set(d.outputs[i], v));
+        }
       }
     }
     if (!changed) break;
@@ -87,7 +105,7 @@ export function settle(circuit: Circuit): SettledValues {
     driverOf.set(netKey(w.to.component, w.to.port), netKey(w.from.component, w.from.port));
   }
   for (const c of circuit.components) {
-    for (const p of inputPortsOf(c.type, c.inputs)) {
+    for (const p of inputsOfComponent(c)) {
       const key = netKey(c.id, p);
       inputs.set(key, read(driverOf.get(key) ?? ''));
     }
