@@ -18,6 +18,7 @@ import { useSimStore } from '../store/simStore';
 import { allRows, useTimingStore } from '../store/timingStore';
 import { AnalysisPanel } from './AnalysisPanel';
 import { exportTimingImage } from './exportImage';
+import { TruthTablePanel } from './TruthTablePanel';
 
 const ROW_H = 30;
 const HIGH = 7;
@@ -199,6 +200,7 @@ export function TimingDiagram() {
             [
               ['timing', 'דיאגרמת זמנים'],
               ['analysis', 'ניתוח hazards'],
+              ['truth', 'טבלת אמת'],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -253,6 +255,7 @@ export function TimingDiagram() {
       </header>
 
       {open && tab === 'analysis' && <AnalysisPanel />}
+      {open && tab === 'truth' && <TruthTablePanel />}
       {timing && (
         <div className="timing-body" dir="ltr">
           <div className="timing-labels" style={{ paddingTop: AXIS_H }}>

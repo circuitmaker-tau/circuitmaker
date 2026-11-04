@@ -9,10 +9,14 @@ import type { Speed } from './speeds';
 
 const KEY = 'circuitmaker.prefs';
 
+/** What the bottom panel can show. */
+export const PANEL_TABS = ['timing', 'analysis', 'truth'] as const;
+export type PanelTab = (typeof PANEL_TABS)[number];
+
 export interface Prefs {
   speed: Speed;
   panelOpen: boolean;
-  panelTab: 'timing' | 'analysis';
+  panelTab: PanelTab;
   panelHeight: number;
 }
 
@@ -30,7 +34,7 @@ export function cleanPrefs(raw: unknown): Prefs {
   return {
     speed: SPEEDS.includes(p.speed as Speed) ? (p.speed as Speed) : d.speed,
     panelOpen: typeof p.panelOpen === 'boolean' ? p.panelOpen : d.panelOpen,
-    panelTab: p.panelTab === 'analysis' || p.panelTab === 'timing' ? p.panelTab : d.panelTab,
+    panelTab: (PANEL_TABS as readonly unknown[]).includes(p.panelTab) ? (p.panelTab as PanelTab) : d.panelTab,
     panelHeight:
       typeof p.panelHeight === 'number' && p.panelHeight >= 120 && p.panelHeight <= 640
         ? Math.round(p.panelHeight)

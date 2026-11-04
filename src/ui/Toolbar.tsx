@@ -1,9 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { EXAMPLES } from '../examples';
 import { downloadCircuit, readCircuitFile } from '../persistence/persistence';
 import type { SaveStatus } from '../persistence/persistence';
 import { useCircuitStore } from '../store/circuitStore';
+import { FromExpression } from './FromExpression';
 
 const STATUS_TEXT: Record<SaveStatus, string> = {
   idle: '',
@@ -25,6 +26,7 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
   const { newCircuit, loadCircuit, renameCircuit, showMessage, undo, redo } =
     useCircuitStore.getState();
   const fileInput = useRef<HTMLInputElement>(null);
+  const [fromExpression, setFromExpression] = useState(false);
 
   const onImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,6 +83,9 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
         <button type="button" onClick={newCircuit}>
           מעגל חדש
         </button>
+        <button type="button" onClick={() => setFromExpression(true)} title="בניית מעגל מביטוי בוליאני או מרשימת מינטרמים">
+          מעגל מביטוי
+        </button>
         <select
           className="examples"
           aria-label="טעינת מעגל דוגמה"
@@ -120,6 +125,7 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
           onChange={(e) => void onImport(e)}
         />
       </div>
+      <FromExpression open={fromExpression} onClose={() => setFromExpression(false)} />
     </header>
   );
 }

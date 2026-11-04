@@ -267,6 +267,7 @@ export function Editor() {
               snapToGrid
               snapGrid={[10, 10]}
               fitView
+              minZoom={0.2}
             >
               <Background gap={20} color="#2a2a30" />
               <Controls showInteractive={false}>

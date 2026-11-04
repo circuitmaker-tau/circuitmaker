@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { CATALOG, outputPortsOf } from '../model';
 import type { Circuit } from '../model';
 import { loadPrefs, savePrefs } from './prefs';
+import type { PanelTab } from './prefs';
 
 /** Up to this many nets, the diagram shows them all. */
 const SHOW_ALL_UP_TO = 10;
@@ -79,7 +80,7 @@ interface TimingState {
   probes: string[] | null;
   open: boolean;
   /** What the bottom panel shows. */
-  tab: 'timing' | 'analysis';
+  tab: PanelTab;
   /** Panel height in pixels, dragged by its top edge. */
   height: number;
   /** Pixels per time unit, or null to fit the whole run. */
@@ -93,7 +94,7 @@ interface TimingState {
   setProbe: (circuit: Circuit, net: string, on: boolean) => void;
   resetProbes: () => void;
   setOpen: (open: boolean) => void;
-  setTab: (tab: 'timing' | 'analysis') => void;
+  setTab: (tab: PanelTab) => void;
   setHeight: (height: number) => void;
   setZoom: (zoom: number | null) => void;
   setCursor: (t: number | null, second?: boolean) => void;
