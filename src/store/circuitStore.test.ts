@@ -190,3 +190,81 @@ describe('renaming a component', () => {
     expect(store().renameComponent('S0', 'S0')).toBe(true); // no change
   });
 });
+
+describe('undo, redo, copy and paste', () => {
+  const fresh = () => {
+    store().loadCircuit(mux2FromGates);
+    store().clearHistory();
+  };
+  const ids = () => store().circuit.components.map((c) => c.id);
+
+  it('undo and redo step through edits, and a new edit clears redo', () => {
+    fresh();
+    const start = store().circuit;
+    const id = store().addComponent('AND', { x: 0, y: 0 });
+    store().updateComponent(id, { delay: 2 });
+    store().undo();
+    expect(store().circuit.components.find((c) => c.id === id)!.delay).toBe(1);
+    store().undo();
+    expect(store().circuit).toBe(start);
+    store().undo(); // nothing more to undo
+    expect(store().circuit).toBe(start);
+    store().redo();
+    expect(ids()).toContain(id);
+    store().removeComponents(['S0']);
+    expect(store().future).toEqual([]);
+    store().undo();
+    expect(ids()).toContain('S0');
+    expect(store().circuit.wires).toHaveLength(mux2FromGates.wires.length);
+  });
+
+  it('deleting a component with its wires (as the editor does) is undone in one step', () => {
+    fresh();
+    store().removeWires(['w1', 'w2']); // the wires of S0 go first
+    store().removeComponents(['S0']);
+    store().undo();
+    expect(store().circuit.components).toHaveLength(mux2FromGates.components.length);
+    expect(store().circuit.wires).toHaveLength(mux2FromGates.wires.length);
+  });
+
+  it('a whole drag is one step, and flipping a switch is not an edit', () => {
+    fresh();
+    for (let x = 0; x < 20; x++) store().moveComponents({ S0: { x, y: 0 } });
+    store().updateComponent('S0', { props: { value: 0 } });
+    expect(store().past).toHaveLength(1);
+    store().undo();
+    expect(store().circuit.components.find((c) => c.id === 'S0')!.position).toEqual(
+      mux2FromGates.components.find((c) => c.id === 'S0')!.position,
+    );
+  });
+
+  it('loading an example can be undone', () => {
+    fresh();
+    store().newCircuit();
+    expect(store().circuit.components).toHaveLength(0);
+    store().undo();
+    expect(store().circuit.components).toHaveLength(mux2FromGates.components.length);
+  });
+
+  it('paste copies the components and the wires between them, with new names, shifted', () => {
+    fresh();
+    store().copy(['S0', 'n1', 'a1']); // S0 → n1 and S0 → a1 are inside; n1 → a2 is not
+    const created = store().paste();
+    expect(created).toHaveLength(3);
+    const c = store().circuit;
+    const pasted = c.components.filter((x) => created.includes(x.id));
+    expect(new Set(pasted.map((x) => x.type))).toEqual(new Set(['INPUT', 'NOT', 'AND']));
+    const s0 = mux2FromGates.components.find((x) => x.id === 'S0')!;
+    const copyOfS0 = pasted.find((x) => x.type === 'INPUT')!;
+    expect(copyOfS0.position).toEqual({ x: s0.position.x + 40, y: s0.position.y + 40 });
+    const inner = c.wires.filter((w) => created.includes(w.from.component));
+    expect(inner).toHaveLength(2);
+    expect(inner.every((w) => created.includes(w.to.component))).toBe(true);
+    expect(validateCircuit(c).filter((i) => i.severity === 'error')).toEqual([]);
+    // a second paste lands further away, and undo removes it
+    store().paste();
+    expect(store().circuit.components).toHaveLength(mux2FromGates.components.length + 6);
+    store().undo();
+    expect(store().circuit.components).toHaveLength(mux2FromGates.components.length + 3);
+  });
+});

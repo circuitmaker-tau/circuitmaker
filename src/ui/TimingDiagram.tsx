@@ -17,6 +17,7 @@ import { useCircuitStore } from '../store/circuitStore';
 import { useSimStore } from '../store/simStore';
 import { allRows, useTimingStore } from '../store/timingStore';
 import { AnalysisPanel } from './AnalysisPanel';
+import { exportTimingImage } from './exportImage';
 
 const ROW_H = 30;
 const HIGH = 7;
@@ -233,6 +234,13 @@ export function TimingDiagram() {
               </button>
               <button type="button" onClick={() => setZoom(null)} disabled={zoom === null}>
                 הכול
+              </button>
+              <button
+                type="button"
+                onClick={() => void exportTimingImage(circuit.name)}
+                title="שמירת הדיאגרמה כתמונה (PNG)"
+              >
+                תמונה
               </button>
               {cursor !== null && (
                 <button type="button" onClick={() => setCursor(null)}>
