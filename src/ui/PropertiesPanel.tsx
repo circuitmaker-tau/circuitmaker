@@ -9,16 +9,47 @@ interface PropertiesPanelProps {
   component: Component | null;
   /** Called after a rename, so the editor can keep the component selected. */
   onRenamed?: (from: string, to: string) => void;
+  /** Every selected component (several with Shift or a box drag). */
+  selection?: string[];
+  onDuplicate?: (ids: string[]) => void;
 }
 
-export function PropertiesPanel({ component, onRenamed }: PropertiesPanelProps) {
+export function PropertiesPanel({
+  component,
+  onRenamed,
+  selection = [],
+  onDuplicate,
+}: PropertiesPanelProps) {
   const lesson = useCircuitStore((s) => s.lesson);
   return (
     <aside className="properties" aria-label="מאפייני רכיב">
       <h2>מאפיינים</h2>
-      {component ? (
+      {selection.length > 1 ? (
+        <div className="fields">
+          <p className="field-title">נבחרו {selection.length} רכיבים</p>
+          <p className="hint">
+            גוררים את כולם יחד, או משכפלים ומוחקים. Ctrl+C ו-Ctrl+V מעתיקים ומדביקים, גם עם
+            החוטים שביניהם.
+          </p>
+          <button type="button" onClick={() => onDuplicate?.(selection)}>
+            שכפול
+          </button>
+          <button
+            type="button"
+            className="danger"
+            onClick={() => useCircuitStore.getState().removeComponents(selection)}
+          >
+            מחיקת {selection.length} הרכיבים
+          </button>
+        </div>
+      ) : component ? (
         // key resets the draft value when another component is selected
-        <ComponentFields key={component.id} component={component} onRenamed={onRenamed} />
+        <ComponentFields
+          key={component.id}
+          component={component}
+          onRenamed={onRenamed}
+          onDuplicate={onDuplicate}
+        />
       ) : (
         <>
           <p className="hint">בחרו רכיב כדי לערוך את השם, ה-Tp ומספר הכניסות.</p>
@@ -47,9 +78,11 @@ export function PropertiesPanel({ component, onRenamed }: PropertiesPanelProps) 
 function ComponentFields({
   component,
   onRenamed,
+  onDuplicate,
 }: {
   component: Component;
   onRenamed?: (from: string, to: string) => void;
+  onDuplicate?: (ids: string[]) => void;
 }) {
   const updateComponent = useCircuitStore((s) => s.updateComponent);
   const [nameText, setNameText] = useState(component.id);
@@ -266,6 +299,9 @@ function ComponentFields({
         </fieldset>
       )}
 
+      <button type="button" onClick={() => onDuplicate?.([component.id])}>
+        שכפול
+      </button>
       <button type="button" className="danger" onClick={() => removeComponents([component.id])}>
         מחיקת הרכיב
       </button>

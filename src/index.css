@@ -119,6 +119,18 @@ a {
   gap: 8px;
 }
 
+/* undo and redo: a symbol, with the name in the tooltip and for screen readers */
+.topbar .actions button.icon {
+  min-width: 36px;
+  padding-inline: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.fields > button + button {
+  margin-top: 6px;
+}
+
 .editor {
   flex: 1;
   display: flex;
@@ -665,6 +677,17 @@ button:disabled:hover {
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+/* while saving as an image: the whole diagram, not only the part scrolled into view */
+.timing-body.is-exporting {
+  width: max-content;
+  overflow: visible;
+}
+
+.timing-body.is-exporting .timing-scroll {
+  flex: none;
+  overflow: visible;
 }
 
 .timing-svg {

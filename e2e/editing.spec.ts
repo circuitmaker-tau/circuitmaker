@@ -48,3 +48,35 @@ test("CLR' and PRE' can be turned on for a flip-flop, and CLR' clears it at once
   await expect(node(page, 'f1').locator('[data-handleid="CLR\'"]')).toHaveCount(1);
   await expect(node(page, 'f1').locator('[data-handleid="PRE\'"]')).toHaveCount(1);
 });
+
+test('undo and redo with the keyboard and the toolbar; duplicate a selection', async ({ page }) => {
+  await openExample(page, 'mux2');
+  const nodes = page.locator('.react-flow__node');
+  await expect(nodes).toHaveCount(8);
+  await node(page, 'a1').click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press('Delete');
+  await expect(nodes).toHaveCount(7);
+  await page.keyboard.press('Control+z');
+  await expect(nodes).toHaveCount(8);
+  await page.getByRole('button', { name: 'ביצוע מחדש' }).click();
+  await expect(nodes).toHaveCount(7);
+  await page.getByRole('button', { name: 'ביטול הפעולה האחרונה' }).click();
+  await expect(nodes).toHaveCount(8);
+  // select everything and duplicate: the copy has its own wires
+  await node(page, 'a1').click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press('Control+a');
+  await expect(page.locator('.react-flow__node.selected')).toHaveCount(8);
+  await page.keyboard.press('Control+d');
+  await expect(nodes).toHaveCount(16);
+  await expect(page.locator('.react-flow__edge')).toHaveCount(16);
+});
+
+test('the circuit and the timing diagram can be saved as images', async ({ page }) => {
+  await openExample(page, 'mux2');
+  let download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'שמירת המעגל כתמונה' }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.png$/);
+  download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'תמונה', exact: true }).click();
+  expect((await download).suggestedFilename()).toMatch(/-timing\.png$/);
+});

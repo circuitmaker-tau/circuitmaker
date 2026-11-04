@@ -20,7 +20,10 @@ interface ToolbarProps {
 export function Toolbar({ onHome, onHelp }: ToolbarProps) {
   const name = useCircuitStore((s) => s.circuit.name);
   const saveStatus = useCircuitStore((s) => s.saveStatus);
-  const { newCircuit, loadCircuit, renameCircuit, showMessage } = useCircuitStore.getState();
+  const canUndo = useCircuitStore((s) => s.past.length > 0);
+  const canRedo = useCircuitStore((s) => s.future.length > 0);
+  const { newCircuit, loadCircuit, renameCircuit, showMessage, undo, redo } =
+    useCircuitStore.getState();
   const fileInput = useRef<HTMLInputElement>(null);
 
   const onImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -55,6 +58,26 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
         {STATUS_TEXT[saveStatus]}
       </span>
       <div className="actions">
+        <button
+          type="button"
+          className="icon"
+          onClick={undo}
+          disabled={!canUndo}
+          aria-label="ביטול הפעולה האחרונה"
+          title="ביטול (Ctrl+Z)"
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          className="icon"
+          onClick={redo}
+          disabled={!canRedo}
+          aria-label="ביצוע מחדש"
+          title="ביצוע מחדש (Ctrl+Shift+Z)"
+        >
+          ↷
+        </button>
         <button type="button" onClick={newCircuit}>
           מעגל חדש
         </button>

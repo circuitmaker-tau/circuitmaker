@@ -21,6 +21,8 @@ export function useAutosave(kv: KeyValueStore = browserStorage) {
       if (cancelled) return;
       if (saved) {
         loadCircuit(saved);
+        // the saved circuit is where this visit starts: nothing to undo yet
+        useCircuitStore.getState().clearHistory();
         setSaveStatus('saved');
       }
       unsubscribe = useCircuitStore.subscribe((state, prev) => {

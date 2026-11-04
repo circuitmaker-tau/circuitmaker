@@ -5,11 +5,12 @@
  * are derived from it on every render; the only things kept locally are what
  * React Flow itself owns (measured size, selection).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import {
   Background,
   ConnectionLineType,
+  ControlButton,
   Controls,
   ReactFlow,
   applyEdgeChanges,
@@ -26,6 +27,7 @@ import { ComponentNode } from './ComponentNode';
 import type { ComponentFlowNode } from './ComponentNode';
 import { findFreeSpot, routeCircuit, wirePath } from './geometry';
 import { DRAG_MIME, Palette } from './Palette';
+import { exportCircuitImage } from './exportImage';
 import { PropertiesPanel } from './PropertiesPanel';
 import { SimControls } from './SimControls';
 import { TimingDiagram } from './TimingDiagram';
@@ -186,6 +188,61 @@ export function Editor() {
 
   const selected = nodes.filter((n) => n.selected);
   const selectedComponent = selected.length === 1 ? selected[0].data.component : null;
+  const selectedIds = selected.map((n) => n.id);
+  const selectedKey = selectedIds.join(' ');
+  // the shortcuts read the selection from here, so Ctrl+A then Ctrl+D works without waiting a render
+  const selection = useRef<string[]>([]);
+  // a selection made by a shortcut, until a render shows it (an older render must not undo it)
+  const pending = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (pending.current !== null && pending.current !== selectedKey) return;
+    pending.current = null;
+    selection.current = selectedKey ? selectedKey.split(' ') : [];
+  }, [selectedKey]);
+
+  /** Select exactly these components (after a paste, or Ctrl+A). */
+  const selectOnly = (ids: string[]) => {
+    selection.current = ids;
+    pending.current = ids.join(' ');
+    setNodeMeta((meta) => {
+      const next: Record<string, NodeMeta> = {};
+      for (const [id, m] of Object.entries(meta)) next[id] = { ...m, selected: false };
+      for (const id of ids) next[id] = { ...next[id], selected: true };
+      return next;
+    });
+  };
+
+  const duplicate = (ids: string[]) => {
+    const { copy, paste } = useCircuitStore.getState();
+    copy(ids);
+    const created = paste();
+    if (created.length > 0) selectOnly(created);
+  };
+
+  // undo, redo, copy, paste, duplicate and select all; text fields keep their own shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const ids = selection.current;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const store = useCircuitStore.getState();
+      // the physical key, so the shortcuts also work with a Hebrew keyboard layout
+      const key = e.code;
+      if (key === 'KeyZ' && !e.shiftKey) store.undo();
+      else if ((key === 'KeyZ' && e.shiftKey) || key === 'KeyY') store.redo();
+      else if (key === 'KeyC' && ids.length > 0) store.copy(ids);
+      else if (key === 'KeyV') {
+        const created = store.paste();
+        if (created.length > 0) selectOnly(created);
+      } else if (key === 'KeyD' && ids.length > 0) duplicate(ids);
+      else if (key === 'KeyA') selectOnly(store.circuit.components.map((c) => c.id));
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={`editor sheet-${sheet}`}>
@@ -212,7 +269,17 @@ export function Editor() {
               fitView
             >
               <Background gap={20} color="#2a2a30" />
-              <Controls showInteractive={false} />
+              <Controls showInteractive={false}>
+                <ControlButton
+                  onClick={() => void exportCircuitImage(nodes, circuit.name)}
+                  title="שמירת המעגל כתמונה (PNG)"
+                  aria-label="שמירת המעגל כתמונה"
+                >
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 12.5h11" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                  </svg>
+                </ControlButton>
+              </Controls>
             </ReactFlow>
           </div>
           {message && (
@@ -228,6 +295,8 @@ export function Editor() {
       </div>
       <PropertiesPanel
         component={selectedComponent}
+        selection={selectedIds}
+        onDuplicate={duplicate}
         onRenamed={(from, to) =>
           setNodeMeta(({ [from]: meta, ...rest }) => (meta ? { ...rest, [to]: meta } : rest))
         }
