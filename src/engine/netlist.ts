@@ -3,7 +3,7 @@
  * becomes a device that reads nets and drives nets. A net is named after the
  * output port that drives it (`component:port`).
  */
-import { inputsOfComponent, outputPortsOf } from '../model';
+import { flattenBlocks, inputsOfComponent, outputsOfComponent } from '../model';
 import type { Circuit, Component, ComponentType } from '../model';
 import { delayToTicks } from '../model/time';
 import { EDGE_TRIGGERED, LATCHES, isCombinationalBlock, stateWidth } from './behavior';
@@ -80,7 +80,9 @@ function initialState(c: Component, kind: DeviceKind): Logic[] {
   return Array<Logic>(stateWidth(c.type)).fill(init);
 }
 
-export function buildNetlist(circuit: Circuit): Netlist {
+export function buildNetlist(original: Circuit): Netlist {
+  // the student's own blocks are replaced by their parts (model/blocks.ts)
+  const { circuit, aliases } = flattenBlocks(original);
   const driverOf = new Map<string, string>();
   for (const w of circuit.wires) {
     driverOf.set(netKey(w.to.component, w.to.port), netKey(w.from.component, w.from.port));
@@ -111,7 +113,7 @@ export function buildNetlist(circuit: Circuit): Netlist {
       type: c.type,
       kind,
       inputs: ports.map((p) => driverOf.get(netKey(c.id, p)) ?? ''),
-      outputs: outputPortsOf(c.type).map((p) => netKey(c.id, p)),
+      outputs: outputsOfComponent(c).map((p) => netKey(c.id, p)),
       rise: c.props?.tpLH !== undefined ? delayToTicks(c.props.tpLH) : plain,
       fall: c.props?.tpHL !== undefined ? delayToTicks(c.props.tpHL) : plain,
       plain,
@@ -136,6 +138,26 @@ export function buildNetlist(circuit: Circuit): Netlist {
       list.push(device);
       fanout.set(n, list);
     }
+  }
+  // each output of a block is the net inside that feeds it, passed on with no delay
+  for (const [outer, inner] of aliases) {
+    const device: Device = {
+      id: `${outer}#`,
+      type: 'BUF',
+      kind: 'gate',
+      inputs: [inner],
+      outputs: [outer],
+      rise: 0,
+      fall: 0,
+      plain: 0,
+      clock: -1,
+      reset: -1,
+      clr: -1,
+      pre: -1,
+      state: [],
+    };
+    devices.push(device);
+    if (inner) fanout.set(inner, [...(fanout.get(inner) ?? []), device]);
   }
   return { devices, fanout, sources, clocks };
 }

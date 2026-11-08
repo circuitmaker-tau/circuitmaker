@@ -1713,3 +1713,48 @@ button:disabled:hover {
   align-self: flex-start;
   font-size: 0.8rem;
 }
+
+/* the student's own blocks */
+.field-error {
+  margin: 0;
+  color: var(--sig-0);
+  font-size: 0.8rem;
+}
+
+.palette-block {
+  position: relative;
+  display: flex;
+}
+
+.palette-block .palette-item {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.palette-remove {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-start: -6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--panel);
+  opacity: 0;
+}
+
+.palette-block:hover .palette-remove,
+.palette-remove:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .palette-remove {
+    opacity: 1;
+  }
+}

@@ -7,6 +7,9 @@ import { create } from 'zustand';
 import { mux2FromGates } from '../examples/mux2FromGates';
 import {
   CATALOG,
+  blockFromSelection,
+  blockInstance,
+  blocksUsedBy,
   canConnect,
   createCircuit,
   createComponent,
@@ -77,6 +80,12 @@ export interface CircuitState {
   /** Swap in an edited version of the current circuit (keeps the lesson and the view). */
   replaceCircuit: (circuit: Circuit) => void;
   newCircuit: () => void;
+  /** Save the selected components as a block of their own; returns why not, or null. */
+  saveBlock: (ids: string[], name: string) => string | null;
+  /** Put a saved block on the canvas; returns its id. */
+  addBlock: (name: string, position: Position) => string | null;
+  /** Remove a saved block that nothing uses. */
+  deleteBlock: (name: string) => void;
   renameCircuit: (name: string) => void;
   showMessage: (text: string) => void;
   clearMessage: () => void;
@@ -112,6 +121,7 @@ const ID_PREFIX: Partial<Record<ComponentType, string>> = {
   CLOCK: 'clk',
   CONST0: 'k',
   CONST1: 'k',
+  BLOCK: 'B',
 };
 
 const prefixFor = (type: ComponentType) =>
@@ -328,8 +338,14 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
     // loading over the current circuit can be undone too
     loadCircuit: (circuit, lesson) => {
       remember();
+      // the student's own blocks stay available; the loaded circuit's own ones come first
+      const mine = get().circuit.blocks ?? [];
+      const theirs = new Set((circuit.blocks ?? []).map((b) => b.name));
+      const kept = mine.filter((b) => !theirs.has(b.name));
+      const next = clone(circuit);
+      if (kept.length) next.blocks = [...(next.blocks ?? []), ...clone({ ...next, blocks: kept }).blocks!];
       set((s) => ({
-        circuit: clone(circuit),
+        circuit: next,
         lesson: lesson ?? null,
         message: null,
         loaded: s.loaded + 1,
@@ -341,7 +357,46 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
     },
     newCircuit: () => {
       remember();
-      set((s) => ({ circuit: createCircuit(), lesson: null, message: null, loaded: s.loaded + 1 }));
+      // the student's own blocks stay: they are a library, not part of one circuit
+      const blocks = get().circuit.blocks;
+      set((s) => ({
+        circuit: blocks?.length ? { ...createCircuit(), blocks } : createCircuit(),
+        lesson: null,
+        message: null,
+        loaded: s.loaded + 1,
+      }));
+    },
+    saveBlock: (ids, name) => {
+      const { circuit } = get();
+      const r = blockFromSelection(circuit, ids, name);
+      if (!r.ok) return r.error;
+      remember();
+      set({
+        circuit: { ...circuit, blocks: [...(circuit.blocks ?? []), r.block] },
+        message: `הבלוק ${r.block.name} נשמר, עם הכניסות ${r.block.inputs.join(', ')} והיציאות ${r.block.outputs.join(', ')}. הוא מופיע בסרגל הרכיבים, ב״הבלוקים שלי״.`,
+      });
+      return null;
+    },
+    addBlock: (name, position) => {
+      const { circuit } = get();
+      const def = (circuit.blocks ?? []).find((b) => b.name === name);
+      if (!def) return null;
+      const id = nextId('B', circuit.components.map((c) => c.id));
+      const component = blockInstance(def, id, { x: Math.round(position.x), y: Math.round(position.y) });
+      remember();
+      set({ circuit: { ...circuit, components: [...circuit.components, component] } });
+      return id;
+    },
+    deleteBlock: (name) => {
+      const { circuit } = get();
+      const users = blocksUsedBy(circuit, circuit.components).some((b) => b.name === name) ||
+        (circuit.blocks ?? []).some((b) => b.name !== name && blocksUsedBy(circuit, b.components).some((u) => u.name === name));
+      if (users) {
+        set({ message: `הבלוק ${name} נמצא בשימוש במעגל. מוחקים קודם את הרכיבים שמשתמשים בו.` });
+        return;
+      }
+      remember();
+      set({ circuit: { ...circuit, blocks: (circuit.blocks ?? []).filter((b) => b.name !== name) } });
     },
     renameCircuit: (name) => {
       remember('circuit-name');
@@ -382,6 +437,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
       set({
         clipboard: clone({
           ...circuit,
+          blocks: blocksUsedBy(circuit, components),
           components,
           wires: circuit.wires.filter((w) => keep.has(w.from.component) && keep.has(w.to.component)),
         }),
@@ -410,6 +466,8 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
           to: { ...w.to, component: rename.get(w.to.component)! },
         };
       });
+      const have = new Set((circuit.blocks ?? []).map((b) => b.name));
+      const missing = (clipboard.blocks ?? []).filter((b) => !have.has(b.name));
       remember();
       set({
         message: null,
@@ -417,6 +475,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
           ...circuit,
           components: [...circuit.components, ...components],
           wires: [...circuit.wires, ...wires],
+          ...(missing.length ? { blocks: [...(circuit.blocks ?? []), ...structuredClone(missing)] } : {}),
         },
       });
       return components.map((c) => c.id);

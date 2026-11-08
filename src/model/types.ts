@@ -48,6 +48,8 @@ export const COMPONENT_TYPES = [
   'SR_FF',
   'REGISTER4',
   'COUNTER4',
+  // a block the student built and saved (its parts are in Circuit.blocks)
+  'BLOCK',
 ] as const;
 
 export type ComponentType = (typeof COMPONENT_TYPES)[number];
@@ -84,6 +86,10 @@ export interface ComponentProps {
   /** Any component with a delay: separate rise / fall delay (rule E2). */
   tpLH?: number;
   tpHL?: number;
+  /** BLOCK: name of its definition in Circuit.blocks. */
+  block?: string;
+  /** BLOCK: its ports, copied from the definition (inputs, then outputs). */
+  pins?: { in: string[]; out: string[] };
   [key: string]: unknown;
 }
 
@@ -109,12 +115,27 @@ export interface Wire {
   to: PortRef;
 }
 
+/**
+ * A block the student built: the switches inside are its inputs, the lamps
+ * are its outputs (named after them, top to bottom), and the rest is what it
+ * computes. It travels with the circuit (saved file, share link).
+ */
+export interface BlockDef {
+  name: string;
+  inputs: string[];
+  outputs: string[];
+  components: Component[];
+  wires: Wire[];
+}
+
 export interface Circuit {
   version: 1;
   name: string;
   timeUnit: TimeUnit;
   components: Component[];
   wires: Wire[];
+  /** The student's own blocks, used by BLOCK components. */
+  blocks?: BlockDef[];
 }
 
 export const CIRCUIT_VERSION = 1;

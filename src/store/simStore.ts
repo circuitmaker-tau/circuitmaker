@@ -45,6 +45,8 @@ export function structureSignature(circuit: Circuit): string {
       return [c.id, c.type, c.delay, c.inputs, rest];
     }),
     w: circuit.wires.map((w) => [w.from.component, w.from.port, w.to.component, w.to.port]),
+    // what is inside the student's own blocks
+    b: circuit.blocks ?? [],
   });
 }
 

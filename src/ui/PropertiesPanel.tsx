@@ -4,7 +4,7 @@ import {
   expansionSummary,
   formatSchedule,
   hasAsyncOption,
-  outputPortsOf,
+  outputsOfComponent,
   parseSchedule,
 } from '../model';
 import type { Component } from '../model';
@@ -44,6 +44,7 @@ export function PropertiesPanel({
           <button type="button" onClick={() => onDuplicate?.(selection)}>
             שכפול
           </button>
+          <SaveAsBlock selection={selection} />
           <button
             type="button"
             className="danger"
@@ -100,7 +101,11 @@ function ComponentFields({
   const updateComponent = useCircuitStore((s) => s.updateComponent);
   const [nameText, setNameText] = useState(component.id);
   const removeComponents = useCircuitStore((s) => s.removeComponents);
-  const inside = expansionSummary(component);
+  const blocks = useCircuitStore((s) => s.circuit.blocks);
+  const own = component.type === 'BLOCK' ? blocks?.find((b) => b.name === component.props?.block) : undefined;
+  const inside = own
+    ? `${own.name}: ${own.components.filter((c) => c.type !== 'INPUT' && c.type !== 'OUTPUT').length} רכיבים, עם הכניסות ${own.inputs.join(', ')} והיציאות ${own.outputs.join(', ')}. לכל רכיב בפנים ה-Tp שלו.`
+    : expansionSummary(component);
   const timeUnit = useCircuitStore((s) => s.circuit.timeUnit);
   const [delayText, setDelayText] = useState(String(component.delay));
   const [halfText, setHalfText] = useState(String(component.props?.halfPeriod ?? 1));
@@ -110,7 +115,8 @@ function ComponentFields({
   const { shown, setProbe } = useTimingStore.getState();
   const showMessage = useCircuitStore((s) => s.showMessage);
   const def = CATALOG[component.type];
-  const hasDelay = def.category !== 'io';
+  // a block of the student's own takes as long as the gates inside it
+  const hasDelay = def.category !== 'io' && component.type !== 'BLOCK';
 
   const commitName = () => {
     const from = component.id;
@@ -153,9 +159,9 @@ function ComponentFields({
           .map((w) => ({ net: `${w.from.component}:${w.from.port}`, label: component.id }))
       : component.type === 'CONST0' || component.type === 'CONST1'
         ? []
-        : outputPortsOf(component.type).map((p) => ({
+        : outputsOfComponent(component).map((p) => ({
             net: `${component.id}:${p}`,
-            label: outputPortsOf(component.type).length > 1 ? p : component.id,
+            label: outputsOfComponent(component).length > 1 ? p : component.id,
           }));
   const inDiagram = new Set(shown(circuit));
 
@@ -335,6 +341,39 @@ function ComponentFields({
       </button>
       <button type="button" className="danger" onClick={() => removeComponents([component.id])}>
         מחיקת הרכיב
+      </button>
+    </div>
+  );
+}
+
+/** Save the selection as a block of the student's own: its switches become inputs, its lamps outputs. */
+function SaveAsBlock({ selection }: { selection: string[] }) {
+  const [name, setName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const save = () => {
+    const problem = useCircuitStore.getState().saveBlock(selection, name);
+    setError(problem);
+    if (!problem) setName('');
+  };
+  return (
+    <div className="field expand-field">
+      <p className="field-title">שמירה כבלוק</p>
+      <p className="hint">
+        המתגים שבבחירה יהיו הכניסות של הבלוק והנורות יהיו היציאות שלו, לפי הסדר מלמעלה למטה.
+      </p>
+      <label className="field">
+        <span>שם הבלוק</span>
+        <input
+          type="text"
+          value={name}
+          placeholder="למשל MUX2"
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && save()}
+        />
+      </label>
+      {error && <p className="field-error">{error}</p>}
+      <button type="button" onClick={save}>
+        שמירה כבלוק
       </button>
     </div>
   );

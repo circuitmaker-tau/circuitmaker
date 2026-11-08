@@ -7,7 +7,7 @@
  * horizontal run crosses a vertical run of a different net, the horizontal one
  * gets a small hop, so a crossing is never mistaken for a connection.
  */
-import { CATALOG, inputsOfComponent, outputPortsOf } from '../model';
+import { CATALOG, inputsOfComponent, outputsOfComponent } from '../model';
 import type { Circuit, Component, Wire } from '../model';
 
 export const ROW = 20;
@@ -40,7 +40,7 @@ export const muxInset = (bodyHeight: number) => Math.min(40, Math.round(bodyHeig
 export function nodeLayout(c: Component): NodeLayout {
   const def = CATALOG[c.type];
   const ins = inputsOfComponent(c).length - bottomPorts(c).length;
-  const outs = outputPortsOf(c.type).length;
+  const outs = outputsOfComponent(c).length;
   // every body is n*20+8 high, so with positions on the 10px grid all ports land on the same grid
   if (def.category === 'gate') {
     const bodyHeight = Math.max(ins, outs, 2) * ROW + 8;
@@ -73,7 +73,7 @@ export function portLocal(c: Component, port: string): (Point & { side: PortSide
     return { x, y, side: 'bottom' };
   }
   const ins = inputsOfComponent(c).filter((p) => !below.includes(p));
-  const outs = outputPortsOf(c.type);
+  const outs = outputsOfComponent(c);
   const i = ins.indexOf(port);
   if (i >= 0) return { x: 0, y: portOffset(i, ins.length, bodyHeight), side: 'left' };
   const o = outs.indexOf(port);

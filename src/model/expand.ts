@@ -14,7 +14,7 @@
  * from real gates.
  */
 import { createComponent, createWire, nextId } from './factory';
-import type { Circuit, ComponentProps, ComponentType, Component, Wire } from './types';
+import type { BlockDef, Circuit, ComponentProps, ComponentType, Component, Wire } from './types';
 
 /** "part.port", or a block port name for the outside. */
 type Ref = string;
@@ -26,6 +26,8 @@ interface Part {
   /** Offset from the block's position. */
   at: [number, number];
   props?: ComponentProps;
+  /** A whole component to copy (the parts of the student's own block keep their own Tp). */
+  copy?: Component;
 }
 
 export interface Expansion {
@@ -242,6 +244,29 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
   }
 }
 
+/** The parts of one of the student's own blocks: what was saved, without its switches and lamps. */
+export function blockExpansion(def: BlockDef): Expansion {
+  const pins = new Set([...def.inputs, ...def.outputs]);
+  const inner = def.components.filter((c) => !pins.has(c.id));
+  const inputs: Record<string, Ref[]> = Object.fromEntries(def.inputs.map((p) => [p, [] as Ref[]]));
+  const outputs: Record<string, Ref> = {};
+  const wires: [Ref, Ref][] = [];
+  for (const w of def.wires) {
+    const fromPin = def.inputs.includes(w.from.component);
+    const toPin = def.outputs.includes(w.to.component);
+    if (fromPin && !toPin) inputs[w.from.component].push(`${w.to.component}.${w.to.port}`);
+    else if (toPin && !fromPin) outputs[w.to.component] = `${w.from.component}.${w.from.port}`;
+    else if (!fromPin && !toPin) wires.push([`${w.from.component}.${w.from.port}`, `${w.to.component}.${w.to.port}`]);
+  }
+  return {
+    parts: inner.map((c) => ({ key: c.id, type: c.type, at: [c.position.x, c.position.y], copy: c })),
+    wires,
+    inputs,
+    outputs,
+    summary: `${inner.length} הרכיבים שבתוך הבלוק ${def.name}`,
+  };
+}
+
 /** Whether a component of this type can be taken apart. */
 export const canExpand = (type: ComponentType) =>
   expansionOf(createComponent(type, 'x'), new Set()) !== null;
@@ -267,7 +292,8 @@ export function expandComponent(
   const block = circuit.components.find((c) => c.id === id);
   if (!block) return null;
   const connected = new Set(circuit.wires.filter((w) => w.to.component === id).map((w) => w.to.port));
-  const ex = expansionOf(block, connected);
+  const def = block.type === 'BLOCK' ? (circuit.blocks ?? []).find((b) => b.name === block.props?.block) : undefined;
+  const ex = def ? blockExpansion(def) : expansionOf(block, connected);
   if (!ex) return null;
 
   // the parts start where the block's top left corner was
@@ -282,11 +308,12 @@ export function expandComponent(
     if (taken.has(pid)) pid = nextId(`${pid}_`, taken);
     taken.add(pid);
     idOf.set(p.key, pid);
+    const position = { x: block.position.x + p.at[0] - minX, y: block.position.y + p.at[1] - minY };
+    if (p.copy) return { ...structuredClone(p.copy), id: pid, position };
     const overrides: Partial<Component> = { delay: block.delay };
     if (p.inputs) overrides.inputs = p.inputs;
     if (p.props) overrides.props = p.props;
     if (p.type === 'CONST1' || p.type === 'CONST0') overrides.delay = 0;
-    const position = { x: block.position.x + p.at[0] - minX, y: block.position.y + p.at[1] - minY };
     return createComponent(p.type, pid, position, overrides);
   });
   const ref = (r: Ref) => {
