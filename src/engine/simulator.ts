@@ -359,7 +359,10 @@ export class Simulator {
         const list = this.traces.get(net) ?? [];
         const cause = causeNow.get(net)!;
         this.causeOf.set(net, cause);
-        list.push({ time: t, value: this.value(net), cause });
+        // a change and its undoing at the same time (delta cycles of Tp = 0 gates) take no
+        // time, so the trace keeps only where the net settles at t, as the exam draws it
+        if (list.length > 1 && list.at(-1)!.time === t) list.pop();
+        if (list.at(-1)?.value !== this.value(net)) list.push({ time: t, value: this.value(net), cause });
         this.traces.set(net, list);
         if (!outside.has(net)) this.countChange(net, t);
       }
