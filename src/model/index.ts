@@ -6,3 +6,4 @@ export * from './validate';
 export * from './serialize';
 export * from './connect';
 export * from './stimuli';
+export * from './expand';

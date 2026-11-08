@@ -212,6 +212,12 @@ export function Editor() {
     });
   };
 
+  /** After a block is taken apart: select its parts and show the whole circuit, which made room for them. */
+  const showParts = (ids: string[]) => {
+    selectOnly(ids);
+    requestAnimationFrame(() => requestAnimationFrame(() => void fitView({ padding: 0.15, duration: 200 })));
+  };
+
   const duplicate = (ids: string[]) => {
     const { copy, paste } = useCircuitStore.getState();
     copy(ids);
@@ -298,6 +304,7 @@ export function Editor() {
         component={selectedComponent}
         selection={selectedIds}
         onDuplicate={duplicate}
+        onSelect={showParts}
         onRenamed={(from, to) =>
           setNodeMeta(({ [from]: meta, ...rest }) => (meta ? { ...rest, [to]: meta } : rest))
         }

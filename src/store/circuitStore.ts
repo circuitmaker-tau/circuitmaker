@@ -10,6 +10,7 @@ import {
   canConnect,
   createCircuit,
   createComponent,
+  expandComponent,
   inputsOfComponent,
   isValidDelay,
   nextId,
@@ -23,6 +24,7 @@ import type {
   Position,
 } from '../model';
 import type { SaveStatus } from '../persistence/persistence';
+import { nodeLayout } from '../ui/geometry';
 import { useAnalysisStore } from './analysisStore';
 import { useTimingStore } from './timingStore';
 
@@ -63,6 +65,8 @@ export interface CircuitState {
   addComponent: (type: ComponentType, position: Position) => string;
   moveComponents: (moves: Record<string, Position>) => void;
   removeComponents: (ids: string[]) => void;
+  /** Replace a block with the parts it is built from; returns their ids, or [] when it cannot be taken apart. */
+  expand: (id: string) => string[];
   /** Give a component another name (its id); wires, the timing diagram and the analysis follow. */
   renameComponent: (id: string, name: string) => boolean;
   updateComponent: (id: string, patch: ComponentPatch) => boolean;
@@ -184,6 +188,18 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
           ),
         },
       });
+    },
+
+    expand: (id) => {
+      const { circuit } = get();
+      const r = expandComponent(circuit, id, nodeLayout);
+      if (!r) return [];
+      remember();
+      set({
+        circuit: r.circuit,
+        message: `${id} פורק ל: ${r.summary}. כל חלק אפשר לפרק שוב, ו-Ctrl+Z מחזיר.`,
+      });
+      return r.parts;
     },
 
     renameComponent: (id, name) => {

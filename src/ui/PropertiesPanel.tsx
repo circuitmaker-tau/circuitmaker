@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { CATALOG, formatSchedule, hasAsyncOption, outputPortsOf, parseSchedule } from '../model';
+import {
+  CATALOG,
+  expansionSummary,
+  formatSchedule,
+  hasAsyncOption,
+  outputPortsOf,
+  parseSchedule,
+} from '../model';
 import type { Component } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { useTimingStore } from '../store/timingStore';
@@ -12,6 +19,8 @@ interface PropertiesPanelProps {
   /** Every selected component (several with Shift or a box drag). */
   selection?: string[];
   onDuplicate?: (ids: string[]) => void;
+  /** Select these components (the parts of a block that was taken apart). */
+  onSelect?: (ids: string[]) => void;
 }
 
 export function PropertiesPanel({
@@ -19,6 +28,7 @@ export function PropertiesPanel({
   onRenamed,
   selection = [],
   onDuplicate,
+  onSelect,
 }: PropertiesPanelProps) {
   const lesson = useCircuitStore((s) => s.lesson);
   return (
@@ -49,6 +59,7 @@ export function PropertiesPanel({
           component={component}
           onRenamed={onRenamed}
           onDuplicate={onDuplicate}
+          onSelect={onSelect}
         />
       ) : (
         <>
@@ -79,14 +90,17 @@ function ComponentFields({
   component,
   onRenamed,
   onDuplicate,
+  onSelect,
 }: {
   component: Component;
   onRenamed?: (from: string, to: string) => void;
   onDuplicate?: (ids: string[]) => void;
+  onSelect?: (ids: string[]) => void;
 }) {
   const updateComponent = useCircuitStore((s) => s.updateComponent);
   const [nameText, setNameText] = useState(component.id);
   const removeComponents = useCircuitStore((s) => s.removeComponents);
+  const inside = expansionSummary(component);
   const timeUnit = useCircuitStore((s) => s.circuit.timeUnit);
   const [delayText, setDelayText] = useState(String(component.delay));
   const [halfText, setHalfText] = useState(String(component.props?.halfPeriod ?? 1));
@@ -297,6 +311,23 @@ function ComponentFields({
             </label>
           ))}
         </fieldset>
+      )}
+
+      {inside && (
+        <div className="field expand-field">
+          <p className="field-title">מה יש בפנים</p>
+          <p className="hint">{inside}</p>
+          <button
+            type="button"
+            onClick={() => {
+              const parts = useCircuitStore.getState().expand(component.id);
+              if (parts.length > 0) onSelect?.(parts);
+            }}
+            title="מחליף את הרכיב ברכיבים שהוא בנוי מהם, עם אותם חיבורים"
+          >
+            פירוק לרכיבים
+          </button>
+        </div>
       )}
 
       <button type="button" onClick={() => onDuplicate?.([component.id])}>

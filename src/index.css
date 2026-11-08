@@ -1679,3 +1679,13 @@ button:disabled:hover {
     flex: none;
   }
 }
+
+/* "what is inside" a block, and the button that takes it apart */
+.expand-field {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.expand-field .hint {
+  margin: 4px 0 8px;
+}
