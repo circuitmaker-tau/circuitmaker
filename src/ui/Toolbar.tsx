@@ -5,6 +5,7 @@ import { downloadCircuit, readCircuitFile } from '../persistence/persistence';
 import type { SaveStatus } from '../persistence/persistence';
 import { useCircuitStore } from '../store/circuitStore';
 import { FromExpression } from './FromExpression';
+import { ShareDialog } from './ShareDialog';
 
 const STATUS_TEXT: Record<SaveStatus, string> = {
   idle: '',
@@ -27,6 +28,7 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
     useCircuitStore.getState();
   const fileInput = useRef<HTMLInputElement>(null);
   const [fromExpression, setFromExpression] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const onImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -114,6 +116,9 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
         <button type="button" onClick={() => downloadCircuit(useCircuitStore.getState().circuit)}>
           ייצוא JSON
         </button>
+        <button type="button" onClick={() => setSharing(true)} title="קישור שפותח את המעגל הזה אצל מישהו אחר">
+          שיתוף
+        </button>
         <button type="button" onClick={onHelp} title="מדריך למשתמש">
           עזרה
         </button>
@@ -126,6 +131,7 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
         />
       </div>
       <FromExpression open={fromExpression} onClose={() => setFromExpression(false)} />
+      <ShareDialog open={sharing} onClose={() => setSharing(false)} />
     </header>
   );
 }

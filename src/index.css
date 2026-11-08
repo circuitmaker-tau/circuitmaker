@@ -1364,7 +1364,7 @@ button:disabled:hover {
 
 /* circuit from an expression */
 
-.from-expression {
+:is(.from-expression, .share-dialog) {
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   overflow: auto;
@@ -1375,22 +1375,22 @@ button:disabled:hover {
   border-radius: 10px;
 }
 
-.from-expression::backdrop {
+:is(.from-expression, .share-dialog)::backdrop {
   background: rgba(0, 0, 0, 0.7);
 }
 
-.from-expression h2 {
+:is(.from-expression, .share-dialog) h2 {
   margin: 0 0 14px;
   font-size: 1.15rem;
 }
 
-.from-expression form {
+:is(.from-expression, .share-dialog) form {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.from-expression .field input {
+:is(.from-expression, .share-dialog) .field input {
   width: 100%;
   font-family: var(--mono);
   font-size: 16px; /* no zoom on iPhone */
@@ -1398,7 +1398,7 @@ button:disabled:hover {
   text-align: left;
 }
 
-.from-expression .hint {
+:is(.from-expression, .share-dialog) .hint {
   margin: 0;
 }
 
@@ -1454,8 +1454,8 @@ button:disabled:hover {
   font-weight: 600;
 }
 
-.from-expression .field input,
-.from-expression {
+:is(.from-expression, .share-dialog) .field input,
+:is(.from-expression, .share-dialog) {
   box-sizing: border-box;
 }
 
@@ -1688,4 +1688,28 @@ button:disabled:hover {
 
 .expand-field .hint {
   margin: 4px 0 8px;
+}
+
+/* share link */
+:is(.from-expression, .share-dialog) textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 16px; /* no zoom on iPhone */
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.share-dialog input[readonly] {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 8px 10px;
+  color: var(--muted);
+}
+
+.share-use-lesson {
+  align-self: flex-start;
+  font-size: 0.8rem;
 }
