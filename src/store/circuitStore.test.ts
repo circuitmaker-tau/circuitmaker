@@ -267,4 +267,19 @@ describe('undo, redo, copy and paste', () => {
     store().undo();
     expect(store().circuit.components).toHaveLength(mux2FromGates.components.length + 3);
   });
+
+  it('takes a block apart in one step that undo brings back, and refuses a gate', () => {
+    store().newCircuit();
+    const id = store().addComponent('FULL_ADDER', { x: 0, y: 0 });
+    const lamp = store().addComponent('OUTPUT', { x: 400, y: 0 });
+    store().connect({ component: id, port: 'Cout' }, { component: lamp, port: 'in' });
+    const parts = store().expand(id);
+    expect(parts).toEqual([`${id}_h1`, `${id}_h2`, `${id}_o`]);
+    expect(store().circuit.wires.some((w) => w.from.component === `${id}_o` && w.to.component === lamp)).toBe(true);
+    expect(store().message).toContain('שני חצאי מסכם');
+    store().undo();
+    expect(store().circuit.components.map((c) => c.id)).toEqual([id, lamp]);
+    const gate = store().addComponent('AND', { x: 0, y: 200 });
+    expect(store().expand(gate)).toEqual([]);
+  });
 });
