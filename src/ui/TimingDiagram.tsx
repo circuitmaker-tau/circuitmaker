@@ -17,6 +17,7 @@ import { useCircuitStore } from '../store/circuitStore';
 import { useSimStore } from '../store/simStore';
 import { allRows, useTimingStore } from '../store/timingStore';
 import { AnalysisPanel } from './AnalysisPanel';
+import { CriticalPathPanel } from './CriticalPathPanel';
 import { exportTimingImage } from './exportImage';
 import { PracticePanel } from './PracticePanel';
 import { SIGNAL_COLORS } from './signalColors';
@@ -188,6 +189,7 @@ export function TimingDiagram() {
               ['timing', 'דיאגרמת זמנים'],
               ['analysis', 'ניתוח hazards'],
               ['truth', 'טבלת אמת'],
+              ['critical', 'נתיב קריטי'],
               ['practice', 'תרגול'],
             ] as const
           ).map(([id, label]) => (
@@ -244,6 +246,7 @@ export function TimingDiagram() {
 
       {open && tab === 'analysis' && <AnalysisPanel />}
       {open && tab === 'truth' && <TruthTablePanel />}
+      {open && tab === 'critical' && <CriticalPathPanel />}
       {open && tab === 'practice' && <PracticePanel />}
       {timing && (
         <div className="timing-body" dir="ltr">

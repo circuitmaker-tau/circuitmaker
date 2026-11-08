@@ -1602,3 +1602,80 @@ button:disabled:hover {
   stroke-width: 1.5;
   stroke-dasharray: 4 3;
 }
+
+/* critical path (WK5): orange on the canvas, apart from the two racing paths */
+
+.cm-path.on-path-2 {
+  stroke: #ff9f43;
+  opacity: 0.5;
+}
+
+.cm-node.on-path-2 .cm-box,
+.cm-node.on-path-2 svg {
+  filter: drop-shadow(0 0 6px #ff9f43);
+}
+
+.critical {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 20px;
+  padding: 10px 14px;
+  overflow: hidden;
+}
+
+.critical-summary {
+  flex: 0 1 340px;
+  overflow: auto;
+}
+
+.critical-summary p {
+  margin: 0 0 8px;
+}
+
+.critical-total {
+  font-size: 1rem;
+}
+
+.critical-total b {
+  font-family: var(--mono);
+  color: #ff9f43;
+}
+
+.critical-levels {
+  margin-inline-start: 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.critical-list {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.critical-table td.critical-chain {
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* with five tabs, a phone scrolls the row of tabs instead of squeezing it */
+.panel-tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.panel-tabs button {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .critical {
+    flex-direction: column;
+    overflow: auto;
+  }
+  .critical-summary,
+  .critical-list {
+    flex: none;
+  }
+}
