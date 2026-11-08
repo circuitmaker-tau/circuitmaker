@@ -9,7 +9,7 @@
  */
 import { settle } from '../engine/settle';
 import type { Logic } from '../engine/logic';
-import { CATALOG } from '../model';
+import { CATALOG, flattenBlocks } from '../model';
 import type { Circuit, Component } from '../model';
 
 /** Above this many switches the truth table (2^n rows) is not built. */
@@ -31,9 +31,9 @@ export function variablesOf(circuit: Circuit): Component[] {
 
 /** Why a circuit cannot be analysed, or null. */
 export function unsupportedReason(circuit: Circuit): string | null {
-  if (
-    circuit.components.some((c) => CATALOG[c.type].category === 'sequential' || c.type === 'CLOCK')
-  ) {
+  // what is inside the student's own blocks counts too
+  const flat = flattenBlocks(circuit).circuit;
+  if (flat.components.some((c) => CATALOG[c.type].category === 'sequential' || c.type === 'CLOCK')) {
     return 'הניתוח מיועד למעגלים צירופיים. במעגל יש שעון, latch או flip-flop.';
   }
   const n = variablesOf(circuit).length;

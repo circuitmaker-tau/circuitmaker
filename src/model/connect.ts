@@ -2,7 +2,7 @@
  * Rules for drawing a single wire in the editor. The same checks run while
  * the user drags (to show which handles accept the wire) and on drop.
  */
-import { inputsOfComponent, outputPortsOf } from './catalog';
+import { inputsOfComponent, outputsOfComponent } from './catalog';
 import type { Circuit, PortRef } from './types';
 
 export type ConnectCheck = { ok: true } | { ok: false; reason: string };
@@ -11,7 +11,7 @@ export function canConnect(circuit: Circuit, from: PortRef, to: PortRef): Connec
   const src = circuit.components.find((c) => c.id === from.component);
   const dst = circuit.components.find((c) => c.id === to.component);
   if (!src || !dst) return { ok: false, reason: 'אחד הרכיבים לא קיים' };
-  if (!outputPortsOf(src.type).includes(from.port)) {
+  if (!outputsOfComponent(src).includes(from.port)) {
     return { ok: false, reason: 'חוט חייב לצאת מיציאה של רכיב' };
   }
   if (!inputsOfComponent(dst).includes(to.port)) {

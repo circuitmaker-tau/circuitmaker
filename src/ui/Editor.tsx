@@ -18,7 +18,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, NodeChange } from '@xyflow/react';
-import { COMPONENT_TYPES, canConnect, createComponent } from '../model';
+import { COMPONENT_TYPES, blockInstance, canConnect, createComponent } from '../model';
 import type { ComponentType, Position } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { structureSignature, useSimStore } from '../store/simStore';
@@ -26,7 +26,7 @@ import { useTimingStore } from '../store/timingStore';
 import { ComponentNode } from './ComponentNode';
 import type { ComponentFlowNode } from './ComponentNode';
 import { findFreeSpot, routeCircuit, wirePath } from './geometry';
-import { DRAG_MIME, Palette } from './Palette';
+import { BLOCK_MIME, DRAG_MIME, Palette } from './Palette';
 import { exportCircuitImage } from './exportImage';
 import { PropertiesPanel } from './PropertiesPanel';
 import { SimControls } from './SimControls';
@@ -170,9 +170,15 @@ export function Editor() {
 
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
+    const at = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    const block = event.dataTransfer.getData(BLOCK_MIME);
+    if (block) {
+      useCircuitStore.getState().addBlock(block, at);
+      return;
+    }
     const type = event.dataTransfer.getData(DRAG_MIME);
     if (!isComponentType(type)) return;
-    addComponent(type, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+    addComponent(type, at);
   };
 
   const onDragOver = (event: DragEvent) => {
@@ -183,6 +189,12 @@ export function Editor() {
   // a click in the palette puts the component in the first free spot
   const onPaletteAdd = (type: ComponentType) => {
     addComponent(type, findFreeSpot(circuit, createComponent(type, 'new')));
+    setSheet('none');
+  };
+  const onPaletteAddBlock = (name: string) => {
+    const def = circuit.blocks?.find((b) => b.name === name);
+    if (!def) return;
+    useCircuitStore.getState().addBlock(name, findFreeSpot(circuit, blockInstance(def, 'new', { x: 0, y: 0 })));
     setSheet('none');
   };
 
@@ -252,7 +264,7 @@ export function Editor() {
 
   return (
     <div className={`editor sheet-${sheet}`}>
-      <Palette onAdd={onPaletteAdd} />
+      <Palette onAdd={onPaletteAdd} onAddBlock={onPaletteAddBlock} blocks={circuit.blocks ?? []} />
       <div className="workspace">
         <div className="canvas" dir="ltr" onDrop={onDrop} onDragOver={onDragOver}>
           <SimControls />

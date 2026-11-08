@@ -1,10 +1,13 @@
 import type { DragEvent } from 'react';
 import { CATALOG } from '../model';
-import type { ComponentType } from '../model';
+import type { BlockDef, ComponentType } from '../model';
+import { useCircuitStore } from '../store/circuitStore';
 import { PALETTE_LABEL } from './labels';
 
 /** MIME type used to carry a component type from the palette to the canvas. */
 export const DRAG_MIME = 'application/x-circuitmaker-component';
+/** The same for one of the student's own blocks (carries its name). */
+export const BLOCK_MIME = 'application/x-circuitmaker-block';
 
 const GROUPS: { title: string; types: ComponentType[] }[] = [
   { title: 'כניסות ויציאות', types: ['INPUT', 'OUTPUT', 'CONST0', 'CONST1', 'CLOCK'] },
@@ -35,9 +38,11 @@ const buttonLabel = (type: ComponentType) =>
 
 interface PaletteProps {
   onAdd: (type: ComponentType) => void;
+  onAddBlock?: (name: string) => void;
+  blocks?: readonly BlockDef[];
 }
 
-export function Palette({ onAdd }: PaletteProps) {
+export function Palette({ onAdd, onAddBlock, blocks = [] }: PaletteProps) {
   const onDragStart = (event: DragEvent, type: ComponentType) => {
     event.dataTransfer.setData(DRAG_MIME, type);
     event.dataTransfer.effectAllowed = 'move';
@@ -67,6 +72,43 @@ export function Palette({ onAdd }: PaletteProps) {
           </div>
         </section>
       ))}
+      <section className="palette-mine">
+        <h3>הבלוקים שלי</h3>
+        {blocks.length === 0 ? (
+          <p className="hint">
+            בונים משהו משערים, עם מתגים לכניסות ונורות ליציאות, בוחרים את כולם ולוחצים ״שמירה כבלוק״.
+          </p>
+        ) : (
+          <div className="palette-grid">
+            {blocks.map((b) => (
+              <span key={b.name} className="palette-block">
+                <button
+                  type="button"
+                  className="palette-item"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData(BLOCK_MIME, b.name);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onClick={() => onAddBlock?.(b.name)}
+                  title={`${b.name}: כניסות ${b.inputs.join(', ')}, יציאות ${b.outputs.join(', ')}`}
+                >
+                  <bdi>{b.name}</bdi>
+                </button>
+                <button
+                  type="button"
+                  className="palette-remove"
+                  aria-label={`מחיקת הבלוק ${b.name}`}
+                  title="מחיקת הבלוק מהרשימה"
+                  onClick={() => useCircuitStore.getState().deleteBlock(b.name)}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
     </aside>
   );
 }

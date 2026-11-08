@@ -99,6 +99,8 @@ export const CATALOG: Record<ComponentType, ComponentDef> = {
   SR_FF: block('sequential', 'SR flip-flop', ['S', 'R', 'CLK'], ['Q', "Q'"], true),
   REGISTER4: block('sequential', 'אוגר 4 ביט', [...seq('D', 4), 'CLK'], seq('Q', 4), true),
   COUNTER4: block('sequential', 'מונה 4 ביט', ['CLK', 'RESET'], seq('Q', 4), true),
+  // ports come from the definition, on the component itself (props.pins)
+  BLOCK: { ...block('combinational', 'בלוק משלך', [], []), defaultDelay: 0 },
 };
 
 export function inputPortsOf(type: ComponentType, inputs: number): string[] {
@@ -118,6 +120,7 @@ export const hasAsyncOption = (type: ComponentType) => WITH_ASYNC.has(type);
 
 /** Every input port of this component, including CLR' and PRE' when they are turned on. */
 export function inputsOfComponent(c: Pick<Component, 'type' | 'inputs' | 'props'>): string[] {
+  if (c.type === 'BLOCK') return c.props?.pins?.in ?? [];
   const base = inputPortsOf(c.type, c.inputs);
   return c.props?.async && hasAsyncOption(c.type) ? [...base, ...ASYNC_PORTS] : base;
 }
@@ -127,4 +130,10 @@ export const isOptionalInput = (port: string) => (ASYNC_PORTS as readonly string
 
 export function outputPortsOf(type: ComponentType): readonly string[] {
   return CATALOG[type].outputPorts;
+}
+
+/** Every output port of this component (a BLOCK has the outputs of its definition). */
+export function outputsOfComponent(c: Pick<Component, 'type' | 'props'>): readonly string[] {
+  if (c.type === 'BLOCK') return c.props?.pins?.out ?? [];
+  return outputPortsOf(c.type);
 }

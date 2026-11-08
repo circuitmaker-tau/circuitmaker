@@ -6,7 +6,7 @@
  * lamps. The user can add or remove any net from the properties panel.
  */
 import { create } from 'zustand';
-import { CATALOG, outputPortsOf } from '../model';
+import { CATALOG, outputsOfComponent } from '../model';
 import type { Circuit } from '../model';
 import { loadPrefs, savePrefs } from './prefs';
 import type { PanelTab } from './prefs';
@@ -32,7 +32,7 @@ export function allRows(circuit: Circuit): Row[] {
   const rows: Row[] = [];
   for (const c of circuit.components) {
     if (c.type === 'OUTPUT' || c.type === 'CONST0' || c.type === 'CONST1') continue;
-    const ports = outputPortsOf(c.type);
+    const ports = outputsOfComponent(c);
     for (const port of ports) {
       const net = `${c.id}:${port}`;
       const own = ports.length === 1 ? c.id : `${c.id}.${port}`;

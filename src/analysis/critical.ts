@@ -7,7 +7,7 @@
  * is the delay of the whole circuit, and for a synchronous circuit the
  * shortest clock period it can work with.
  */
-import { CATALOG } from '../model';
+import { CATALOG, flattenForAnalysis } from '../model';
 import type { Circuit, Component } from '../model';
 import { delayToTicks } from '../model/time';
 
@@ -44,7 +44,23 @@ interface Arrival {
   levels: number;
 }
 
-export function criticalPaths(circuit: Circuit): CriticalResult {
+export function criticalPaths(original: Circuit): CriticalResult {
+  const result = longestPaths(flattenForAnalysis(original));
+  if (!result.ok || !original.components.some((c) => c.type === 'BLOCK')) return result;
+  // the parts of a block ("B1/x") are shown, and highlighted, as the block itself
+  const wires = new Set(original.wires.map((w) => w.id));
+  const outer = (id: string) => id.split('/')[0];
+  return {
+    ok: true,
+    paths: result.paths.map((p) => ({
+      ...p,
+      components: p.components.map(outer).filter((id, i, all) => i === 0 || all[i - 1] !== id),
+      wires: p.wires.filter((w) => wires.has(w)),
+    })),
+  };
+}
+
+function longestPaths(circuit: Circuit): CriticalResult {
   const byId = new Map(circuit.components.map((c) => [c.id, c]));
   const into = new Map<string, typeof circuit.wires>();
   for (const w of circuit.wires) into.set(w.to.component, [...(into.get(w.to.component) ?? []), w]);

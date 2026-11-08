@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { CATALOG, inputsOfComponent, outputPortsOf } from '../model';
+import { CATALOG, inputsOfComponent, outputsOfComponent } from '../model';
 import type { Component, Signal } from '../model';
 import { useAnalysisStore } from '../store/analysisStore';
 import { useSimStore } from '../store/simStore';
@@ -24,7 +24,7 @@ function useLive(c: Component, lampNet: string | undefined): Signal[] | null {
     if (c.type === 'OUTPUT') return String(sim.value(lampNet ?? ''));
     if (c.type === 'INPUT' || c.type === 'CLOCK') return String(sim.value(`${c.id}:out`));
     if (!CATALOG[c.type].stateful) return null;
-    return outputPortsOf(c.type)
+    return outputsOfComponent(c)
       .filter((p) => p.startsWith('Q') && !p.endsWith("'"))
       .map((p) => sim.value(`${c.id}:${p}`))
       .join('');
@@ -64,7 +64,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
   const def = CATALOG[c.type];
   const { width, bodyHeight, height } = nodeLayout(c);
   const ins = inputsOfComponent(c);
-  const outs = outputPortsOf(c.type);
+  const outs = outputsOfComponent(c);
   const isGate = def.category === 'gate';
   const showPortNames = !isGate && def.category !== 'io';
   const flip = useSimStore((s) => s.flip);
@@ -169,7 +169,9 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
             </span>
           ) : (
             <>
-              <span className="cm-label">{BOX_TITLE[c.type] ?? def.label}</span>
+              <span className="cm-label">
+                {c.type === 'BLOCK' ? (c.props?.block ?? 'בלוק') : (BOX_TITLE[c.type] ?? def.label)}
+              </span>
               {state && <StoredValue type={c.type} state={state} />}
             </>
           )}

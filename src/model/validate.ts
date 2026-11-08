@@ -3,7 +3,7 @@
  * Errors make the circuit unusable; warnings are shown but allowed
  * (an unconnected input simply reads X, rule E7).
  */
-import { CATALOG, inputsOfComponent, isOptionalInput, outputPortsOf } from './catalog';
+import { CATALOG, inputsOfComponent, isOptionalInput, outputsOfComponent } from './catalog';
 import { isValidDelay } from './time';
 import { COMPONENT_TYPES } from './types';
 import type { Circuit, Component, ComponentType, PortRef } from './types';
@@ -45,7 +45,13 @@ function checkComponent(c: Component, issues: Issue[]): void {
     return;
   }
   const def = CATALOG[c.type];
-  if (!Number.isInteger(c.inputs) || c.inputs < def.minInputs || c.inputs > def.maxInputs) {
+  if (c.type === 'BLOCK') {
+    const pins = c.props?.pins;
+    const names = (x: unknown) => Array.isArray(x) && x.every((n) => typeof n === 'string');
+    if (typeof c.props?.block !== 'string' || !pins || !names(pins.in) || !names(pins.out)) {
+      err('BAD_PROP', `לבלוק ${c.id} חסרים השם והכניסות והיציאות שלו`);
+    }
+  } else if (!Number.isInteger(c.inputs) || c.inputs < def.minInputs || c.inputs > def.maxInputs) {
     err(
       'BAD_INPUT_COUNT',
       def.minInputs === def.maxInputs
@@ -111,6 +117,14 @@ export function validateCircuit(circuit: Circuit): Issue[] {
     }
     byId.set(c.id, c);
     checkComponent(c, issues);
+    if (c.type === 'BLOCK' && !(circuit.blocks ?? []).some((b) => b.name === c.props?.block)) {
+      issues.push({
+        severity: 'error',
+        code: 'BAD_PROP',
+        message: `הבלוק ${String(c.props?.block)} של ${c.id} לא נמצא בבלוקים של המעגל`,
+        componentId: c.id,
+      });
+    }
   }
 
   const wireIds = new Set<string>();
@@ -125,7 +139,7 @@ export function validateCircuit(circuit: Circuit): Issue[] {
       return false;
     }
     const ins = inputsOfComponent(c);
-    const outs = outputPortsOf(c.type);
+    const outs = outputsOfComponent(c);
     if (!ins.includes(ref.port) && !outs.includes(ref.port)) {
       err('WIRE_UNKNOWN_PORT', `לרכיב ${c.id} אין פורט בשם ${ref.port}`);
       return false;
