@@ -10,7 +10,7 @@ import type { Speed } from './speeds';
 const KEY = 'circuitmaker.prefs';
 
 /** What the bottom panel can show. */
-export const PANEL_TABS = ['timing', 'analysis', 'truth'] as const;
+export const PANEL_TABS = ['timing', 'analysis', 'truth', 'practice'] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];
 
 export interface Prefs {

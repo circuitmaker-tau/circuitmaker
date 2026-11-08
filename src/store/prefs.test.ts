@@ -10,6 +10,7 @@ describe('view preferences', () => {
       DEFAULT_PREFS,
     );
     expect(cleanPrefs({ panelTab: 'truth' }).panelTab).toBe('truth');
+    expect(cleanPrefs({ panelTab: 'practice' }).panelTab).toBe('practice');
     expect(cleanPrefs(null)).toEqual(DEFAULT_PREFS);
     expect(cleanPrefs('garbage')).toEqual(DEFAULT_PREFS);
   });

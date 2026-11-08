@@ -18,6 +18,8 @@ import { useSimStore } from '../store/simStore';
 import { allRows, useTimingStore } from '../store/timingStore';
 import { AnalysisPanel } from './AnalysisPanel';
 import { exportTimingImage } from './exportImage';
+import { PracticePanel } from './PracticePanel';
+import { SIGNAL_COLORS } from './signalColors';
 import { TruthTablePanel } from './TruthTablePanel';
 
 const ROW_H = 30;
@@ -50,21 +52,6 @@ function axisStep(pxPerUnit: number): number {
   const p = 10 ** Math.floor(Math.log10(target));
   return [1, 2, 5, 10].map((m) => m * p).find((s) => s >= target) ?? 10 * p;
 }
-
-/**
- * One colour per signal, as in the course's timing diagrams. Green and red are
- * left out on purpose: on the canvas they mean 1 and 0.
- */
-const SIGNAL_COLORS = [
-  '#4ea1ff', // blue
-  '#f2c94c', // yellow
-  '#d4506e', // bordeaux
-  '#a77bff', // purple
-  '#3fd0d0', // cyan
-  '#ff9f43', // orange
-  '#ff7ac6', // pink
-  '#c8c8d0', // silver
-];
 
 interface Wave {
   /** The 0 and 1 levels and every edge between them, drawn in the signal's colour. */
@@ -201,6 +188,7 @@ export function TimingDiagram() {
               ['timing', 'דיאגרמת זמנים'],
               ['analysis', 'ניתוח hazards'],
               ['truth', 'טבלת אמת'],
+              ['practice', 'תרגול'],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -256,6 +244,7 @@ export function TimingDiagram() {
 
       {open && tab === 'analysis' && <AnalysisPanel />}
       {open && tab === 'truth' && <TruthTablePanel />}
+      {open && tab === 'practice' && <PracticePanel />}
       {timing && (
         <div className="timing-body" dir="ltr">
           <div className="timing-labels" style={{ paddingTop: AXIS_H }}>
