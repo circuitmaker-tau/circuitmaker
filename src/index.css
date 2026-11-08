@@ -1505,3 +1505,100 @@ button:disabled:hover {
   left: 50%;
   transform: translateX(-50%);
 }
+
+/* practice: guess the timing diagram */
+
+.practice {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.practice-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+
+.practice-status {
+  flex: 1 1 260px;
+}
+
+.practice-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.practice-tools button,
+.practice-tools select {
+  padding: 1px 8px;
+}
+
+.practice-tools label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.practice-tools .primary {
+  color: var(--bg);
+  background: var(--fg);
+  border-color: var(--fg);
+  font-weight: 600;
+}
+
+.practice-label {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: none;
+  text-align: start;
+  cursor: pointer;
+}
+
+.practice-label b {
+  font-family: var(--sans, inherit);
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+.practice-label.is-given b {
+  color: var(--muted);
+}
+
+.practice-svg {
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.practice-grid rect {
+  fill: transparent;
+  stroke: var(--line);
+  stroke-width: 0.5;
+}
+
+.practice-grid rect:hover {
+  fill: rgba(255, 255, 255, 0.06);
+}
+
+.practice-wrong {
+  fill: color-mix(in srgb, var(--sig-0) 35%, transparent);
+  stroke: var(--sig-0);
+  stroke-width: 1;
+}
+
+.practice-answer {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
