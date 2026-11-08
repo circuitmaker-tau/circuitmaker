@@ -8,6 +8,8 @@ import { BAMBA_INPUT, DETECTOR_INPUT, FSM_PERIOD, bambaFsm, detector0101 } from 
 import { EXAMPLES } from './index';
 import { asymmetric, dffFeedback, mux2Fixed, norLatch, staticZero, tffPulses } from './lessons';
 import { rippleAdder } from './rippleAdder';
+import { PLANE_Z, nandGlitch, planeFsm, tdtChain, wk5Levels } from './exams';
+import { criticalPaths } from '../analysis/critical';
 import type { Circuit } from '../model';
 
 const wave = (sim: Simulator, net: string) =>
@@ -227,5 +229,102 @@ describe('more exam circuits', () => {
     for (const id of ['D1', 'D2']) c.components.find((x) => x.id === id)!.props = { value: 0 };
     sim = new Simulator(c);
     expect(sim.value('penc:V')).toBe(0);
+  });
+});
+
+describe('exam content checked against the official solutions', () => {
+  const wave = (sim: Simulator, net: string) =>
+    sim
+      .trace(net)
+      .map((t) => `${t.time / 10}:${t.value}`)
+      .join(' ');
+
+  it('WK5 slide 11: the critical path is AND, OR, AND, OR = 9 ns; through the inverter only 5.5', () => {
+    const r = criticalPaths(wk5Levels);
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.paths[0]).toMatchObject({ end: 'f', delay: 90, levels: 4 });
+    expect(r.paths[0].components.slice(1)).toEqual(['a1', 'o1', 'a2', 'o2']);
+    // path 5 of the slide: NOT + AND + OR
+    // with the AND-OR chain of X1X0 made instant, the inverter path is the longest left
+    const quick = structuredClone(wk5Levels);
+    for (const x of quick.components) if (x.id === 'a1' || x.id === 'o1') x.delay = 0;
+    const r5 = criticalPaths(quick);
+    if (!r5.ok) throw new Error(r5.reason);
+    expect(r5.paths[0]).toMatchObject({ delay: 55, components: ['X1', 'n1', 'a3', 'o2'] });
+    // the function is f = X1'X3 + X2(X3 + X1X0)
+    for (let m = 0; m < 16; m++) {
+      const c = structuredClone(wk5Levels);
+      for (const [i, id] of ['X0', 'X1', 'X2', 'X3'].entries()) {
+        c.components.find((x) => x.id === id)!.props = { value: ((m >> i) & 1) as 0 | 1 };
+      }
+      const [x0, x1, x2, x3] = [0, 1, 2, 3].map((i) => (m >> i) & 1);
+      expect(new Simulator(c).value('o2:out')).toBe(((1 - x1) & x3) | (x2 & (x3 | (x1 & x0))));
+    }
+  });
+
+  it('2025B 2D.1: with Tp = 0 everywhere, Q0 = 1, Q1 = X\' and Q2 = 0', () => {
+    const c = structuredClone(nandGlitch);
+    c.components.find((x) => x.id === 'nX')!.delay = 0;
+    const sim = new Simulator(c);
+    sim.runToEnd();
+    expect(wave(sim, 'Q0:out')).toBe('0:1');
+    expect(wave(sim, 'Q2:out')).toBe('0:0');
+    expect(wave(sim, 'Q1:out')).toBe('0:1 1:0 2:1 3:0 4:1 5:0 6:1 7:0 8:1 9:0 10:1 11:0');
+  });
+
+  it('2025B 2D.2: the inverter alone has Tp = 0.5, so each rise of X gives a 0.5 s pulse on Q2', () => {
+    const sim = new Simulator(nandGlitch);
+    sim.runToEnd();
+    expect(wave(sim, 'Q0:out')).toBe('0:1 1:0 1.5:1 3:0 3.5:1 5:0 5.5:1 7:0 7.5:1 9:0 9.5:1 11:0 11.5:1');
+    expect(wave(sim, 'Q1:out')).toBe('0:1 1:0 2:1 3:0 4:1 5:0 6:1 7:0 8:1 9:0 10:1 11:0');
+    expect(wave(sim, 'Q2:out')).toBe('0:0 1:1 1.5:0 3:1 3.5:0 5:1 5.5:0 7:1 7.5:0 9:1 9.5:0 11:1 11.5:0');
+  });
+
+  it('2024A 2E: Q2Q1Q0 runs 001, 010, 101, 110 and repeats; smallest 1, largest 6', () => {
+    const sim = new Simulator(tdtChain);
+    const seen: number[] = [];
+    for (let edge = 1; edge <= 8; edge++) {
+      sim.runUntil(edge * 20 + 5); // just after the edge at 2·edge − 1
+      seen.push(['f2:Q', 'f1:Q', 'f0:Q'].reduce((n, net) => 2 * n + (sim.value(net) as number), 0));
+    }
+    expect(seen.slice(0, 4)).toEqual([1, 2, 5, 6]);
+    expect(seen.slice(4)).toEqual(seen.slice(0, 4));
+    expect([Math.min(...seen), Math.max(...seen)]).toEqual([1, 6]);
+  });
+
+  it('2026A Q3: the airplane machine gives the output series of the exam, cycle by cycle', () => {
+    const sim = new Simulator(planeFsm);
+    const z: (0 | 1 | 'X')[] = [];
+    for (let i = 0; i < PLANE_Z.length; i++) {
+      sim.runUntil((i * FSM_PERIOD + 4) * 10); // inputs settled, before the edge at 10i + 5
+      z.push(sim.value('z:out'));
+    }
+    expect(z).toEqual(PLANE_Z);
+  });
+
+  it('2026A Q3: the next-state table of the solution, and S = R = 1 never happens', () => {
+    // A = 00, B = 01, C = 10, D = 11; columns XL XR = 00, 01, 10, 11
+    const ns = { '00': ['11', '01', '01', '00'], '01': ['11', '10', '10', '00'], '10': ['11', '01', '01', '00'], '11': ['11', '10', '10', '00'] };
+    const zt = { '00': [1, 1, 1, 0], '01': [1, 0, 0, 0], '10': [1, 1, 1, 0], '11': [1, 0, 0, 0] };
+    for (const s of ['00', '01', '10', '11'] as const) {
+      for (let col = 0; col < 4; col++) {
+        const c = structuredClone(planeFsm);
+        c.components = c.components.filter((x) => x.type !== 'CLOCK');
+        c.wires = c.wires.filter((w) => w.from.component !== 'CLK');
+        for (const [id, v] of [['XL', col >> 1], ['XR', col & 1]] as const) {
+          c.components.find((x) => x.id === id)!.props = { value: v as 0 | 1 };
+        }
+        for (const [id, v] of [['y1', s[0]], ['y2', s[1]]] as const) {
+          c.components.find((x) => x.id === id)!.props = { init: +v as 0 | 1 };
+        }
+        const sim = new Simulator(c);
+        const [S1, R1, S2, R2] = ['S1', 'R1', 'S2', 'R2'].map((id) => sim.value(`${id}:out`));
+        expect(S1 === 1 && R1 === 1).toBe(false);
+        expect(S2 === 1 && R2 === 1).toBe(false);
+        const next = (q: string, S: unknown, R: unknown) => (S === 1 ? '1' : R === 1 ? '0' : q);
+        expect(`${next(s[0], S1, R1)}${next(s[1], S2, R2)}`).toBe(ns[s][col]);
+        expect(sim.value('z:out')).toBe(zt[s][col]);
+      }
+    }
   });
 });
