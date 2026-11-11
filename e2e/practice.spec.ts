@@ -3,7 +3,7 @@ import { button, openExample } from './helpers';
 
 test('practice: draw the timing diagram of exam 2026A 2D, check it, see the answer', async ({ page }) => {
   await openExample(page, 'tff');
-  await page.getByRole('tab', { name: 'תרגול' }).click();
+  await page.getByRole('tab', { name: 'תרגול', exact: true }).click();
   const labels = page.locator('.practice-label');
   await expect(labels).toHaveCount(4);
   await expect(labels.first()).toContainText('נתון'); // the clock is given
@@ -39,6 +39,6 @@ test('practice: draw the timing diagram of exam 2026A 2D, check it, see the answ
 
 test('practice needs something that changes in time', async ({ page }) => {
   await openExample(page, 'mux2');
-  await page.getByRole('tab', { name: 'תרגול' }).click();
+  await page.getByRole('tab', { name: 'תרגול', exact: true }).click();
   await expect(page.locator('.analysis-empty')).toContainText('שינויים מתוזמנים');
 });
