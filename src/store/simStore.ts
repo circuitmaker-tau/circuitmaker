@@ -15,6 +15,7 @@ import { delayToTicks } from '../model/time';
 import { useCircuitStore } from './circuitStore';
 import { loadPrefs, savePrefs } from './prefs';
 import type { Speed } from './speeds';
+import { tr } from '../i18n/lang';
 
 /** Real milliseconds for one typical gate delay at speed ×1. */
 export const MS_PER_TYPICAL_TP = 600;
@@ -147,7 +148,7 @@ export const useSimStore = create<SimState>()((set, get) => {
     const { showMessage } = useCircuitStore.getState();
     if (sim.oscillation) {
       showMessage(
-        `המעגל לא מתייצב בזמן t = ${sim.oscillation.time / 10}: יש לולאה שבה כל ה-Tp הם 0`,
+        tr(`המעגל לא מתייצב בזמן t = ${sim.oscillation.time / 10}: יש לולאה שבה כל ה-Tp הם 0`, `The circuit does not settle at t = ${sim.oscillation.time / 10}: there is a loop in which every Tp is 0`),
       );
       return;
     }

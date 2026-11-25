@@ -11,6 +11,7 @@ import { settle } from '../engine/settle';
 import type { Logic } from '../engine/logic';
 import { CATALOG, flattenBlocks } from '../model';
 import type { Circuit, Component } from '../model';
+import { tr } from '../i18n/lang';
 
 /** Above this many switches the truth table (2^n rows) is not built. */
 export const MAX_VARS = 6;
@@ -34,11 +35,16 @@ export function unsupportedReason(circuit: Circuit): string | null {
   // what is inside the student's own blocks counts too
   const flat = flattenBlocks(circuit).circuit;
   if (flat.components.some((c) => CATALOG[c.type].category === 'sequential' || c.type === 'CLOCK')) {
-    return 'הניתוח מיועד למעגלים צירופיים. במעגל יש שעון, latch או flip-flop.';
+    return tr(
+      'הניתוח מיועד למעגלים צירופיים. במעגל יש שעון, latch או flip-flop.',
+      'The analysis is meant for combinational circuits. This one has a clock, a latch or a flip-flop.',
+    );
   }
   const n = variablesOf(circuit).length;
-  if (n === 0) return 'אין במעגל מתגים, ולכן אין כניסות לנתח.';
-  if (n > MAX_VARS) return `יש ${n} מתגים. הניתוח תומך בעד ${MAX_VARS} כניסות.`;
+  if (n === 0) return tr('אין במעגל מתגים, ולכן אין כניסות לנתח.', 'The circuit has no switches, so there are no inputs to analyse.');
+  if (n > MAX_VARS) {
+    return tr(`יש ${n} מתגים. הניתוח תומך בעד ${MAX_VARS} כניסות.`, `There are ${n} switches. The analysis handles up to ${MAX_VARS} inputs.`);
+  }
   return null;
 }
 

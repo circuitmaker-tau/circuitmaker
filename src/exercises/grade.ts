@@ -12,6 +12,7 @@ import { withInputs } from '../analysis/func';
 import { CATALOG, flattenBlocks } from '../model';
 import type { Circuit, Component, ComponentType } from '../model';
 import type { Exercise } from './exercises';
+import { labelOf } from '../i18n/components';
 
 export type Note = { kind: 'good' | 'error' | 'warn'; text: string };
 
@@ -29,7 +30,7 @@ export interface Grade {
 const GATES = new Set<ComponentType>(['AND', 'OR', 'NAND', 'NOR', 'XOR', 'XNOR']);
 const FREE = new Set<ComponentType>(['INPUT', 'OUTPUT', 'CONST0', 'CONST1']);
 
-const label = (t: ComponentType) => (GATES.has(t) || t === 'NOT' ? t : CATALOG[t].label);
+const label = (t: ComponentType) => (GATES.has(t) || t === 'NOT' ? t : labelOf(t));
 
 function list(ids: string[]) {
   return ids.length <= 4 ? ids.join(', ') : `${ids.slice(0, 4).join(', ')} ועוד ${ids.length - 4}`;

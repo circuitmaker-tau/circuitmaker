@@ -10,6 +10,7 @@
 import { CATALOG, flattenForAnalysis } from '../model';
 import type { Circuit, Component } from '../model';
 import { delayToTicks } from '../model/time';
+import { tr } from '../i18n/lang';
 
 export interface CriticalPath {
   /** Lamp id, or "ff.D" for an input of a stored component. */
@@ -122,11 +123,20 @@ function longestPaths(circuit: Circuit): CriticalResult {
   if (looped) {
     return {
       ok: false,
-      reason: `יש במעגל לולאה של רכיבים בלי flip-flop (דרך ${looped}), למשל latch שבנוי משערים, ולכן אין לו נתיב קריטי מוגדר.`,
+      reason: tr(
+        `יש במעגל לולאה של רכיבים בלי flip-flop (דרך ${looped}), למשל latch שבנוי משערים, ולכן אין לו נתיב קריטי מוגדר.`,
+        `The circuit has a loop of components without a flip-flop (through ${looped}), such as a latch built from gates, so it has no defined critical path.`,
+      ),
     };
   }
   if (paths.length === 0) {
-    return { ok: false, reason: 'מחברים מתג לשערים ומהם לנורה, והנתיב הארוך ביותר יופיע כאן.' };
+    return {
+      ok: false,
+      reason: tr(
+        'מחברים מתג לשערים ומהם לנורה, והנתיב הארוך ביותר יופיע כאן.',
+        'Connect a switch to gates and those to a lamp, and the longest path will show here.',
+      ),
+    };
   }
   paths.sort((a, b) => b.delay - a.delay || b.levels - a.levels || a.end.localeCompare(b.end));
   return { ok: true, paths };

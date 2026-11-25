@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { TOUR_STEPS as STEPS, useTourStore } from '../store/tourStore';
+import { textDir, tr } from '../i18n/lang';
 
 function visibleBox(selector: string): DOMRect | null {
   const el = document.querySelector(selector);
@@ -54,7 +55,7 @@ export function Tour() {
   const cardLeft = Math.min(Math.max(12, box.left + box.width / 2 - 160), window.innerWidth - 332);
 
   return (
-    <div className="tour" role="dialog" aria-modal="true" aria-label={`סיור: ${s.title}`}>
+    <div className="tour" role="dialog" aria-modal="true" aria-label={`${tr('סיור', 'Tour')}: ${s.title}`}>
       <div
         className="tour-spot"
         style={{
@@ -64,18 +65,18 @@ export function Tour() {
           height: box.height + 2 * pad,
         }}
       />
-      <div className="tour-card" style={{ top: cardTop, left: cardLeft }} dir="rtl">
+      <div className="tour-card" style={{ top: cardTop, left: cardLeft }} dir={textDir()}>
         <p className="tour-count">
-          {step + 1} מתוך {STEPS.length}
+          {tr(`${step + 1} מתוך ${STEPS.length}`, `${step + 1} of ${STEPS.length}`)}
         </p>
         <h2>{s.title}</h2>
         <p>{s.text}</p>
         <div className="tour-actions">
           <button type="button" onClick={stop}>
-            סיום
+            {tr('סיום', 'Done')}
           </button>
           <button type="button" className="tour-next" onClick={next} autoFocus>
-            {step + 1 === STEPS.length ? 'בואו נתחיל' : 'הבא'}
+            {step + 1 === STEPS.length ? tr('בואו נתחיל', "Let's start") : tr('הבא', 'Next')}
           </button>
         </div>
       </div>

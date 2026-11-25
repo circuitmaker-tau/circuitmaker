@@ -38,6 +38,7 @@ import { delayToTicks } from '../model/time';
 import { buildNetlist, delayFor, deviceInputs, gateState, netKey, withoutAddedEn } from './netlist';
 import type { Clock, Device } from './netlist';
 import { combinational, settle } from './settle';
+import { tr } from '../i18n/lang';
 
 const MAX_ROUNDS_PER_TICK = 1000;
 /** E8: changes of one net between two outside changes before it counts as oscillating. */
@@ -385,7 +386,7 @@ export class Simulator {
       this.warnings.push({
         time: t,
         component: net.split(':')[0],
-        message: `תנודה: ${net.replace(':', '.')} מחליף ערך שוב ושוב בלי שינוי בכניסות`,
+        message: tr(`תנודה: ${net.replace(':', '.')} מחליף ערך שוב ושוב בלי שינוי בכניסות`, `Oscillation: ${net.replace(':', '.')} keeps changing with no change at the inputs`),
       });
     }
   }

@@ -1,39 +1,82 @@
 /** State of the guided tour of the editor (ui/Tour.tsx), and when to show it. */
 import { useEffect } from 'react';
 import { create } from 'zustand';
+import { tr } from '../i18n/lang';
 
 const SEEN_KEY = 'circuitmaker.tour-seen';
 
 export const TOUR_STEPS = [
   {
     target: 'select.examples',
-    title: 'דוגמאות מהקורס',
-    text: '11 מעגלים מההרצאות, מתרגילי הבית ומהמבחנים. כל אחד מגיע עם "מה לומדים כאן".',
+    get title() {
+      return tr('דוגמאות מהקורס', 'Examples from the course');
+    },
+    get text() {
+      return tr(
+        'מעגלים מההרצאות, מתרגילי הבית ומהמבחנים. כל אחד מגיע עם "מה לומדים כאן".',
+        'Circuits from the lectures, the homework and the exams. Each comes with "What to learn here".',
+      );
+    },
   },
   {
     target: '.palette',
-    title: 'רכיבים',
-    text: 'גוררים רכיב לקנבס, או לוחצים עליו. יש שערים, רכיבים צירופיים ורכיבים עקיבים.',
+    get title() {
+      return tr('רכיבים', 'Components');
+    },
+    get text() {
+      return tr(
+        'גוררים רכיב לקנבס, או לוחצים עליו. יש שערים, רכיבים צירופיים ורכיבים עקיבים.',
+        'Drag a component onto the canvas, or click it. There are gates, combinational and sequential components.',
+      );
+    },
   },
   {
     target: '.canvas',
-    title: 'הקנבס',
-    text: 'מחווטים מיציאה (ימין) לכניסה (שמאל). לחיצה על מתג משנה אותו ומתחילה הרצה. 1 ירוק, 0 אדום, X כתום.',
+    get title() {
+      return tr('הקנבס', 'The canvas');
+    },
+    get text() {
+      return tr(
+        'מחווטים מיציאה (ימין) לכניסה (שמאל). לחיצה על מתג משנה אותו ומתחילה הרצה. 1 ירוק, 0 אדום, X כתום.',
+        'Wire from an output (right) to an input (left). Clicking a switch flips it and starts a run. 1 is green, 0 red, X orange.',
+      );
+    },
   },
   {
     target: '.sim-controls',
-    title: 'הרצה',
-    text: 'עצירה, צעד לשינוי הבא, דלג לסוף, מחזור שעון ומהירות. בזמן ה-Tp מתמלא פס בתוך הרכיב, ורק אז היציאה מתחלפת.',
+    get title() {
+      return tr('הרצה', 'Running');
+    },
+    get text() {
+      return tr(
+        'עצירה, צעד לשינוי הבא, דלג לסוף, מחזור שעון ומהירות. בזמן ה-Tp מתמלא פס בתוך הרכיב, ורק אז היציאה מתחלפת.',
+        'Pause, step to the next change, skip to the end, one clock cycle, and speed. During the Tp a bar fills inside the component, and only then does the output change.',
+      );
+    },
   },
   {
     target: '.timing',
-    title: 'דיאגרמת זמנים וניתוח',
-    text: 'צורת הגל של כל אות, עם סמן ומדידה. בלשונית השנייה: hazards, מפת קרנו והצעת תיקון.',
+    get title() {
+      return tr('דיאגרמת זמנים וניתוח', 'Timing diagram and analysis');
+    },
+    get text() {
+      return tr(
+        'צורת הגל של כל אות, עם סמן ומדידה. בלשונית השנייה: hazards, מפת קרנו והצעת תיקון.',
+        'The waveform of every signal, with a cursor and measurement. In the next tab: hazards, a Karnaugh map and a suggested fix.',
+      );
+    },
   },
   {
     target: '.properties',
-    title: 'מאפיינים',
-    text: 'לוחצים על רכיב כדי לקבוע Tp, ערך התחלתי, חצי מחזור לשעון או שינויים מתוזמנים למתג.',
+    get title() {
+      return tr('מאפיינים', 'Properties');
+    },
+    get text() {
+      return tr(
+        'לוחצים על רכיב כדי לקבוע Tp, ערך התחלתי, חצי מחזור לשעון או שינויים מתוזמנים למתג.',
+        'Click a component to set its Tp, its initial value, the half period of a clock or the scheduled changes of a switch.',
+      );
+    },
   },
 ];
 

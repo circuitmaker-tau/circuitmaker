@@ -9,6 +9,7 @@
  * as the MSB, and for numbered names the highest number first (X2X1X0).
  */
 import type { Value } from './minimize';
+import { tr } from '../i18n/lang';
 
 export type Expr =
   | { kind: 'var'; name: string }
@@ -53,7 +54,7 @@ export function parseFunction(input: string): ParseResult {
 
 function parse(input: string): ParsedFunction {
   const text = input.replace(/[’`´]/g, "'").replace(/\s+/g, ' ').trim();
-  if (!text) throw new Fail('כותבים פונקציה, למשל F = X0X1 + X1\'X2 או F = Σ(3,4,5,7).');
+  if (!text) throw new Fail(tr('כותבים פונקציה, למשל F = X0X1 + X1\'X2 או F = Σ(3,4,5,7).', "Write a function, e.g. F = X0X1 + X1'X2 or F = Σ(3,4,5,7)."));
 
   // optional "F =" or "F(A,B,C) ="
   let name = 'F';
@@ -65,7 +66,7 @@ function parse(input: string): ParsedFunction {
     if (head[2] !== undefined) {
       declared = head[2].split(',').map((s) => s.trim()).filter(Boolean);
       for (const v of declared) {
-        if (!/^[A-Za-z][0-9]*$/.test(v)) throw new Fail(`"${v}" לא יכול להיות שם של משתנה. משתנה הוא אות ואחריה ספרות, כמו A או X0.`);
+        if (!/^[A-Za-z][0-9]*$/.test(v)) throw new Fail(tr(`"${v}" לא יכול להיות שם של משתנה. משתנה הוא אות ואחריה ספרות, כמו A או X0.`, `"${v}" cannot be a variable name. A variable is a letter followed by digits, like A or X0.`));
       }
     }
     body = head[3];
@@ -78,8 +79,8 @@ function parse(input: string): ParsedFunction {
   const used = new Set<string>();
   collect(expr, used);
   const vars = declared ?? orderVariables(used);
-  for (const v of used) if (!vars.includes(v)) throw new Fail(`המשתנה ${v} לא מופיע ברשימה ${name}(${vars.join(', ')}).`);
-  if (vars.length > MAX_FUNCTION_VARS) throw new Fail(`יש ${vars.length} משתנים. אפשר עד ${MAX_FUNCTION_VARS}.`);
+  for (const v of used) if (!vars.includes(v)) throw new Fail(tr(`המשתנה ${v} לא מופיע ברשימה ${name}(${vars.join(', ')}).`, `The variable ${v} is not in the list ${name}(${vars.join(', ')}).`));
+  if (vars.length > MAX_FUNCTION_VARS) throw new Fail(tr(`יש ${vars.length} משתנים. אפשר עד ${MAX_FUNCTION_VARS}.`, `There are ${vars.length} variables. Up to ${MAX_FUNCTION_VARS} are allowed.`));
   const n = vars.length;
   const table = Array.from({ length: 1 << n }, (_, m): Value => {
     const env = new Map(vars.map((v, k) => [v, ((m >> (n - 1 - k)) & 1) as 0 | 1]));
@@ -99,10 +100,10 @@ function fromList(name: string, declared: string[] | null, match: RegExpExecArra
         const range = /^(\d+)\s*[–-]\s*(\d+)$/.exec(x);
         if (range) {
           const [a, b] = [Number(range[1]), Number(range[2])];
-          if (b < a) throw new Fail(`הטווח ${x} הפוך.`);
+          if (b < a) throw new Fail(tr(`הטווח ${x} הפוך.`, `The range ${x} is backwards.`));
           return Array.from({ length: b - a + 1 }, (_, i) => a + i);
         }
-        if (!/^\d+$/.test(x)) throw new Fail(`"${x}" הוא לא מספר של מינטרם.`);
+        if (!/^\d+$/.test(x)) throw new Fail(tr(`"${x}" הוא לא מספר של מינטרם.`, `"${x}" is not a minterm number.`));
         return [Number(x)];
       });
   const maxterms = /^(Π|ΠM|M|prod)$/.test(match[1]);
@@ -112,10 +113,10 @@ function fromList(name: string, declared: string[] | null, match: RegExpExecArra
   const needed = Math.max(1, Math.ceil(Math.log2(highest + 1)));
   const vars = declared ?? 'ABCDEF'.slice(0, Math.max(needed, 2)).split('');
   const n = vars.length;
-  if (n > MAX_FUNCTION_VARS) throw new Fail(`יש ${n} משתנים. אפשר עד ${MAX_FUNCTION_VARS}.`);
-  if (highest >= 1 << n) throw new Fail(`עם ${n} משתנים המספרים הם 0 עד ${(1 << n) - 1}, ו-${highest} גדול מדי.`);
+  if (n > MAX_FUNCTION_VARS) throw new Fail(tr(`יש ${n} משתנים. אפשר עד ${MAX_FUNCTION_VARS}.`, `There are ${n} variables. Up to ${MAX_FUNCTION_VARS} are allowed.`));
+  if (highest >= 1 << n) throw new Fail(tr(`עם ${n} משתנים המספרים הם 0 עד ${(1 << n) - 1}, ו-${highest} גדול מדי.`, `With ${n} variables the numbers are 0 to ${(1 << n) - 1}, and ${highest} is too big.`));
   const both = listed.filter((m) => dc.includes(m));
-  if (both.length) throw new Fail(`${both.join(', ')} מופיע גם ברשימה וגם ב-d.`);
+  if (both.length) throw new Fail(tr(`${both.join(', ')} מופיע גם ברשימה וגם ב-d.`, `${both.join(', ')} is both in the list and in d.`));
   const table = Array.from({ length: 1 << n }, (_, m): Value => {
     if (dc.includes(m)) return 'd';
     const inList = listed.includes(m);
@@ -155,7 +156,7 @@ class Parser {
   parseAll(): Expr {
     const e = this.or();
     this.space();
-    if (this.i < this.s.length) this.fail(`לא ברור מה זה "${this.s.slice(this.i)}"`);
+    if (this.i < this.s.length) this.fail(tr(`לא ברור מה זה "${this.s.slice(this.i)}"`, `Not clear what "${this.s.slice(this.i)}" is`));
     return e;
   }
 
@@ -221,11 +222,11 @@ class Parser {
 
   private atom(): Expr {
     const c = this.peek();
-    if (c === undefined) this.fail('הביטוי נגמר באמצע. אולי חסר משתנה אחרי + או ·?');
+    if (c === undefined) this.fail(tr('הביטוי נגמר באמצע. אולי חסר משתנה אחרי + או ·?', 'The expression ends in the middle. Is a variable missing after + or ·?'));
     if (c === '(') {
       this.i++;
       const e = this.or();
-      if (this.peek() !== ')') this.fail('חסר ")".');
+      if (this.peek() !== ')') this.fail(tr('חסר ")".', 'A ")" is missing.'));
       this.i++;
       return e;
     }
@@ -234,7 +235,7 @@ class Parser {
       return { kind: 'const', value: c === '1' ? 1 : 0 };
     }
     const m = /^[A-Za-z][0-9]*/.exec(this.s.slice(this.i));
-    if (!m) this.fail(`לא ברור מה זה "${c}" במקום ${this.i + 1}.`);
+    if (!m) this.fail(tr(`לא ברור מה זה "${c}" במקום ${this.i + 1}.`, `Not clear what "${c}" at position ${this.i + 1} is.`));
     this.i += m[0].length;
     return { kind: 'var', name: m[0] };
   }

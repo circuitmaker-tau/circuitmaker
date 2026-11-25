@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
+import { tr } from './i18n/lang';
+import { useLang } from './i18n/useLang';
 import { useAutosave } from './persistence/useAutosave';
 import { Editor } from './ui/Editor';
 import { FsmWorld } from './ui/FsmWorld';
@@ -29,6 +31,16 @@ const viewFromHash = (): View => {
 
 export default function App() {
   useAutosave();
+  const lang = useLang();
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
+  }, [lang]);
+  // a new language draws everything again, so every tr() reads it
+  return <Views key={lang} />;
+}
+
+function Views() {
   const [view, setView] = useState<View>(viewFromHash);
 
   useEffect(() => {
@@ -83,8 +95,11 @@ function EditorView({ onHome, onHelp }: { onHome: () => void; onHelp: () => void
         <Editor />
       </ReactFlowProvider>
       <footer className="footer">
-        המעגל נשמר אוטומטית בדפדפן הזה. לשמירה קבועה או להעברה למחשב אחר: ייצוא JSON.{' '}
-        <a href="https://github.com/circuitmaker-tau/circuitmaker">קוד מקור</a>
+        {tr(
+          'המעגל נשמר אוטומטית בדפדפן הזה. לשמירה קבועה או להעברה למחשב אחר: ייצוא JSON.',
+          'The circuit is saved in this browser automatically. To keep it for good or move it to another computer: Export JSON.',
+        )}{' '}
+        <a href="https://github.com/circuitmaker-tau/circuitmaker">{tr('קוד מקור', 'Source code')}</a>
       </footer>
       <Tour />
     </div>

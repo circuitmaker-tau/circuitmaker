@@ -7,6 +7,7 @@ import { validateCircuit, hasErrors } from './validate';
 import type { Issue } from './validate';
 import { CIRCUIT_VERSION } from './types';
 import type { Circuit } from './types';
+import { tr } from '../i18n/lang';
 
 export type ParseResult =
   | { ok: true; circuit: Circuit; warnings: Issue[] }
@@ -24,20 +25,20 @@ export function parseCircuit(text: string): ParseResult {
   try {
     data = JSON.parse(text);
   } catch {
-    return { ok: false, errors: ['הקובץ אינו JSON תקין'] };
+    return { ok: false, errors: [tr('הקובץ אינו JSON תקין', 'The file is not valid JSON')] };
   }
 
   const shape: string[] = [];
-  if (!isObject(data)) return { ok: false, errors: ['הקובץ לא מכיל מעגל'] };
+  if (!isObject(data)) return { ok: false, errors: [tr('הקובץ לא מכיל מעגל', 'The file does not hold a circuit')] };
   if (data.version !== CIRCUIT_VERSION) {
-    shape.push(`גרסת קובץ לא נתמכת: ${String(data.version)} (נתמכת ${CIRCUIT_VERSION})`);
+    shape.push(tr(`גרסת קובץ לא נתמכת: ${String(data.version)} (נתמכת ${CIRCUIT_VERSION})`, `Unsupported file version: ${String(data.version)} (supported: ${CIRCUIT_VERSION})`));
   }
-  if (typeof data.name !== 'string') shape.push('חסר שם למעגל');
+  if (typeof data.name !== 'string') shape.push(tr('חסר שם למעגל', 'The circuit has no name'));
   if (data.timeUnit !== 'none' && data.timeUnit !== 'ns' && data.timeUnit !== 's') {
-    shape.push('יחידת זמן חייבת להיות none, ns או s');
+    shape.push(tr('יחידת זמן חייבת להיות none, ns או s', 'The time unit must be none, ns or s'));
   }
-  if (!Array.isArray(data.components)) shape.push('חסרה רשימת רכיבים');
-  if (!Array.isArray(data.wires)) shape.push('חסרה רשימת חוטים');
+  if (!Array.isArray(data.components)) shape.push(tr('חסרה רשימת רכיבים', 'The list of components is missing'));
+  if (!Array.isArray(data.wires)) shape.push(tr('חסרה רשימת חוטים', 'The list of wires is missing'));
   if (shape.length > 0) return { ok: false, errors: shape };
 
   const components = data.components as unknown[];
@@ -54,14 +55,14 @@ export function parseCircuit(text: string): ParseResult {
       typeof c.inputs !== 'number' ||
       (c.props !== undefined && !isObject(c.props))
     ) {
-      shape.push(`רכיב מספר ${i + 1} חסר שדות חובה`);
+      shape.push(tr(`רכיב מספר ${i + 1} חסר שדות חובה`, `Component number ${i + 1} lacks required fields`));
     }
   });
   wires.forEach((w, i) => {
     const ref = (r: unknown) =>
       isObject(r) && typeof r.component === 'string' && typeof r.port === 'string';
     if (!isObject(w) || typeof w.id !== 'string' || !ref(w.from) || !ref(w.to)) {
-      shape.push(`חוט מספר ${i + 1} חסר שדות חובה`);
+      shape.push(tr(`חוט מספר ${i + 1} חסר שדות חובה`, `Wire number ${i + 1} lacks required fields`));
     }
   });
   if (shape.length > 0) return { ok: false, errors: shape };

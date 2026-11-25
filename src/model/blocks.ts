@@ -11,16 +11,17 @@
  */
 import { outputsOfComponent } from './catalog';
 import type { BlockDef, Circuit, Component, Position, Wire } from './types';
+import { tr } from '../i18n/lang';
 
 export const BLOCK_NAME_MAX = 16;
 
 /** Why a name cannot be used for a new block, or null. */
 export function blockNameProblem(name: string, circuit: Circuit): string | null {
   const n = name.trim();
-  if (!n) return 'כותבים שם לבלוק, למשל MUX2.';
-  if (n.length > BLOCK_NAME_MAX) return `השם ארוך מדי (עד ${BLOCK_NAME_MAX} תווים).`;
-  if (/[:/#]/.test(n)) return 'בשם של בלוק אי אפשר להשתמש ב-: / #.';
-  if ((circuit.blocks ?? []).some((b) => b.name === n)) return `כבר יש בלוק בשם ${n}.`;
+  if (!n) return tr('כותבים שם לבלוק, למשל MUX2.', 'Write a name for the block, e.g. MUX2.');
+  if (n.length > BLOCK_NAME_MAX) return tr(`השם ארוך מדי (עד ${BLOCK_NAME_MAX} תווים).`, `The name is too long (up to ${BLOCK_NAME_MAX} characters).`);
+  if (/[:/#]/.test(n)) return tr('בשם של בלוק אי אפשר להשתמש ב-: / #.', 'A block name cannot use : / #.');
+  if ((circuit.blocks ?? []).some((b) => b.name === n)) return tr(`כבר יש בלוק בשם ${n}.`, `There is already a block called ${n}.`);
   return null;
 }
 
@@ -39,11 +40,11 @@ export function blockFromSelection(circuit: Circuit, ids: readonly string[], nam
   if (inputs.length === 0 || outputs.length === 0) {
     return {
       ok: false,
-      error: 'בבלוק צריכים להיות מתגים (הכניסות שלו) ונורות (היציאות שלו). בוחרים גם אותם.',
+      error: tr('בבלוק צריכים להיות מתגים (הכניסות שלו) ונורות (היציאות שלו). בוחרים גם אותם.', 'A block needs switches (its inputs) and lamps (its outputs). Select them too.'),
     };
   }
   if (parts.length === inputs.length + outputs.length) {
-    return { ok: false, error: 'בבלוק צריך להיות גם משהו בין המתגים לנורות.' };
+    return { ok: false, error: tr('בבלוק צריך להיות גם משהו בין המתגים לנורות.', 'A block also needs something between the switches and the lamps.') };
   }
   // positions from the top left corner, for when the block is taken apart again
   const x0 = Math.min(...parts.map((c) => c.position.x));

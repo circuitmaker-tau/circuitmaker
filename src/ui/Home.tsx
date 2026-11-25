@@ -2,6 +2,8 @@ import { EXAMPLES } from '../examples';
 import { useCircuitStore } from '../store/circuitStore';
 import { HazardDemo } from './HazardDemo';
 import './home.css';
+import { tr } from '../i18n/lang';
+import { LangSwitch } from './LangSwitch';
 
 interface HomeProps {
   onOpenEditor: () => void;
@@ -63,14 +65,15 @@ export function Home({ onOpenEditor, onHelp }: HomeProps) {
           CircuitMaker
         </span>
         <nav className="home-links">
+          <LangSwitch />
           <a href="#/expressions" className="quiet-link">
-            ביטויים בוליאניים
+            {tr('ביטויים בוליאניים', 'Boolean expressions')}
           </a>
           <button type="button" className="quiet-link" onClick={onHelp}>
-            מדריך
+            {tr('מדריך', 'Guide')}
           </button>
           <a href="https://github.com/circuitmaker-tau/circuitmaker" className="quiet-link">
-            קוד מקור
+            {tr('קוד מקור', 'Source code')}
           </a>
         </nav>
       </header>
@@ -79,55 +82,70 @@ export function Home({ onOpenEditor, onHelp }: HomeProps) {
         <section className="hero">
           <Traces />
           <div className="hero-text">
-            <h1>השהיה של Tp אחד, וכבר יש ריצוד ביציאה</h1>
+            <h1>{tr('השהיה של Tp אחד, וכבר יש ריצוד ביציאה', 'One Tp of delay, and the output already glitches')}</h1>
             <p className="lead">
-              בונים מעגל משערים, קובעים Tp לכל שער, ורואים את האות עובר בחוטים ואת דיאגרמת הזמנים
-              נבנית. בדיוק כמו בשאלות הזמנים במבחן של מבוא לחומרה.
+              {tr(
+                'בונים מעגל משערים, קובעים Tp לכל שער, ורואים את האות עובר בחוטים ואת דיאגרמת הזמנים נבנית. בדיוק כמו בשאלות הזמנים במבחן של מבוא לחומרה.',
+                'Build a circuit from gates, give every gate its Tp, and watch the signal travel along the wires while the timing diagram is drawn. Just like the timing questions in the Introduction to Hardware exam.',
+              )}
             </p>
             <div className="hero-actions">
               <button type="button" className="primary" onClick={onOpenEditor}>
-                פתיחת העורך
+                {tr('פתיחת העורך', 'Open the editor')}
               </button>
               <button type="button" className="secondary" onClick={openExample}>
-                פתיחת הדוגמה הזו
+                {tr('פתיחת הדוגמה הזו', 'Open this example')}
               </button>
             </div>
             <p className="building">
-              {EXAMPLES.length} מעגלים מוכנים מההרצאות ומהמבחנים, דיאגרמת זמנים וניתוח hazards.{' '}
+              {tr(
+                `${EXAMPLES.length} מעגלים מוכנים מההרצאות ומהמבחנים, דיאגרמת זמנים וניתוח hazards.`,
+                `${EXAMPLES.length} ready circuits from the lectures and the exams, a timing diagram and hazard analysis.`,
+              )}{' '}
               <button type="button" className="inline-link" onClick={onHelp}>
-                איך משתמשים
+                {tr('איך משתמשים', 'How to use it')}
               </button>
             </p>
           </div>
           <HazardDemo />
         </section>
 
-        <section className="facts" aria-label="מה יש באפליקציה">
+        <section className="facts" aria-label={tr('מה יש באפליקציה', 'What the app does')}>
           <div className="fact">
-            <h2>Tp לכל שער</h2>
+            <h2>{tr('Tp לכל שער', 'A Tp for every gate')}</h2>
             <p>
-              השהיה עשרונית לכל רכיב, ואפשר לקבוע זמן עלייה וזמן ירידה בנפרד. עובדים בדיוק עם
-              הנתונים שמופיעים בשאלה.
+              {tr(
+                'השהיה עשרונית לכל רכיב, ואפשר לקבוע זמן עלייה וזמן ירידה בנפרד. עובדים בדיוק עם הנתונים שמופיעים בשאלה.',
+                'A decimal delay for every component, with separate rise and fall times if needed. You work with exactly the numbers given in the question.',
+              )}
             </p>
           </div>
           <div className="fact">
-            <h2>hazard מוסבר על מפת קרנו</h2>
+            <h2>{tr('hazard מוסבר על מפת קרנו', 'Hazards explained on a Karnaugh map')}</h2>
             <p>
-              מסמנים את שתי הקבוצות הסמוכות ואת המונח החסר, ואז מוסיפים אותו ורואים שהריצוד נעלם.
+              {tr(
+                'מסמנים את שתי הקבוצות הסמוכות ואת המונח החסר, ואז מוסיפים אותו ורואים שהריצוד נעלם.',
+                'The two adjacent groups and the missing term are marked; add the term and watch the glitch disappear.',
+              )}
             </p>
           </div>
           <div className="fact">
-            <h2>בדפדפן, בלי התקנה</h2>
+            <h2>{tr('בדפדפן, בלי התקנה', 'In the browser, nothing to install')}</h2>
             <p>
-              המעגל נשמר אוטומטית במחשב שלך. לשמירה קבועה, או כדי להעביר מעגל לחבר, מייצאים קובץ
-              JSON.
+              {tr(
+                'המעגל נשמר אוטומטית במחשב שלך. לשמירה קבועה, או כדי להעביר מעגל לחבר, מייצאים קובץ JSON.',
+                'The circuit is saved on your computer automatically. To keep it for good, or to give it to a friend, export a JSON file.',
+              )}
             </p>
           </div>
         </section>
       </main>
 
       <footer className="home-foot">
-        פרויקט 26-1-203, אוניברסיטת תל אביב. קוד פתוח, רישיון MIT.
+        {tr(
+          'פרויקט 26-1-203, אוניברסיטת תל אביב. קוד פתוח, רישיון MIT.',
+          'Project 26-1-203, Tel Aviv University. Open source, MIT license.',
+        )}
       </footer>
     </div>
   );

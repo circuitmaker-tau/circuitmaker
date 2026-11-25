@@ -6,6 +6,7 @@
  * glitch is shown instead.
  */
 import { GateSymbol } from './GateSymbol';
+import { tr } from '../i18n/lang';
 
 const W = 96;
 const H = 48;
@@ -28,9 +29,14 @@ function Gate({ type, x, y }: { type: 'AND' | 'OR' | 'NOT'; x: number; y: number
 
 export function HazardDemo() {
   return (
-    <figure className="demo" aria-label="הדגמה: static-1 hazard ב-MUX 2:1 משערים">
+    <figure className="demo" aria-label={tr('הדגמה: static-1 hazard ב-MUX 2:1 משערים', 'Demo: a static-1 hazard in a MUX 2:1 built from gates')}>
       <svg className="demo-circuit" viewBox="0 0 560 300" direction="ltr" role="img">
-        <title>MUX 2:1 משערים: כש-S0 יורד ל-0, F נופל ל-0 לזמן של Tp אחד</title>
+        <title>
+          {tr(
+            'MUX 2:1 משערים: כש-S0 יורד ל-0, F נופל ל-0 לזמן של Tp אחד',
+            'MUX 2:1 from gates: when S0 falls to 0, F drops to 0 for one Tp',
+          )}
+        </title>
         {/* wires, each animated by the value it carries */}
         <g className="demo-wires" fill="none">
           <path className="w w-s0" d="M60 40 H140" />
@@ -71,7 +77,7 @@ export function HazardDemo() {
       </svg>
 
       <svg className="demo-timing" viewBox="0 0 520 132" direction="ltr" role="img">
-        <title>דיאגרמת זמנים: F יורד ל-0 בין t = 3 ל-t = 3.5</title>
+        <title>{tr('דיאגרמת זמנים: F יורד ל-0 בין t = 3 ל-t = 3.5', 'Timing diagram: F is 0 from t = 3 to t = 3.5')}</title>
         {ROWS.map((r, i) => (
           <g key={r.name} transform={`translate(110 ${8 + i * 30})`}>
             <text x={-12} y={17} className="trace-name">
@@ -84,8 +90,10 @@ export function HazardDemo() {
         <line x1="110" x2="110" y1="4" y2="128" className="playhead" />
       </svg>
       <figcaption>
-        S0 יורד ל-0. ה-NOT מגיב רק אחרי Tp אחד, ובזמן הזה שני שערי ה-AND מוציאים 0. התוצאה: F נופל
-        לרגע ל-0, למרות שלפי הפונקציה הוא אמור להישאר 1.
+        {tr(
+          'S0 יורד ל-0. ה-NOT מגיב רק אחרי Tp אחד, ובזמן הזה שני שערי ה-AND מוציאים 0. התוצאה: F נופל לרגע ל-0, למרות שלפי הפונקציה הוא אמור להישאר 1.',
+          'S0 falls to 0. The NOT answers only after one Tp, and meanwhile both AND gates give 0. The result: F drops to 0 for a moment, although by the function it should stay 1.',
+        )}
       </figcaption>
     </figure>
   );

@@ -12,6 +12,7 @@ import { minimalPos, minimalSop } from '../analysis/minimize';
 import type { Value } from '../analysis/minimize';
 import { useCircuitStore } from '../store/circuitStore';
 import { useSimStore } from '../store/simStore';
+import { textDir, tr } from '../i18n/lang';
 
 interface LampColumn {
   id: string;
@@ -39,11 +40,11 @@ function truthTableOf(circuit: Circuit): Table | string {
 
 function compute(circuit: Circuit): Table | string {
   const reason = unsupportedReason(circuit);
-  if (reason) return reason.replace('הניתוח מיועד', 'טבלת אמת מיועדת');
+  if (reason) return reason.replace('הניתוח מיועד', 'טבלת אמת מיועדת').replace('The analysis is', 'The truth table is');
   const vars = variablesOf(circuit).map((v) => v.id);
   const n = vars.length;
   const lamps = circuit.components.filter((c) => c.type === 'OUTPUT');
-  if (lamps.length === 0) return 'מחברים נורה ליציאה, והטבלה תופיע כאן.';
+  if (lamps.length === 0) return tr('מחברים נורה ליציאה, והטבלה תופיע כאן.', 'Connect a lamp to an output, and the table will show here.');
   return {
     vars,
     lamps: lamps.map((lamp) => {
@@ -92,7 +93,7 @@ export function TruthTablePanel() {
   };
 
   return (
-    <div className="truth" dir="rtl">
+    <div className="truth" dir={textDir()}>
       <div className="truth-scroll">
         <table className="truth-table" dir="ltr">
           <thead>
@@ -121,7 +122,7 @@ export function TruthTablePanel() {
                     goTo(m);
                   }
                 }}
-                title="לחיצה מציבה את המתגים בשורה הזו"
+                title={tr('לחיצה מציבה את המתגים בשורה הזו', 'Click to set the switches to this row')}
               >
                 <td className="truth-m">{m}</td>
                 {vars.map((v, k) => (
@@ -148,25 +149,30 @@ export function TruthTablePanel() {
             </p>
             {l.sop !== null && l.pos !== null ? (
               <>
-                <p className="truth-label">סכום מכפלות מינימלי</p>
+                <p className="truth-label">{tr('סכום מכפלות מינימלי', 'Minimal sum of products')}</p>
                 <p className="analysis-func" dir="ltr">
                   {l.id} = {l.sop}
                 </p>
-                <p className="truth-label">מכפלת סכומים מינימלית</p>
+                <p className="truth-label">{tr('מכפלת סכומים מינימלית', 'Minimal product of sums')}</p>
                 <p className="analysis-func" dir="ltr">
                   {l.id} = {l.pos}
                 </p>
               </>
             ) : (
               <p className="hint">
-                בחלק מהשורות היציאה X (למשל כניסה לא מחוברת), ולכן אין לה ביטוי.
+                {tr(
+                  'בחלק מהשורות היציאה X (למשל כניסה לא מחוברת), ולכן אין לה ביטוי.',
+                  'In some rows the output is X (an input not connected, say), so it has no expression.',
+                )}
               </p>
             )}
           </section>
         ))}
         <p className="hint">
-          הביטויים המינימליים הם מה שיוצא ממפת קרנו, לא בהכרח מה שבנוי במעגל. ה-hazards תלויים במעגל
-          עצמו, וזה מה שלשונית הניתוח בודקת.
+          {tr(
+            'הביטויים המינימליים הם מה שיוצא ממפת קרנו, לא בהכרח מה שבנוי במעגל. ה-hazards תלויים במעגל עצמו, וזה מה שלשונית הניתוח בודקת.',
+            'The minimal expressions are what a Karnaugh map gives, not necessarily what the circuit is built as. Hazards depend on the circuit itself, and that is what the analysis tab checks.',
+          )}
         </p>
       </div>
     </div>

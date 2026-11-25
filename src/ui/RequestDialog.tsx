@@ -6,10 +6,11 @@
  * and replaces the current one (Ctrl+Z brings it back).
  */
 import { useEffect, useRef, useState } from 'react';
-import { buildRequest, METHODS, PRESETS, verifyRequest } from '../analysis/request';
+import { buildRequest, METHODS, nameOf, PRESETS, verifyRequest } from '../analysis/request';
 import type { Method } from '../analysis/request';
 import { readFunctions } from '../analysis/romPla';
 import { useCircuitStore } from '../store/circuitStore';
+import { textDir, tr } from '../i18n/lang';
 
 const OWN = 'own';
 
@@ -31,8 +32,8 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
   const result = read.ok ? buildRequest(read.set, method, fanIn) : null;
   const checked = read.ok && result?.ok ? verifyRequest(read.set, result.circuit) : false;
   const usesFanIn = METHODS.find((m) => m.id === method)!.fanIn;
-  const whatLabel = what === OWN ? text.trim() : PRESETS.find((p) => p.id === what)!.label;
-  const methodLabel = METHODS.find((m) => m.id === method)!.label;
+  const whatLabel = what === OWN ? text.trim() : nameOf(PRESETS.find((p) => p.id === what)!);
+  const methodLabel = nameOf(METHODS.find((m) => m.id === method)!);
 
   const build = () => {
     if (!read.ok || !result?.ok || !checked) return;
@@ -40,7 +41,10 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
       .getState()
       .loadCircuit(
         result.circuit,
-        `נבנה לפי הבקשה: ${whatLabel}, בעזרת ${methodLabel}${usesFanIn ? `, fan-in עד ${fanIn}` : ''}. ברכיבים: ${result.text}. נבדק בסימולציה בכל ${1 << read.set.vars.length} השורות. בלשונית ״טבלת אמת״ רואים את הפונקציות, ו-Ctrl+Z מחזיר את המעגל הקודם.`,
+        tr(
+          `נבנה לפי הבקשה: ${whatLabel}, בעזרת ${methodLabel}${usesFanIn ? `, fan-in עד ${fanIn}` : ''}. ברכיבים: ${result.text}. נבדק בסימולציה בכל ${1 << read.set.vars.length} השורות. בלשונית ״טבלת אמת״ רואים את הפונקציות, ו-Ctrl+Z מחזיר את המעגל הקודם.`,
+          `Built as requested: ${whatLabel}, using ${methodLabel}${usesFanIn ? `, fan-in at most ${fanIn}` : ''}. Parts: ${result.text}. Checked by simulation in all ${1 << read.set.vars.length} rows. The "Truth table" tab shows the functions, and Ctrl+Z brings the previous circuit back.`,
+        ),
       );
     onClose();
   };
@@ -49,7 +53,7 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
     <dialog
       ref={dialog}
       className="request-dialog"
-      dir="rtl"
+      dir={textDir()}
       aria-labelledby="request-title"
       onClose={onClose}
       onClick={(e) => e.target === dialog.current && onClose()}
@@ -61,12 +65,17 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
           build();
         }}
       >
-        <h2 id="request-title">בקשת מעגל</h2>
-        <p className="hint">ממלאים את המשפט, והמעגל נבנה בשיטות של הקורס ונבדק בסימולציה לפני שהוא נטען.</p>
+        <h2 id="request-title">{tr('בקשת מעגל', 'Request a circuit')}</h2>
+        <p className="hint">
+          {tr(
+            'ממלאים את המשפט, והמעגל נבנה בשיטות של הקורס ונבדק בסימולציה לפני שהוא נטען.',
+            'Fill in the sentence, and the circuit is built by the methods of the course and checked by simulation before it loads.',
+          )}
+        </p>
 
         <div className="request-sentence">
           <label>
-            <span>בנה</span>
+            <span>{tr('בנה', 'Build')}</span>
             <select
               value={what}
               onChange={(e) => {
@@ -77,24 +86,24 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
             >
               {PRESETS.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.label}
+                  {nameOf(p)}
                 </option>
               ))}
-              <option value={OWN}>פונקציה משלי</option>
+              <option value={OWN}>{tr('פונקציה משלי', 'my own function')}</option>
             </select>
           </label>
           <label>
-            <span>בעזרת</span>
+            <span>{tr('בעזרת', 'using')}</span>
             <select value={method} onChange={(e) => setMethod(e.target.value as Method)}>
               {METHODS.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.label}
+                  {nameOf(m)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            <span>עם fan-in עד</span>
+            <span>{tr('עם fan-in עד', 'with fan-in at most')}</span>
             <select value={fanIn} disabled={!usesFanIn} onChange={(e) => setFanIn(Number(e.target.value))}>
               {[2, 3, 4].map((k) => (
                 <option key={k} value={k}>
@@ -106,7 +115,9 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
         </div>
 
         <label className="field">
-          <span>מה בדיוק: ביטוי לכל יציאה, אחד בכל שורה או מופרדים ב-;</span>
+          <span>
+            {tr('מה בדיוק: ביטוי לכל יציאה, אחד בכל שורה או מופרדים ב-;', 'Exactly what: an expression for each output, one per line or separated by ;')}
+          </span>
           <textarea
             dir="ltr"
             rows={2}
@@ -127,13 +138,17 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
           ) : (
             <>
               <p>
-                ייבנה: <bdi dir="ltr">{result.text}</bdi>. משתנים: <bdi dir="ltr">{read.set.vars.join(', ')}</bdi>, יציאות:{' '}
+                {tr('ייבנה:', 'To be built:')} <bdi dir="ltr">{result.text}</bdi>. {tr('משתנים:', 'Variables:')}{' '}
+                <bdi dir="ltr">{read.set.vars.join(', ')}</bdi>, {tr('יציאות:', 'outputs:')}{' '}
                 <bdi dir="ltr">{read.set.fns.map((f) => f.name).join(', ')}</bdi>.
               </p>
               <p className={checked ? 'request-ok' : 'request-error'}>
                 {checked
-                  ? `נבדק בסימולציה: נכון בכל ${1 << read.set.vars.length} השורות.`
-                  : 'הבדיקה בסימולציה נכשלה, ולכן המעגל לא ייטען.'}
+                  ? tr(
+                      `נבדק בסימולציה: נכון בכל ${1 << read.set.vars.length} השורות.`,
+                      `Checked by simulation: right in all ${1 << read.set.vars.length} rows.`,
+                    )
+                  : tr('הבדיקה בסימולציה נכשלה, ולכן המעגל לא ייטען.', 'The simulation check failed, so the circuit will not load.')}
               </p>
             </>
           )}
@@ -141,10 +156,10 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
 
         <div className="request-actions">
           <button type="submit" className="primary" disabled={!checked}>
-            בניית המעגל
+            {tr('בניית המעגל', 'Build the circuit')}
           </button>
           <button type="button" onClick={onClose}>
-            ביטול
+            {tr('ביטול', 'Cancel')}
           </button>
         </div>
       </form>

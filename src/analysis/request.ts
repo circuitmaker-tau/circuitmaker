@@ -17,25 +17,29 @@ import type { Cube } from './func';
 import { minimalPos, minimalSop } from './minimize';
 import type { Value } from './minimize';
 import type { FunctionSet } from './romPla';
+import { tr } from '../i18n/lang';
 
 export type Method = 'sop' | 'pos' | 'nand' | 'nor' | 'mux' | 'mux2' | 'decoder';
 
-export const METHODS: { id: Method; label: string; fanIn: boolean }[] = [
-  { id: 'sop', label: 'שערי AND, OR ו-NOT (סכום מכפלות)', fanIn: true },
-  { id: 'pos', label: 'שערי OR, AND ו-NOT (מכפלת סכומים)', fanIn: true },
-  { id: 'nand', label: 'שערי NAND בלבד', fanIn: true },
-  { id: 'nor', label: 'שערי NOR בלבד', fanIn: true },
-  { id: 'mux', label: 'MUX אחד לכל יציאה ומהפך', fanIn: false },
-  { id: 'mux2', label: 'MUX 2:1 בלבד', fanIn: false },
-  { id: 'decoder', label: 'מפענח ושערי OR', fanIn: true },
+export const METHODS: { id: Method; he: string; en: string; fanIn: boolean }[] = [
+  { id: 'sop', he: 'שערי AND, OR ו-NOT (סכום מכפלות)', en: 'AND, OR and NOT gates (sum of products)', fanIn: true },
+  { id: 'pos', he: 'שערי OR, AND ו-NOT (מכפלת סכומים)', en: 'OR, AND and NOT gates (product of sums)', fanIn: true },
+  { id: 'nand', he: 'שערי NAND בלבד', en: 'NAND gates only', fanIn: true },
+  { id: 'nor', he: 'שערי NOR בלבד', en: 'NOR gates only', fanIn: true },
+  { id: 'mux', he: 'MUX אחד לכל יציאה ומהפך', en: 'One MUX per output and an inverter', fanIn: false },
+  { id: 'mux2', he: 'MUX 2:1 בלבד', en: 'MUX 2:1 only', fanIn: false },
+  { id: 'decoder', he: 'מפענח ושערי OR', en: 'A decoder and OR gates', fanIn: true },
 ];
 
-export const PRESETS: { id: string; label: string; text: string }[] = [
-  { id: 'fa', label: 'מסכם מלא', text: 'S = A ⊕ B ⊕ C; Cout = AB + AC + BC' },
-  { id: 'ha', label: 'חצי מסכם', text: 'S = A ⊕ B; Cout = AB' },
-  { id: 'maj', label: 'רוב מתוך 3', text: 'F = AB + AC + BC' },
-  { id: 'eq', label: 'השוואה של שני מספרים של 2 ביט', text: 'E(A1,A0,B1,B0) = (A1 ⊕ B1)\'(A0 ⊕ B0)\'' },
+export const PRESETS: { id: string; he: string; en: string; text: string }[] = [
+  { id: 'fa', he: 'מסכם מלא', en: 'A full adder', text: 'S = A ⊕ B ⊕ C; Cout = AB + AC + BC' },
+  { id: 'ha', he: 'חצי מסכם', en: 'A half adder', text: 'S = A ⊕ B; Cout = AB' },
+  { id: 'maj', he: 'רוב מתוך 3', en: 'Majority of 3', text: 'F = AB + AC + BC' },
+  { id: 'eq', he: 'השוואה של שני מספרים של 2 ביט', en: 'Equality of two 2-bit numbers', text: "E(A1,A0,B1,B0) = (A1 ⊕ B1)'(A0 ⊕ B0)'" },
 ];
+
+/** The name of a method or a preset in the interface language. */
+export const nameOf = (x: { he: string; en: string }) => tr(x.he, x.en);
 
 export type RequestResult =
   | { ok: true; circuit: Circuit; counts: [ComponentType, number][]; text: string }
@@ -192,11 +196,29 @@ export function buildRequest(set: FunctionSet, method: Method, fanIn: number): R
   const { vars, fns } = set;
   const n = vars.length;
   const clash = fns.find((f) => vars.includes(f.name));
-  if (clash) return { ok: false, error: `לפונקציה ולמשתנה אותו שם (${clash.name}). תנו לפונקציה שם אחר.` };
-  if (method === 'mux' && n < 2) return { ok: false, error: 'למימוש ב-MUX צריך לפחות 2 משתנים.' };
-  if (method === 'mux' && n > 4) return { ok: false, error: 'כאן MUX עד 8:1, כלומר עד 4 משתנים.' };
+  if (clash) {
+    return {
+      ok: false,
+      error: tr(
+        `לפונקציה ולמשתנה אותו שם (${clash.name}). תנו לפונקציה שם אחר.`,
+        `A function and a variable share the name ${clash.name}. Give the function another name.`,
+      ),
+    };
+  }
+  if (method === 'mux' && n < 2) {
+    return { ok: false, error: tr('למימוש ב-MUX צריך לפחות 2 משתנים.', 'A MUX needs at least 2 variables.') };
+  }
+  if (method === 'mux' && n > 4) {
+    return { ok: false, error: tr('כאן MUX עד 8:1, כלומר עד 4 משתנים.', 'MUX up to 8:1 here, that is up to 4 variables.') };
+  }
   if (method === 'decoder' && (n < 2 || n > 3)) {
-    return { ok: false, error: `יש מפענח 2:4 ו-3:8, כלומר 2 או 3 משתנים, ובפונקציה יש ${n}.` };
+    return {
+      ok: false,
+      error: tr(
+        `יש מפענח 2:4 ו-3:8, כלומר 2 או 3 משתנים, ובפונקציה יש ${n}.`,
+        `There are 2:4 and 3:8 decoders, so 2 or 3 variables, and the function has ${n}.`,
+      ),
+    };
   }
 
   // NOR-NOR comes from the product of sums, everything else from the sum of products
@@ -243,13 +265,15 @@ export function buildRequest(set: FunctionSet, method: Method, fanIn: number): R
     ...net.nodes.flatMap((nd) => nd.ins.map(([r, p]) => `${out(r)}>${nd.id}.${p}`)),
     ...roots.map((r, j) => `${out(r)}>${fns[j].name}.in`),
   ];
-  const label = METHODS.find((m) => m.id === method)!.label;
+  const label = nameOf(METHODS.find((m) => m.id === method)!);
   const circuit = buildCircuit(`${fns.map((f) => f.name).join(', ')}: ${label}`, 'none', parts, wires);
 
   const counts = new Map<ComponentType, number>();
   for (const nd of net.nodes) counts.set(nd.type, (counts.get(nd.type) ?? 0) + 1);
   const listed = [...counts].filter(([t]) => t !== 'CONST0' && t !== 'CONST1');
-  const text = listed.map(([t, c]) => `${c} ${t}`).join(', ') || 'בלי רכיבים: הפונקציות הן משתנים או קבועים';
+  const text =
+    listed.map(([t, c]) => `${c} ${t}`).join(', ') ||
+    tr('בלי רכיבים: הפונקציות הן משתנים או קבועים', 'no parts: the functions are variables or constants');
   return { ok: true, circuit, counts: listed, text };
 }
 

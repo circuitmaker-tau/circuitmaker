@@ -16,6 +16,7 @@ import { structureSignature, useSimStore } from '../store/simStore';
 import { useTimingStore } from '../store/timingStore';
 import { KarnaughMap } from './KarnaughMap';
 import type { MapGroup } from './KarnaughMap';
+import { isEnglish, textDir, tr } from '../i18n/lang';
 
 const TERM_COLORS = ['#4ea1ff', '#f2c94c', '#d4506e', '#a77bff', '#3fd0d0', '#ff9f43'];
 const PATH_COLORS = ['#4ea1ff', '#f2c94c'];
@@ -44,7 +45,9 @@ export function AnalysisPanel() {
 
   if (!lamp) {
     return (
-      <p className="hint analysis-empty">מחברים נורה ליציאה שרוצים לנתח, והניתוח יופיע כאן.</p>
+      <p className="hint analysis-empty">
+        {tr('מחברים נורה ליציאה שרוצים לנתח, והניתוח יופיע כאן.', 'Connect a lamp to the output you want to analyse, and the analysis will show here.')}
+      </p>
     );
   }
   if (!result) return null;
@@ -101,7 +104,10 @@ export function AnalysisPanel() {
     else {
       store.replaceCircuit(r.circuit);
       store.showMessage(
-        `נוסף המונח ${termText(h.consensus)}. אפשר להריץ את ההדגמה שוב ולראות שהריצוד נעלם.`,
+        tr(
+          `נוסף המונח ${termText(h.consensus)}. אפשר להריץ את ההדגמה שוב ולראות שהריצוד נעלם.`,
+          `The term ${termText(h.consensus)} was added. Run the demo again and see the glitch is gone.`,
+        ),
       );
       setSelected(null);
     }
@@ -112,7 +118,7 @@ export function AnalysisPanel() {
     if (!race) return null;
     const h = simulated[i];
     const show = (p: typeof race.fast) =>
-      `${[vars[h.variable], ...p.through].join(' → ')} (${fmt(p.delay)}${p.inversions % 2 ? ', עם היפוך' : ''})`;
+      `${[vars[h.variable], ...p.through].join(' → ')} (${fmt(p.delay)}${p.inversions % 2 ? tr(', עם היפוך', ', inverted') : ''})`;
     return (
       <span className="paths" dir="ltr">
         <span style={{ color: PATH_COLORS[0] }}>{show(race.fast)}</span>
@@ -128,10 +134,10 @@ export function AnalysisPanel() {
   };
 
   return (
-    <div className="analysis" dir="rtl">
+    <div className="analysis" dir={textDir()}>
       <div className="analysis-side">
         <label className="analysis-output">
-          יציאה
+          {tr('יציאה', 'Output')}
           <select value={lamp.id} onChange={(e) => setOutput(e.target.value)}>
             {lamps.map((l) => (
               <option key={l.id} value={l.id}>
@@ -166,8 +172,10 @@ export function AnalysisPanel() {
         )}
         {!analytic && (
           <p className="hint">
-            המעגל אינו סכום מכפלות או מכפלת סכומים, ולכן אין ניתוח לפי מפת קרנו. הסימולציה בודקת
-            אותו בכל זאת.
+            {tr(
+              'המעגל אינו סכום מכפלות או מכפלת סכומים, ולכן אין ניתוח לפי מפת קרנו. הסימולציה בודקת אותו בכל זאת.',
+              'The circuit is not a sum of products or a product of sums, so there is no Karnaugh map analysis. The simulation checks it all the same.',
+            )}
           </p>
         )}
       </div>
@@ -175,9 +183,17 @@ export function AnalysisPanel() {
       <div className="analysis-findings">
         {analytic && (
           <section>
-            <h3>לפי המבנה ({sop ? 'סכום מכפלות' : 'מכפלת סכומים'})</h3>
+            <h3>
+              {tr('לפי המבנה', 'By the structure')} (
+              {sop ? tr('סכום מכפלות', 'sum of products') : tr('מכפלת סכומים', 'product of sums')})
+            </h3>
             {analytic.hazards.length === 0 && (
-              <p className="ok">אין hazard סטטי: כל שני מינטרמים סמוכים מכוסים במונח אחד משותף.</p>
+              <p className="ok">
+                {tr(
+                  'אין hazard סטטי: כל שני מינטרמים סמוכים מכוסים במונח אחד משותף.',
+                  'No static hazard: every two adjacent minterms are covered by one shared term.',
+                )}
+              </p>
             )}
             {analytic.hazards.map((h) => {
               const [a, b] = h.terms.map((i) => termText(analytic.structure.terms[i].cube));
@@ -188,27 +204,41 @@ export function AnalysisPanel() {
                   onMouseEnter={() => setSelected(key(h))}
                   onFocus={() => setSelected(key(h))}
                 >
+                  {isEnglish() ? (
+                    <p>
+                      <b>{h.kind} hazard</b> when <bdi>{vars[h.variable]}</bdi> changes with{' '}
+                      <bdi>{fixedOthers(vars, h.minterms[0], h.variable)}</bdi> (minterms {h.minterms[0]} and{' '}
+                      {h.minterms[1]}). Each is covered by a different term, <bdi>{a}</bdi> and <bdi>{b}</bdi>, and no
+                      term covers both:{' '}
+                      {sop
+                        ? 'one turns off before the other turns on, and the output drops to 0 for a moment'
+                        : 'one rises before the other falls, and the output jumps to 1 for a moment'}
+                      .
+                    </p>
+                  ) : (
+                    <p>
+                      <b>{h.kind} hazard</b> כש-<bdi>{vars[h.variable]}</bdi> משתנה, כש-
+                      <bdi>{fixedOthers(vars, h.minterms[0], h.variable)}</bdi> (מינטרמים{' '}
+                      {h.minterms[0]} ו-
+                      {h.minterms[1]}). כל אחד מהם מכוסה במונח אחר, <bdi>{a}</bdi> ו-<bdi>{b}</bdi>,
+                      ואין מונח שמכסה את שניהם:{' '}
+                      {sop
+                        ? 'אחד נכבה לפני שהשני נדלק, והיציאה יורדת ל-0 לרגע'
+                        : 'אחד עולה לפני שהשני יורד, והיציאה קופצת ל-1 לרגע'}
+                      .
+                    </p>
+                  )}
                   <p>
-                    <b>{h.kind} hazard</b> כש-<bdi>{vars[h.variable]}</bdi> משתנה, כש-
-                    <bdi>{fixedOthers(vars, h.minterms[0], h.variable)}</bdi> (מינטרמים{' '}
-                    {h.minterms[0]} ו-
-                    {h.minterms[1]}). כל אחד מהם מכוסה במונח אחר, <bdi>{a}</bdi> ו-<bdi>{b}</bdi>,
-                    ואין מונח שמכסה את שניהם:{' '}
-                    {sop
-                      ? 'אחד נכבה לפני שהשני נדלק, והיציאה יורדת ל-0 לרגע'
-                      : 'אחד עולה לפני שהשני יורד, והיציאה קופצת ל-1 לרגע'}
-                    .
-                  </p>
-                  <p>
-                    התיקון: מונח הקונצנזוס <bdi className="term">{termText(h.consensus)}</bdi>,
-                    שמכסה את שניהם.
+                    {tr('התיקון: מונח הקונצנזוס', 'The fix: the consensus term')}{' '}
+                    <bdi className="term">{termText(h.consensus)}</bdi>
+                    {tr(', שמכסה את שניהם.', ', which covers both.')}
                   </p>
                   <div className="finding-actions">
                     <button type="button" onClick={() => demo(demoStart(h), h.variable)}>
-                      הדגמה
+                      {tr('הדגמה', 'Demo')}
                     </button>
                     <button type="button" onClick={() => fix(h)}>
-                      הוספת המונח {termText(h.consensus)}
+                      {tr('הוספת המונח', 'Add the term')} {termText(h.consensus)}
                     </button>
                   </div>
                 </article>
@@ -218,12 +248,18 @@ export function AnalysisPanel() {
         )}
 
         <section>
-          <h3>בסימולציה, עם ה-Tp של המעגל</h3>
+          <h3>{tr('בסימולציה, עם ה-Tp של המעגל', "In simulation, with the circuit's Tp")}</h3>
           {simulated.length === 0 && (
             <p className="ok">
-              אף שינוי של כניסה אחת לא גורם ליציאה לזוז יותר מפעם אחת.{' '}
+              {tr(
+                'אף שינוי של כניסה אחת לא גורם ליציאה לזוז יותר מפעם אחת.',
+                'No change of a single input makes the output move more than once.',
+              )}{' '}
               {analytic?.hazards.length
-                ? 'ה-hazard מהמבנה קיים, אבל ההשהיות הנוכחיות לא חושפות אותו.'
+                ? tr(
+                    'ה-hazard מהמבנה קיים, אבל ההשהיות הנוכחיות לא חושפות אותו.',
+                    'The hazard of the structure is there, but the present delays do not show it.',
+                  )
                 : ''}
             </p>
           )}
@@ -240,21 +276,35 @@ export function AnalysisPanel() {
                 <bdi>
                   {vars[h.variable]} {bitOf(h.from, h.variable, n)} → {bitOf(h.to, h.variable, n)}
                 </bdi>{' '}
-                כש-<bdi>{fixedOthers(vars, h.from, h.variable)}</bdi>.{' '}
+                {tr('כש-', 'with ')}
+                <bdi>{fixedOthers(vars, h.from, h.variable)}</bdi>.{' '}
                 {h.kind === 'dynamic'
-                  ? `היציאה משתנה ${h.transitions.length} פעמים במקום פעם אחת.`
-                  : `היציאה צריכה להישאר ${table[h.from]}, אבל משתנה ${h.transitions.length} פעמים.`}
+                  ? tr(
+                      `היציאה משתנה ${h.transitions.length} פעמים במקום פעם אחת.`,
+                      `The output changes ${h.transitions.length} times instead of once.`,
+                    )
+                  : tr(
+                      `היציאה צריכה להישאר ${table[h.from]}, אבל משתנה ${h.transitions.length} פעמים.`,
+                      `The output should stay ${table[h.from]}, but changes ${h.transitions.length} times.`,
+                    )}
                 {h.glitches.map((g, j) => (
                   <span key={j}>
                     {' '}
-                    ריצוד ברוחב {fmt(g.end - g.start)}, מ-t = {fmt(g.start)} אחרי השינוי.
+                    {tr(
+                      `ריצוד ברוחב ${fmt(g.end - g.start)}, מ-t = ${fmt(g.start)} אחרי השינוי.`,
+                      `A glitch ${fmt(g.end - g.start)} wide, from t = ${fmt(g.start)} after the change.`,
+                    )}
                   </span>
                 ))}
               </p>
-              {races[i] && <p className="hint">הנתיבים שמתחרים: {pathText(i)}</p>}
+              {races[i] && (
+                <p className="hint">
+                  {tr('הנתיבים שמתחרים:', 'The racing paths:')} {pathText(i)}
+                </p>
+              )}
               <div className="finding-actions">
                 <button type="button" onClick={() => demo(h.from, h.variable)}>
-                  הדגמה
+                  {tr('הדגמה', 'Demo')}
                 </button>
               </div>
             </article>

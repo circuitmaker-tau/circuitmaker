@@ -14,6 +14,8 @@ import type { Component } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { useTimingStore } from '../store/timingStore';
 import { splitLesson } from './lessonText';
+import { tr } from '../i18n/lang';
+import { labelOf } from '../i18n/components';
 
 interface PropertiesPanelProps {
   component: Component | null;
@@ -35,17 +37,21 @@ export function PropertiesPanel({
 }: PropertiesPanelProps) {
   const lesson = useCircuitStore((s) => s.lesson);
   return (
-    <aside className="properties" aria-label="מאפייני רכיב">
-      <h2>מאפיינים</h2>
+    <aside className="properties" aria-label={tr('מאפייני רכיב', 'Component properties')}>
+      <h2>{tr('מאפיינים', 'Properties')}</h2>
       {selection.length > 1 ? (
         <div className="fields">
-          <p className="field-title">נבחרו {selection.length} רכיבים</p>
+          <p className="field-title">
+            {tr(`נבחרו ${selection.length} רכיבים`, `${selection.length} components selected`)}
+          </p>
           <p className="hint">
-            גוררים את כולם יחד, או משכפלים ומוחקים. Ctrl+C ו-Ctrl+V מעתיקים ומדביקים, גם עם
-            החוטים שביניהם.
+            {tr(
+              'גוררים את כולם יחד, או משכפלים ומוחקים. Ctrl+C ו-Ctrl+V מעתיקים ומדביקים, גם עם החוטים שביניהם.',
+              'Drag them all together, or duplicate and delete. Ctrl+C and Ctrl+V copy and paste, with the wires between them.',
+            )}
           </p>
           <button type="button" onClick={() => onDuplicate?.(selection)}>
-            שכפול
+            {tr('שכפול', 'Duplicate')}
           </button>
           <SaveAsBlock selection={selection} />
           <button
@@ -53,7 +59,7 @@ export function PropertiesPanel({
             className="danger"
             onClick={() => useCircuitStore.getState().removeComponents(selection)}
           >
-            מחיקת {selection.length} הרכיבים
+            {tr(`מחיקת ${selection.length} הרכיבים`, `Delete the ${selection.length} components`)}
           </button>
         </div>
       ) : component ? (
@@ -67,10 +73,12 @@ export function PropertiesPanel({
         />
       ) : (
         <>
-          <p className="hint">בחרו רכיב כדי לערוך את השם, ה-Tp ומספר הכניסות.</p>
+          <p className="hint">
+            {tr('בחרו רכיב כדי לערוך את השם, ה-Tp ומספר הכניסות.', 'Select a component to edit its name, Tp and number of inputs.')}
+          </p>
           {lesson && (
-            <section className="lesson" aria-label="מה לומדים מהדוגמה">
-              <h3>מה לומדים כאן</h3>
+            <section className="lesson" aria-label={tr('מה לומדים מהדוגמה', 'What the example teaches')}>
+              <h3>{tr('מה לומדים כאן', 'What to learn here')}</h3>
               <p>
                 {splitLesson(lesson).map((piece, i) =>
                   piece.ltr ? (
@@ -107,7 +115,10 @@ function ComponentFields({
   const blocks = useCircuitStore((s) => s.circuit.blocks);
   const own = component.type === 'BLOCK' ? blocks?.find((b) => b.name === component.props?.block) : undefined;
   const inside = own
-    ? `${own.name}: ${own.components.filter((c) => c.type !== 'INPUT' && c.type !== 'OUTPUT').length} רכיבים, עם הכניסות ${own.inputs.join(', ')} והיציאות ${own.outputs.join(', ')}. לכל רכיב בפנים ה-Tp שלו.`
+    ? tr(
+        `${own.name}: ${own.components.filter((c) => c.type !== 'INPUT' && c.type !== 'OUTPUT').length} רכיבים, עם הכניסות ${own.inputs.join(', ')} והיציאות ${own.outputs.join(', ')}. לכל רכיב בפנים ה-Tp שלו.`,
+        `${own.name}: ${own.components.filter((c) => c.type !== 'INPUT' && c.type !== 'OUTPUT').length} components, with the inputs ${own.inputs.join(', ')} and the outputs ${own.outputs.join(', ')}. Every part inside has its own Tp.`,
+      )
     : expansionSummary(component);
   const timeUnit = useCircuitStore((s) => s.circuit.timeUnit);
   const [delayText, setDelayText] = useState(String(component.delay));
@@ -175,10 +186,10 @@ function ComponentFields({
 
   return (
     <div className="fields">
-      <p className="field-title">{def.label}</p>
+      <p className="field-title">{labelOf(component.type)}</p>
 
       <label className="field">
-        <span>שם</span>
+        <span>{tr('שם', 'Name')}</span>
         <input
           type="text"
           dir="ltr"
@@ -210,7 +221,7 @@ function ComponentFields({
 
       {def.minInputs !== def.maxInputs && (
         <label className="field">
-          <span>מספר כניסות</span>
+          <span>{tr('מספר כניסות', 'Number of inputs')}</span>
           <select
             value={component.inputs}
             onChange={(e) => updateComponent(component.id, { inputs: Number(e.target.value) })}
@@ -229,7 +240,9 @@ function ComponentFields({
 
       {def.stateful && (
         <label className="field">
-          <span>{multiBit ? 'ערך התחלתי (כל הביטים)' : 'ערך התחלתי של Q'}</span>
+          <span>
+            {multiBit ? tr('ערך התחלתי (כל הביטים)', 'Initial value (all bits)') : tr('ערך התחלתי של Q', 'Initial value of Q')}
+          </span>
           <select
             value={String(init)}
             onChange={(e) => {
@@ -241,7 +254,7 @@ function ComponentFields({
           >
             <option value="0">0</option>
             <option value="1">1</option>
-            <option value="X">X (לא ידוע)</option>
+            <option value="X">{tr('X (לא ידוע)', 'X (unknown)')}</option>
           </select>
         </label>
       )}
@@ -258,8 +271,10 @@ function ComponentFields({
             }
           />
           <span>
-            כניסת Enable (<bdi>En</bdi>):{' '}
-            {component.type.startsWith('MUX') ? 'כשהיא כבויה, f = 0' : 'כשהיא כבויה, הערך נשמר'}
+            {tr('כניסת Enable', 'Enable input')} (<bdi>En</bdi>):{' '}
+            {component.type.startsWith('MUX')
+              ? tr('כשהיא כבויה, f = 0', 'when it is off, f = 0')
+              : tr('כשהיא כבויה, הערך נשמר', 'when it is off, the value is kept')}
           </span>
         </label>
       )}
@@ -267,29 +282,29 @@ function ComponentFields({
       {hasEnablePolarity(component) && (
         <label className="field">
           <span>
-            <bdi>En</bdi> פעיל ב-
+            <bdi>En</bdi> {tr('פעיל ב-', 'is active at')}
           </span>
           <select
             value={component.props?.enableLow ? 'low' : 'high'}
             onChange={(e) => updateComponent(component.id, { props: { enableLow: e.target.value === 'low' } })}
           >
-            <option value="high">1 (רגיל)</option>
-            <option value="low">0 (עיגול על En)</option>
+            <option value="high">{tr('1 (רגיל)', '1 (normal)')}</option>
+            <option value="low">{tr('0 (עיגול על En)', '0 (bubble on En)')}</option>
           </select>
         </label>
       )}
 
       {hasEdgeOption(component.type) && (
         <label className="field">
-          <span>מגיב לשעון ב-</span>
+          <span>{tr('מגיב לשעון ב-', 'Triggers on the')}</span>
           <select
             value={component.props?.fallingEdge ? 'falling' : 'rising'}
             onChange={(e) =>
               updateComponent(component.id, { props: { fallingEdge: e.target.value === 'falling' } })
             }
           >
-            <option value="rising">עליית שעון (0 → 1)</option>
-            <option value="falling">ירידת שעון (1 → 0), עיגול על CLK</option>
+            <option value="rising">{tr('עליית שעון (0 → 1)', 'rising edge (0 → 1)')}</option>
+            <option value="falling">{tr('ירידת שעון (1 → 0), עיגול על CLK', 'falling edge (1 → 0), bubble on CLK')}</option>
           </select>
         </label>
       )}
@@ -302,7 +317,8 @@ function ComponentFields({
             onChange={(e) => updateComponent(component.id, { props: { async: e.target.checked } })}
           />
           <span>
-            כניסות אסינכרוניות <bdi>CLR&apos;</bdi> ו-<bdi>PRE&apos;</bdi> (פעילות ב-0)
+            {tr('כניסות אסינכרוניות', 'Asynchronous inputs')} <bdi>CLR&apos;</bdi> {tr('ו-', 'and ')}
+            <bdi>PRE&apos;</bdi> {tr('(פעילות ב-0)', '(active low)')}
           </span>
         </label>
       )}
@@ -310,7 +326,9 @@ function ComponentFields({
       {component.type === 'CLOCK' && (
         <>
           <label className="field">
-            <span>חצי מחזור {timeUnit !== 'none' && `(${timeUnit})`}</span>
+            <span>
+              {tr('חצי מחזור', 'Half period')} {timeUnit !== 'none' && `(${timeUnit})`}
+            </span>
             <input
               type="number"
               min={0.1}
@@ -323,7 +341,7 @@ function ComponentFields({
             />
           </label>
           <label className="field">
-            <span>רמה בהתחלה</span>
+            <span>{tr('רמה בהתחלה', 'Level at the start')}</span>
             <select
               value={String(component.props?.startLevel ?? 0)}
               onChange={(e) =>
@@ -332,7 +350,7 @@ function ComponentFields({
                 })
               }
             >
-              <option value="0">0 (עלייה ראשונה אחרי חצי מחזור)</option>
+              <option value="0">{tr('0 (עלייה ראשונה אחרי חצי מחזור)', '0 (first rise after half a period)')}</option>
               <option value="1">1</option>
             </select>
           </label>
@@ -341,11 +359,11 @@ function ComponentFields({
 
       {component.type === 'INPUT' && (
         <label className="field">
-          <span>שינויים מתוזמנים (זמן:ערך)</span>
+          <span>{tr('שינויים מתוזמנים (זמן:ערך)', 'Scheduled changes (time:value)')}</span>
           <input
             type="text"
             dir="ltr"
-            placeholder="לדוגמה 5:0 10:1"
+            placeholder={tr('לדוגמה 5:0 10:1', 'e.g. 5:0 10:1')}
             value={scheduleText}
             onChange={(e) => setScheduleText(e.target.value)}
             onBlur={commitSchedule}
@@ -356,7 +374,7 @@ function ComponentFields({
 
       {probeNets.length > 0 && (
         <fieldset className="field probes">
-          <legend>בדיאגרמת הזמנים</legend>
+          <legend>{tr('בדיאגרמת הזמנים', 'In the timing diagram')}</legend>
           {probeNets.map((p) => (
             <label key={p.net} className="check">
               <input
@@ -372,7 +390,7 @@ function ComponentFields({
 
       {inside && (
         <div className="field expand-field">
-          <p className="field-title">מה יש בפנים</p>
+          <p className="field-title">{tr('מה יש בפנים', "What's inside")}</p>
           <p className="hint">{inside}</p>
           <button
             type="button"
@@ -380,18 +398,18 @@ function ComponentFields({
               const parts = useCircuitStore.getState().expand(component.id);
               if (parts.length > 0) onSelect?.(parts);
             }}
-            title="מחליף את הרכיב ברכיבים שהוא בנוי מהם, עם אותם חיבורים"
+            title={tr('מחליף את הרכיב ברכיבים שהוא בנוי מהם, עם אותם חיבורים', 'Replaces the component by the parts it is built from, with the same connections')}
           >
-            פירוק לרכיבים
+            {tr('פירוק לרכיבים', 'Take apart')}
           </button>
         </div>
       )}
 
       <button type="button" onClick={() => onDuplicate?.([component.id])}>
-        שכפול
+        {tr('שכפול', 'Duplicate')}
       </button>
       <button type="button" className="danger" onClick={() => removeComponents([component.id])}>
-        מחיקת הרכיב
+        {tr('מחיקת הרכיב', 'Delete the component')}
       </button>
     </div>
   );
@@ -408,23 +426,26 @@ function SaveAsBlock({ selection }: { selection: string[] }) {
   };
   return (
     <div className="field expand-field">
-      <p className="field-title">שמירה כבלוק</p>
+      <p className="field-title">{tr('שמירה כבלוק', 'Save as block')}</p>
       <p className="hint">
-        המתגים שבבחירה יהיו הכניסות של הבלוק והנורות יהיו היציאות שלו, לפי הסדר מלמעלה למטה.
+        {tr(
+          'המתגים שבבחירה יהיו הכניסות של הבלוק והנורות יהיו היציאות שלו, לפי הסדר מלמעלה למטה.',
+          'The selected switches become the inputs of the block and the lamps its outputs, from top to bottom.',
+        )}
       </p>
       <label className="field">
-        <span>שם הבלוק</span>
+        <span>{tr('שם הבלוק', 'Block name')}</span>
         <input
           type="text"
           value={name}
-          placeholder="למשל MUX2"
+          placeholder={tr('למשל MUX2', 'e.g. MUX2')}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && save()}
         />
       </label>
       {error && <p className="field-error">{error}</p>}
       <button type="button" onClick={save}>
-        שמירה כבלוק
+        {tr('שמירה כבלוק', 'Save as block')}
       </button>
     </div>
   );

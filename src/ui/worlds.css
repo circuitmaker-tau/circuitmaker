@@ -1,5 +1,6 @@
 /* the row of worlds under the top bar */
 .worlds {
+  flex-shrink: 0;
   display: flex;
   gap: 4px;
   padding: 0 12px;
@@ -774,4 +775,43 @@
 
 .request-ok {
   color: var(--sig-1);
+}
+
+/* ---------------------------------------------------------------- language switch */
+
+.lang-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.lang-switch button {
+  border: none;
+  border-radius: 0;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: transparent;
+}
+
+.lang-switch button + button {
+  border-inline-start: 1px solid var(--line-strong);
+}
+
+.lang-switch button[aria-pressed='true'] {
+  color: var(--bg);
+  background: var(--fg);
+  font-weight: 600;
+}
+
+.worlds-lang {
+  margin-inline-start: auto;
+  align-self: center;
+  padding-inline-start: 12px;
+  /* stays in view at the end of the row when the worlds scroll sideways on a phone */
+  position: sticky;
+  inset-inline-end: 0;
+  background: var(--panel);
 }

@@ -13,6 +13,7 @@ import { edgeStep } from '../engine/behavior';
 import type { Logic } from '../engine/logic';
 import { inputsOfComponent } from '../model';
 import type { Circuit, Component, ComponentType } from '../model';
+import { tr } from '../i18n/lang';
 
 const FLIP_FLOPS: ReadonlySet<ComponentType> = new Set(['D_FF', 'T_FF', 'JK_FF', 'SR_FF']);
 const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
@@ -39,15 +40,15 @@ export interface FsmTable {
 export function fsmProblem(circuit: Circuit): string | null {
   const types = circuit.components.map((c) => c.type);
   const ffs = circuit.components.filter((c) => FLIP_FLOPS.has(c.type));
-  if (ffs.length === 0) return 'במעגל אין flip-flop, ולכן אין לו מצבים.';
-  if (ffs.length > MAX_FSM_FLIP_FLOPS) return `יש ${ffs.length} flip-flops. כאן אפשר עד ${MAX_FSM_FLIP_FLOPS}.`;
+  if (ffs.length === 0) return tr('במעגל אין flip-flop, ולכן אין לו מצבים.', 'The circuit has no flip-flop, so it has no states.');
+  if (ffs.length > MAX_FSM_FLIP_FLOPS) return tr(`יש ${ffs.length} flip-flops. כאן אפשר עד ${MAX_FSM_FLIP_FLOPS}.`, `There are ${ffs.length} flip-flops. Up to ${MAX_FSM_FLIP_FLOPS} here.`);
   const other = types.find(
     (t) => t === 'BLOCK' || t === 'SR_LATCH' || t === 'D_LATCH' || t === 'REGISTER4' || t === 'COUNTER4',
   );
-  if (other) return 'טבלת מצבים נבנית כאן רק ממעגל של D, T, JK או SR flip-flops ושערים.';
+  if (other) return tr('טבלת מצבים נבנית כאן רק ממעגל של D, T, JK או SR flip-flops ושערים.', 'A state table is built here only from D, T, JK or SR flip-flops and gates.');
   const inputs = circuit.components.filter((c) => c.type === 'INPUT');
-  if (inputs.length > MAX_FSM_INPUTS) return `יש ${inputs.length} מתגים. כאן אפשר עד ${MAX_FSM_INPUTS} כניסות.`;
-  if (!circuit.components.some((c) => c.type === 'OUTPUT')) return 'במעגל אין נורה (יציאה).';
+  if (inputs.length > MAX_FSM_INPUTS) return tr(`יש ${inputs.length} מתגים. כאן אפשר עד ${MAX_FSM_INPUTS} כניסות.`, `There are ${inputs.length} switches. Up to ${MAX_FSM_INPUTS} inputs here.`);
+  if (!circuit.components.some((c) => c.type === 'OUTPUT')) return tr('במעגל אין נורה (יציאה).', 'The circuit has no lamp (output).');
   return null;
 }
 

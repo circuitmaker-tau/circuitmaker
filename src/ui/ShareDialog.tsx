@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { encodeShare, shareUrl } from '../persistence/shareLink';
 import { useCircuitStore } from '../store/circuitStore';
+import { textDir, tr } from '../i18n/lang';
 
 /** Longer than this, some chat apps may cut the link. */
 const LONG_LINK = 8000;
@@ -55,7 +56,7 @@ export function ShareDialog({ open, onClose }: { open: boolean; onClose: () => v
     <dialog
       ref={dialog}
       className="share-dialog"
-      dir="rtl"
+      dir={textDir()}
       aria-labelledby="share-title"
       onClose={() => {
         setCopied(false);
@@ -64,17 +65,23 @@ export function ShareDialog({ open, onClose }: { open: boolean; onClose: () => v
       onClick={(e) => e.target === dialog.current && onClose()}
     >
       <form method="dialog" onSubmit={(e) => e.preventDefault()}>
-        <h2 id="share-title">שיתוף בקישור</h2>
+        <h2 id="share-title">{tr('שיתוף בקישור', 'Share as a link')}</h2>
         <p className="hint">
-          המעגל נמצא בתוך הקישור עצמו, בלי שרת. מי שפותח אותו מקבל עותק של המעגל כמו שהוא עכשיו, ושינויים
-          שלו לא משפיעים אצלך.
+          {tr(
+            'המעגל נמצא בתוך הקישור עצמו, בלי שרת. מי שפותח אותו מקבל עותק של המעגל כמו שהוא עכשיו, ושינויים שלו לא משפיעים אצלך.',
+            'The circuit is inside the link itself, with no server. Whoever opens it gets a copy of the circuit as it is now, and their changes do not affect yours.',
+          )}
         </p>
         <label className="field">
-          <span>הסבר או משימה למי שפותח (לא חובה)</span>
+          <span>{tr('הסבר או משימה למי שפותח (לא חובה)', 'An explanation or a task for whoever opens it (optional)')}</span>
           <textarea
             rows={3}
             value={note}
-            placeholder={lesson ? 'אפשר להעתיק לכאן את ההסבר של הדוגמה' : 'למשל: שנו את S0 ומדדו את משך הריצוד'}
+            placeholder={
+              lesson
+                ? tr('אפשר להעתיק לכאן את ההסבר של הדוגמה', "You can copy the example's explanation here")
+                : tr('למשל: שנו את S0 ומדדו את משך הריצוד', 'e.g. change S0 and measure how long the glitch is')
+            }
             onChange={(e) => {
               setNote(e.target.value);
               setCopied(false);
@@ -83,25 +90,35 @@ export function ShareDialog({ open, onClose }: { open: boolean; onClose: () => v
         </label>
         {lesson && !note && (
           <button type="button" className="share-use-lesson" onClick={() => setNote(lesson)}>
-            להוסיף את ההסבר של הדוגמה
+            {tr('להוסיף את ההסבר של הדוגמה', "Add the example's explanation")}
           </button>
         )}
         <label className="field">
-          <span>הקישור</span>
-          <input ref={field} type="text" dir="ltr" readOnly value={url} onFocus={(e) => e.target.select()} aria-label="הקישור" />
+          <span>{tr('הקישור', 'The link')}</span>
+          <input
+            ref={field}
+            type="text"
+            dir="ltr"
+            readOnly
+            value={url}
+            onFocus={(e) => e.target.select()}
+            aria-label={tr('הקישור', 'The link')}
+          />
         </label>
         {url.length > LONG_LINK && (
           <p className="hint">
-            הקישור ארוך ({url.length.toLocaleString('he-IL')} תווים), וחלק מאפליקציות ההודעות עלולות לקצר
-            אותו. למעגל גדול עדיף ייצוא JSON.
+            {tr(
+              `הקישור ארוך (${url.length.toLocaleString('he-IL')} תווים), וחלק מאפליקציות ההודעות עלולות לקצר אותו. למעגל גדול עדיף ייצוא JSON.`,
+              `The link is long (${url.length.toLocaleString('en-US')} characters), and some messaging apps may cut it. For a big circuit, export JSON instead.`,
+            )}
           </p>
         )}
         <div className="from-actions">
           <button type="button" className="primary" onClick={() => void copy()} disabled={!url}>
-            {copied ? 'הועתק ✓' : 'העתקת הקישור'}
+            {copied ? tr('הועתק ✓', 'Copied ✓') : tr('העתקת הקישור', 'Copy the link')}
           </button>
           <button type="button" onClick={onClose}>
-            סגירה
+            {tr('סגירה', 'Close')}
           </button>
         </div>
       </form>

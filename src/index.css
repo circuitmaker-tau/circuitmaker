@@ -119,6 +119,20 @@ a {
   gap: 8px;
 }
 
+/* the English names are longer: one line per button, and a second row when there is no room */
+html[lang='en'] .topbar .actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+html[lang='en'] .topbar .actions button {
+  white-space: nowrap;
+}
+
+html[lang='en'] .topbar .actions select.examples {
+  max-width: 220px;
+}
+
 /* undo and redo: a symbol, with the name in the tooltip and for screen readers */
 .topbar .actions button.icon {
   min-width: 36px;

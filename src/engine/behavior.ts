@@ -11,6 +11,7 @@
  */
 import type { ComponentType } from '../model';
 import type { Logic } from './logic';
+import { tr } from '../i18n/lang';
 
 type Bit = 0 | 1;
 
@@ -110,7 +111,7 @@ export function latchStep(
       return [n, n, (1 - n) as Bit];
     });
     return race
-      ? { state: 'X', outputs: ['X', 'X'], warning: 'S ו-R ירדו יחד מ-1 ל-0: מרוץ, Q לא ידוע' }
+      ? { state: 'X', outputs: ['X', 'X'], warning: tr('S ו-R ירדו יחד מ-1 ל-0: מרוץ, Q לא ידוע', 'S and R fell from 1 to 0 together: a race, Q is unknown') }
       : { state: next, outputs: [q, qn] };
   }
   // D latch: transparent while En = 1, holds while En = 0
@@ -157,7 +158,7 @@ export function edgeStep(
       };
     case 'SR_FF': {
       if (inputs[0] === 1 && inputs[1] === 1) {
-        return { state: ['X'], warning: 'מצב אסור: S = R = 1 בעליית השעון' };
+        return { state: ['X'], warning: tr('מצב אסור: S = R = 1 בעליית השעון', 'Forbidden: S = R = 1 at the clock edge') };
       }
       return {
         state: expand([inputs[0], inputs[1], state[0]], 1, ([s, r, y]) => [
@@ -208,7 +209,7 @@ export function flipFlopAsync(
 ): { state: Logic[]; warning?: string } | null {
   if (clr === 1 && pre === 1) return null;
   if (clr === 0 && pre === 0) {
-    return { state: ['X'], warning: "CLR' ו-PRE' פעילים יחד (שניהם 0): מצב אסור, Q לא מוגדר" };
+    return { state: ['X'], warning: tr("CLR' ו-PRE' פעילים יחד (שניהם 0): מצב אסור, Q לא מוגדר", "CLR' and PRE' are active together (both 0): forbidden, Q is undefined") };
   }
   if (clr === 0) return { state: [pre === 1 ? 0 : 'X'] };
   if (pre === 0) return { state: [clr === 1 ? 1 : 'X'] };

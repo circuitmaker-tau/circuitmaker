@@ -1,4 +1,5 @@
 import type { ComponentType } from '../model';
+import { tr } from '../i18n/lang';
 
 /** Title drawn inside a block, as in the course slides. */
 export const BOX_TITLE: Partial<Record<ComponentType, string>> = {
@@ -23,11 +24,16 @@ export const BOX_TITLE: Partial<Record<ComponentType, string>> = {
 };
 
 /** Short name on the palette button (the full name is in its tooltip). */
-export const PALETTE_LABEL: Partial<Record<ComponentType, string>> = {
-  PRIORITY_ENC4x2: 'מקודד עדיפות',
-  ENC4x2: 'מקודד 4:2',
-  D_FF: 'D-FF',
-  T_FF: 'T-FF',
-  JK_FF: 'JK-FF',
-  SR_FF: 'SR-FF',
+const PALETTE_LABEL: Partial<Record<ComponentType, [string, string]>> = {
+  PRIORITY_ENC4x2: ['מקודד עדיפות', 'Priority enc.'],
+  ENC4x2: ['מקודד 4:2', 'Encoder 4:2'],
+  D_FF: ['D-FF', 'D-FF'],
+  T_FF: ['T-FF', 'T-FF'],
+  JK_FF: ['JK-FF', 'JK-FF'],
+  SR_FF: ['SR-FF', 'SR-FF'],
+};
+
+export const paletteLabel = (type: ComponentType): string | undefined => {
+  const pair = PALETTE_LABEL[type];
+  return pair && tr(...pair);
 };

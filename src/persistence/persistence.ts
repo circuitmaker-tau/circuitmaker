@@ -8,6 +8,7 @@
  */
 import { parseCircuit, serializeCircuit } from '../model';
 import type { Circuit, ParseResult } from '../model';
+import { tr } from '../i18n/lang';
 
 export interface KeyValueStore {
   get: (key: string) => Promise<unknown>;
@@ -107,6 +108,6 @@ export async function readCircuitFile(file: Blob): Promise<ParseResult> {
   try {
     return parseCircuit(await file.text());
   } catch {
-    return { ok: false, errors: ['לא ניתן לקרוא את הקובץ'] };
+    return { ok: false, errors: [tr('לא ניתן לקרוא את הקובץ', 'The file cannot be read')] };
   }
 }

@@ -13,6 +13,7 @@ import { EXAMPLES } from '../examples';
 import type { Circuit } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
 import { WorldNav } from './WorldNav';
+import { tr } from '../i18n/lang';
 
 interface Machine {
   id: string;
@@ -275,13 +276,13 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
     <div className="app">
       <header className="topbar">
         <h1>
-          <button type="button" className="home-link" onClick={onHome} aria-label="דף הבית">
+          <button type="button" className="home-link" onClick={onHome} aria-label={tr('דף הבית', 'Home page')}>
             CircuitMaker
           </button>
         </h1>
         <div className="actions">
-          <button type="button" onClick={onHelp} title="מדריך למשתמש">
-            עזרה
+          <button type="button" onClick={onHelp} title={tr('מדריך למשתמש', 'User guide')}>
+            {tr('עזרה', 'Help')}
           </button>
         </div>
       </header>

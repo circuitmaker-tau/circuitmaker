@@ -24,11 +24,12 @@
  *
  * Latches and encoders are not exported yet; `unsupported` lists any such part.
  */
-import { CATALOG, inputPortsOf, inputsOfComponent, outputPortsOf } from '../model';
+import { inputPortsOf, inputsOfComponent, outputPortsOf } from '../model';
 import type { Circuit, Component } from '../model';
 import { delayToTicks } from '../model/time';
 import type { Logic } from '../engine/logic';
 import { settle } from '../engine/settle';
+import { labelOf } from '../i18n/components';
 
 export interface VerilogExport {
   source: string;
@@ -103,7 +104,7 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
   for (const c of circuit.components) {
     // an added or active-low En is not exported yet (the Icarus cases do not use it)
     if (c.props?.enable || c.props?.enableLow) {
-      unsupported.push(`${c.id} (${CATALOG[c.type].label}, En)`);
+      unsupported.push(`${c.id} (${labelOf(c.type)}, En)`);
       continue;
     }
     const ins = inputPortsOf(c.type, c.inputs).map((p) => read(c, p));
@@ -274,7 +275,7 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
         break;
       }
       default:
-        unsupported.push(`${c.id} (${CATALOG[c.type].label})`);
+        unsupported.push(`${c.id} (${labelOf(c.type)})`);
     }
   }
 

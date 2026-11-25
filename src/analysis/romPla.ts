@@ -13,6 +13,7 @@ import { product } from './format';
 import type { Cube } from './func';
 import { cellsOf } from './kmapPractice';
 import type { Value } from './minimize';
+import { tr } from '../i18n/lang';
 
 export const MAX_ROM_VARS = 4;
 export const MAX_ROM_OUTPUTS = 4;
@@ -30,23 +31,23 @@ export function readFunctions(text: string): FunctionSetResult {
     .split(/[\n;]/)
     .map((l) => l.trim())
     .filter(Boolean);
-  if (lines.length === 0) return { ok: false, error: 'כותבים פונקציה אחת או יותר, אחת בכל שורה.' };
-  if (lines.length > MAX_ROM_OUTPUTS) return { ok: false, error: `אפשר עד ${MAX_ROM_OUTPUTS} פונקציות.` };
+  if (lines.length === 0) return { ok: false, error: tr('כותבים פונקציה אחת או יותר, אחת בכל שורה.', 'Write one function or more, one per line.') };
+  if (lines.length > MAX_ROM_OUTPUTS) return { ok: false, error: tr(`אפשר עד ${MAX_ROM_OUTPUTS} פונקציות.`, `Up to ${MAX_ROM_OUTPUTS} functions.`) };
   const fns: ParsedFunction[] = [];
   for (const [i, line] of lines.entries()) {
     const r = parseFunction(line);
-    if (!r.ok) return { ok: false, error: `שורה ${i + 1}: ${r.error}` };
+    if (!r.ok) return { ok: false, error: tr(`שורה ${i + 1}: ${r.error}`, `Line ${i + 1}: ${r.error}`) };
     fns.push(r.fn);
   }
   const names = fns.map((f) => f.name);
   const twice = names.find((n, i) => names.indexOf(n) !== i);
-  if (twice) return { ok: false, error: `השם ${twice} מופיע פעמיים. לכל פונקציה שם משלה (למשל f ו-g).` };
+  if (twice) return { ok: false, error: tr(`השם ${twice} מופיע פעמיים. לכל פונקציה שם משלה (למשל f ו-g).`, `The name ${twice} appears twice. Each function needs its own name (e.g. f and g).`) };
   // the same declared variables everywhere keep their order (A1 A0 B1 B0); otherwise the usual order
   const same = fns.every((f) => f.vars.join() === fns[0].vars.join());
   const vars = same ? fns[0].vars : orderVariables(fns.flatMap((f) => f.vars));
   const limit = Math.min(MAX_ROM_VARS, MAX_FUNCTION_VARS);
   if (vars.length > limit) {
-    return { ok: false, error: `יחד יש ${vars.length} משתנים (${vars.join(', ')}). כאן אפשר עד ${limit}.` };
+    return { ok: false, error: tr(`יחד יש ${vars.length} משתנים (${vars.join(', ')}). כאן אפשר עד ${limit}.`, `Together there are ${vars.length} variables (${vars.join(', ')}). Up to ${limit} here.`) };
   }
   return { ok: true, set: { vars, fns: fns.map((f) => lift(f, vars)) } };
 }
