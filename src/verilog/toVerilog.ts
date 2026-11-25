@@ -101,6 +101,11 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
   };
 
   for (const c of circuit.components) {
+    // an added or active-low En is not exported yet (the Icarus cases do not use it)
+    if (c.props?.enable || c.props?.enableLow) {
+      unsupported.push(`${c.id} (${CATALOG[c.type].label}, En)`);
+      continue;
+    }
     const ins = inputPortsOf(c.type, c.inputs).map((p) => read(c, p));
     const out = (p = 'out') => nameOf.get(`${c.id}:${p}`)!;
     const i = (port: string) => read(c, port);
@@ -256,9 +261,11 @@ export function toVerilog(circuit: Circuit, untilTicks: number): VerilogExport {
           `(${C} === 1'b0 && ${P} === 1'b1) ? 1'b0 : (${P} === 1'b0 && ${C} === 1'b1) ? 1'b1 : ` +
           `(${C} === 1'bx && ${P} === 1'b1 && ${st} === 1'b0) ? 1'b0 : ` +
           `(${P} === 1'bx && ${C} === 1'b1 && ${st} === 1'b1) ? 1'b1 : 1'bx`;
+        // the active edge: 0 -> 1, or 1 -> 0 for a falling-edge device
+        const [lo, hi] = c.props?.fallingEdge ? ["1'b1", "1'b0"] : ["1'b0", "1'b1"];
         const body = [
-          `if (${c0} === 1'b0 && ${c1} === 1'b1) begin if (${rOld} === 1'b0${free}) begin ${nextFromOld} ${drive} end end`,
-          `else if ((${c0} === 1'b0 && ${c1} === 1'bx) || (${c0} === 1'bx && ${c1} === 1'b1)) begin ${st} = {${width}{1'bx}}; ${drive} end`,
+          `if (${c0} === ${lo} && ${c1} === ${hi}) begin if (${rOld} === 1'b0${free}) begin ${nextFromOld} ${drive} end end`,
+          `else if ((${c0} === ${lo} && ${c1} === 1'bx) || (${c0} === 1'bx && ${c1} === ${hi})) begin ${st} = {${width}{1'bx}}; ${drive} end`,
           reset ? `if (${r} === 1'b1) begin ${st} = 0; ${drive} end` : '',
           clr || pre ? `if (!(${C} === 1'b1 && ${P} === 1'b1)) begin ${st} = ${forced}; ${drive} end` : '',
           ...[...new Set(watched)].map((name) => `${prev(name)}_${st} = ${name};`),

@@ -140,6 +140,17 @@ describe('taking a block apart', () => {
     expect(r.circuit.wires.some((w) => w.from.component === 'B' || w.to.component === 'B')).toBe(false);
   });
 
+  it('a register or counter on the falling edge is taken apart into falling-edge flip-flops', () => {
+    for (const type of ['REGISTER4', 'COUNTER4'] as const) {
+      const c = harness(type);
+      c.components[0].props = { ...c.components[0].props, fallingEdge: true };
+      const r = expandComponent(c, 'B')!;
+      const ffs = r.circuit.components.filter((x) => x.type === 'D_FF' || x.type === 'T_FF');
+      expect(ffs).toHaveLength(4);
+      expect(ffs.every((x) => x.props?.fallingEdge === true)).toBe(true);
+    }
+  });
+
   it('gates, flip-flops and the plain encoder stay as they are', () => {
     for (const type of ['AND', 'NOT', 'D_FF', 'JK_FF', 'ENC4x2', 'INPUT'] as ComponentType[]) {
       expect(canExpand(type)).toBe(false);

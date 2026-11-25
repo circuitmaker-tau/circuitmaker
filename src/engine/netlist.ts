@@ -3,7 +3,7 @@
  * becomes a device that reads nets and drives nets. A net is named after the
  * output port that drives it (`component:port`).
  */
-import { flattenBlocks, inputsOfComponent, outputsOfComponent } from '../model';
+import { flattenBlocks, hasEnableOption, inputsOfComponent, outputsOfComponent } from '../model';
 import type { Circuit, Component, ComponentType } from '../model';
 import { delayToTicks } from '../model/time';
 import { EDGE_TRIGGERED, LATCHES, isCombinationalBlock, stateWidth } from './behavior';
@@ -39,6 +39,14 @@ export interface Device {
   plain: number;
   /** Index of the CLK input of an edge-triggered device, -1 otherwise. */
   clock: number;
+  /** The device changes on the falling clock edge (1 -> 0) instead of the rising one. */
+  falling: boolean;
+  /** Index of the En input, -1 when there is none. */
+  en: number;
+  /** En is active low: its value is inverted before the component sees it. */
+  enLow: boolean;
+  /** En was added on request (MUX, register, counter), so the behaviour does not know it. */
+  enAdded: boolean;
   /** Index of the asynchronous RESET input (COUNTER4), -1 otherwise or when unconnected. */
   reset: number;
   /** Indices of the active-low CLR' and PRE' of a flip-flop, -1 when off or unconnected. */
@@ -118,6 +126,10 @@ export function buildNetlist(original: Circuit): Netlist {
       fall: c.props?.tpHL !== undefined ? delayToTicks(c.props.tpHL) : plain,
       plain,
       clock: kind === 'edge' ? ports.indexOf('CLK') : -1,
+      falling: kind === 'edge' && c.props?.fallingEdge === true,
+      en: ports.indexOf('En'),
+      enLow: c.props?.enableLow === true && ports.includes('En'),
+      enAdded: c.props?.enable === true && hasEnableOption(c.type),
       reset: -1,
       clr: -1,
       pre: -1,
@@ -151,6 +163,10 @@ export function buildNetlist(original: Circuit): Netlist {
       fall: 0,
       plain: 0,
       clock: -1,
+      falling: false,
+      en: -1,
+      enLow: false,
+      enAdded: false,
       reset: -1,
       clr: -1,
       pre: -1,
@@ -164,3 +180,31 @@ export function buildNetlist(original: Circuit): Netlist {
 
 /** Delay before a new output value appears (rule E2: tpLH for 1, tpHL for 0). */
 export const delayFor = (d: Device, v: Logic) => (v === 1 ? d.rise : v === 0 ? d.fall : d.plain);
+
+/**
+ * The input values a device works with: an active-low En is inverted first,
+ * so the behaviour always sees an active-high enable (1 = enabled).
+ */
+export function deviceInputs(d: Device, values: readonly Logic[]): Logic[] {
+  if (!d.enLow || d.en < 0) return [...values];
+  const out = [...values];
+  const v = out[d.en];
+  out[d.en] = v === 'X' ? 'X' : v === 1 ? 0 : 1;
+  return out;
+}
+
+/** The inputs without an added En, as the component's own behaviour expects them. */
+export const withoutAddedEn = (d: Device, ins: readonly Logic[]): Logic[] =>
+  d.enAdded ? ins.filter((_, i) => i !== d.en) : [...ins];
+
+/**
+ * A new state on a clock edge, through an added En: kept while En = 0, and
+ * where En is unknown, every bit that would change becomes X.
+ */
+export function gateState(d: Device, ins: readonly Logic[], next: Logic[]): Logic[] | null {
+  if (!d.enAdded) return next;
+  const en = ins[d.en];
+  if (en === 1) return next;
+  if (en === 0) return null;
+  return next.map((v, i) => (v === d.state[i] ? v : 'X'));
+}

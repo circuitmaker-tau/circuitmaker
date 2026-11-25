@@ -4,6 +4,9 @@ import {
   expansionSummary,
   formatSchedule,
   hasAsyncOption,
+  hasEdgeOption,
+  hasEnableOption,
+  hasEnablePolarity,
   outputsOfComponent,
   parseSchedule,
 } from '../model';
@@ -239,6 +242,54 @@ function ComponentFields({
             <option value="0">0</option>
             <option value="1">1</option>
             <option value="X">X (לא ידוע)</option>
+          </select>
+        </label>
+      )}
+
+      {hasEnableOption(component.type) && (
+        <label className="check field">
+          <input
+            type="checkbox"
+            checked={component.props?.enable === true}
+            onChange={(e) =>
+              updateComponent(component.id, {
+                props: { enable: e.target.checked, ...(e.target.checked ? {} : { enableLow: false }) },
+              })
+            }
+          />
+          <span>
+            כניסת Enable (<bdi>En</bdi>):{' '}
+            {component.type.startsWith('MUX') ? 'כשהיא כבויה, f = 0' : 'כשהיא כבויה, הערך נשמר'}
+          </span>
+        </label>
+      )}
+
+      {hasEnablePolarity(component) && (
+        <label className="field">
+          <span>
+            <bdi>En</bdi> פעיל ב-
+          </span>
+          <select
+            value={component.props?.enableLow ? 'low' : 'high'}
+            onChange={(e) => updateComponent(component.id, { props: { enableLow: e.target.value === 'low' } })}
+          >
+            <option value="high">1 (רגיל)</option>
+            <option value="low">0 (עיגול על En)</option>
+          </select>
+        </label>
+      )}
+
+      {hasEdgeOption(component.type) && (
+        <label className="field">
+          <span>מגיב לשעון ב-</span>
+          <select
+            value={component.props?.fallingEdge ? 'falling' : 'rising'}
+            onChange={(e) =>
+              updateComponent(component.id, { props: { fallingEdge: e.target.value === 'falling' } })
+            }
+          >
+            <option value="rising">עליית שעון (0 → 1)</option>
+            <option value="falling">ירידת שעון (1 → 0), עיגול על CLK</option>
           </select>
         </label>
       )}

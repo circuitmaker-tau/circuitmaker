@@ -146,7 +146,7 @@ const GATES: ComponentType[] = ['AND', 'OR', 'NOT', 'BUF', 'NAND', 'NOR', 'XOR',
 const DELAYS = [0, 0.5, 1, 1, 1.5, 2, 3];
 
 /** A random circuit: switches with random changes, a DAG of gates, and optionally clocked FFs. */
-export function randomCase(seed: number, sequential: boolean, async = false): Case {
+export function randomCase(seed: number, sequential: boolean, async = false, falling = false): Case {
   const r = rng(seed);
   const pick = <T>(xs: readonly T[]) => xs[Math.floor(r() * xs.length)];
   const c: Circuit = {
@@ -188,7 +188,7 @@ export function randomCase(seed: number, sequential: boolean, async = false): Ca
       c.components.push(
         createComponent(type, id, undefined, {
           delay: pick(DELAYS),
-          props: { init: r() < 0.5 ? 0 : 1 },
+          props: { init: r() < 0.5 ? 0 : 1, ...(falling && r() < 0.5 ? { fallingEdge: true } : {}) },
         }),
       );
       ffs.push(id);
@@ -231,4 +231,6 @@ export const RANDOM_CASES: Case[] = [
   ...Array.from({ length: 200 }, (_, i) => randomCase(5000 + i, true)),
   // flip-flops with asynchronous CLR' and PRE'
   ...Array.from({ length: 100 }, (_, i) => randomCase(9000 + i, true, true)),
+  // flip-flops on the rising and on the falling clock edge, mixed
+  ...Array.from({ length: 100 }, (_, i) => randomCase(12000 + i, true, false, true)),
 ];

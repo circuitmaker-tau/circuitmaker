@@ -79,6 +79,12 @@ export interface ComponentProps {
   halfPeriod?: number;
   /** D/T/JK/SR flip-flops: show the active-low asynchronous inputs CLR' and PRE'. */
   async?: boolean;
+  /** MUX, register and counter: add an enable input En (MUX: f = 0 while off; register and counter: hold). */
+  enable?: boolean;
+  /** Any component with an En input: En is active low (a bubble), so it works while En = 0. */
+  enableLow?: boolean;
+  /** Flip-flops, registers and counters: change on the falling clock edge (1 -> 0) instead of the rising one. */
+  fallingEdge?: boolean;
   /** CLOCK: level before the first edge. */
   startLevel?: 0 | 1;
   /** Latches and flip-flops: value before the first event (rule E5). */

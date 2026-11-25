@@ -118,12 +118,36 @@ const WITH_ASYNC: ReadonlySet<ComponentType> = new Set(['D_FF', 'T_FF', 'JK_FF',
 
 export const hasAsyncOption = (type: ComponentType) => WITH_ASYNC.has(type);
 
-/** Every input port of this component, including CLR' and PRE' when they are turned on. */
+/** Clocked components, which can work on the rising or on the falling clock edge. */
+const CLOCKED = new Set<ComponentType>(['D_FF', 'T_FF', 'JK_FF', 'SR_FF', 'REGISTER4', 'COUNTER4']);
+export const hasEdgeOption = (type: ComponentType) => CLOCKED.has(type);
+
+/** True when this component changes on the falling clock edge. */
+export const onFallingEdge = (c: Pick<Component, 'type' | 'props'>) =>
+  c.props?.fallingEdge === true && hasEdgeOption(c.type);
+
+/**
+ * Components that can get an enable input En on request (supervisor's review,
+ * 25.11). Decoders, encoders and the D latch have one already.
+ */
+const WITH_ENABLE_OPTION = new Set<ComponentType>(['MUX2', 'MUX4', 'MUX8', 'REGISTER4', 'COUNTER4']);
+export const hasEnableOption = (type: ComponentType) => WITH_ENABLE_OPTION.has(type);
+
+/** Every input port of this component, including CLR' and PRE' and an added En when turned on. */
 export function inputsOfComponent(c: Pick<Component, 'type' | 'inputs' | 'props'>): string[] {
   if (c.type === 'BLOCK') return c.props?.pins?.in ?? [];
   const base = inputPortsOf(c.type, c.inputs);
-  return c.props?.async && hasAsyncOption(c.type) ? [...base, ...ASYNC_PORTS] : base;
+  const withEn = c.props?.enable && hasEnableOption(c.type) ? [...base, 'En'] : base;
+  return c.props?.async && hasAsyncOption(c.type) ? [...withEn, ...ASYNC_PORTS] : withEn;
 }
+
+/** True when this component has an En input that may be set to active low. */
+export const hasEnablePolarity = (c: Pick<Component, 'type' | 'inputs' | 'props'>) =>
+  c.type !== 'BLOCK' && inputsOfComponent(c).includes('En');
+
+/** True when the En input of this component is active low (shown with a bubble). */
+export const enableActiveLow = (c: Pick<Component, 'type' | 'inputs' | 'props'>) =>
+  c.props?.enableLow === true && hasEnablePolarity(c);
 
 /** An input that may stay unconnected without becoming X. */
 export const isOptionalInput = (port: string) => (ASYNC_PORTS as readonly string[]).includes(port);

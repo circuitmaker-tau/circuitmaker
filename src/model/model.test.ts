@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatSchedule, parseSchedule } from './stimuli';
 import { mux2FromGates } from '../examples/mux2FromGates';
-import { CATALOG, inputPortsOf, outputPortsOf } from './catalog';
+import { CATALOG, enableActiveLow, inputPortsOf, inputsOfComponent, onFallingEdge, outputPortsOf } from './catalog';
 import { createCircuit, createComponent, createWire, nextId } from './factory';
 import { parseCircuit, serializeCircuit } from './serialize';
 import { delayToTicks, isValidDelay, ticksToDelay } from './time';
@@ -223,5 +223,35 @@ describe('switch schedules', () => {
     );
     const bad = validateCircuit(c).filter((i) => i.code === 'BAD_PROP');
     expect(bad.map((i) => i.componentId)).toEqual(['n']);
+  });
+});
+
+describe('enable and clock-edge options', () => {
+  it('an added En is the last input, and only where the option exists', () => {
+    expect(inputsOfComponent(createComponent('MUX2', 'm', undefined, { props: { enable: true } }))).toEqual([
+      'I0',
+      'I1',
+      'S0',
+      'En',
+    ]);
+    expect(inputsOfComponent(createComponent('COUNTER4', 'c', undefined, { props: { enable: true } }))).toEqual([
+      'CLK',
+      'RESET',
+      'En',
+    ]);
+    // a decoder has its own En; an AND gate gets none
+    expect(inputsOfComponent(createComponent('DEC2x4', 'd', undefined, { props: { enable: true } }))).toEqual([
+      'I0',
+      'I1',
+      'En',
+    ]);
+    expect(inputsOfComponent(createComponent('AND', 'a', undefined, { props: { enable: true } }))).toEqual(['in0', 'in1']);
+  });
+
+  it('active low applies to any En, and the falling edge only to clocked parts', () => {
+    expect(enableActiveLow(createComponent('DEC3x8', 'd', undefined, { props: { enableLow: true } }))).toBe(true);
+    expect(enableActiveLow(createComponent('MUX2', 'm', undefined, { props: { enableLow: true } }))).toBe(false);
+    expect(onFallingEdge(createComponent('JK_FF', 'f', undefined, { props: { fallingEdge: true } }))).toBe(true);
+    expect(onFallingEdge(createComponent('D_LATCH', 'l', undefined, { props: { fallingEdge: true } }))).toBe(false);
   });
 });

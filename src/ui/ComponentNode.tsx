@@ -1,6 +1,6 @@
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { CATALOG, inputsOfComponent, outputsOfComponent } from '../model';
+import { CATALOG, enableActiveLow, inputsOfComponent, outputsOfComponent } from '../model';
 import type { Component, Signal } from '../model';
 import { useAnalysisStore } from '../store/analysisStore';
 import { useSimStore } from '../store/simStore';
@@ -57,6 +57,52 @@ function StoredValue({ type, state }: { type: Component['type']; state: Signal[]
     </span>
   );
 }
+/** The component that owns a net: "g1:out" → g1, and a part inside a block "B1/g1:out" → B1. */
+const ownerOf = (net: string) => net.slice(0, net.lastIndexOf(':')).split('/')[0];
+
+/**
+ * New values on their way through this component's delay, as "progress|value"
+ * pairs, so the node re-renders only while one of them moves.
+ */
+function useDelays(id: string): { progress: number; value: Signal }[] {
+  const key = useSimStore((s) => {
+    const parts: string[] = [];
+    for (const [net, list] of s.fronts) {
+      if (ownerOf(net) !== id) continue;
+      for (const f of list) parts.push(`${f.progress.toFixed(3)}|${f.value}`);
+    }
+    return parts.join(',');
+  });
+  if (!key) return [];
+  return key.split(',').map((p) => {
+    const [progress, value] = p.split('|');
+    return { progress: Number(progress), value: value === 'X' ? 'X' : value === '1' ? 1 : 0 };
+  });
+}
+
+/**
+ * The delay happens in the component, not on the wire: while a new value is
+ * inside its Tp, a bar fills across the component in the colour of that value,
+ * and only when it is full does the output (and the wire after it) change.
+ */
+function DelayBar({ id, width, bottom }: { id: string; width: number; bottom: number }) {
+  const delays = useDelays(id);
+  if (delays.length === 0) return null;
+  return (
+    <span className="cm-delay" style={{ top: bottom - 9, width: width - 16 }} dir="ltr">
+      {delays.slice(0, 2).map((d, i) => (
+        <span
+          key={i}
+          className={`cm-delay-fill v-${sig(d.value)}`}
+          style={{ width: `${Math.round(d.progress * 100)}%` }}
+          role="img"
+          aria-label={`${id}: ${d.value} בדרך דרך ה-Tp (${Math.round(d.progress * 100)}%)`}
+        />
+      ))}
+    </span>
+  );
+}
+
 export type ComponentFlowNode = Node<ComponentNodeData, 'component'>;
 
 export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
@@ -111,9 +157,18 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
             {showPortNames &&
               (port === 'CLK' ? (
                 // edge-triggered clock input: the triangle of the course symbols
-                <span className="cm-port cm-port-in cm-clk" aria-label="CLK" />
+                // a bubble before it: the falling edge is the active one
+                <span
+                  className={`cm-port cm-port-in cm-clk${c.props?.fallingEdge ? ' is-falling' : ''}`}
+                  aria-label={c.props?.fallingEdge ? 'CLK, ירידת שעון' : 'CLK'}
+                />
               ) : (
-                <span className={`cm-port ${below ? 'cm-port-below' : 'cm-port-in'}`}>{port}</span>
+                <span
+                  className={`cm-port ${below ? 'cm-port-below' : 'cm-port-in'}${port === 'En' && enableActiveLow(c) ? ' is-low' : ''}`}
+                  aria-label={port === 'En' && enableActiveLow(c) ? 'En, פעיל ב-0' : undefined}
+                >
+                  {port}
+                </span>
               ))}
           </Handle>
         );
@@ -182,6 +237,8 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
           </span>
         </div>
       )}
+
+      {def.category !== 'io' && <DelayBar id={c.id} width={width} bottom={bodyHeight} />}
 
       {outs.map((port) => (
         <Handle

@@ -473,3 +473,178 @@ describe("asynchronous CLR' and PRE' (WK8A, active low)", () => {
     expect(settle(c).nets.get('ff:Q')).toBe(0);
   });
 });
+
+describe('falling clock edge (a bubble on CLK)', () => {
+  it('a T flip-flop with T = 1 toggles on the falling edges 2, 4, 6 instead of the rising 1, 3, 5', () => {
+    const tff = (falling: boolean) =>
+      build(
+        [
+          ['clk', 'CLOCK'],
+          ['one', 'CONST1'],
+          ['f', 'T_FF', 0, { init: 0, ...(falling ? { fallingEdge: true } : {}) }],
+        ],
+        [
+          ['one', 'f.T'],
+          ['clk', 'f.CLK'],
+        ],
+      );
+    expect(wave(run(tff(false), 6), 'f:Q')).toBe('0:0 1:1 3:0 5:1');
+    expect(wave(run(tff(true), 6), 'f:Q')).toBe('0:0 2:1 4:0 6:1');
+  });
+
+  it('is the same as a rising-edge flip-flop behind an inverter with Tp = 0', () => {
+    const parts = (falling: boolean) =>
+      build(
+        [
+          ['clk', 'CLOCK', undefined, { halfPeriod: 1.5 }],
+          ['d', 'INPUT', undefined, { value: 0, schedule: [{ time: 1, value: 1 }, { time: 4, value: 0 }, { time: 7.2, value: 1 }] }],
+          ['n', 'NOT', 0],
+          ['f', 'D_FF', 1, { init: 0, ...(falling ? { fallingEdge: true } : {}) }],
+        ],
+        falling
+          ? [
+              ['d', 'f.D'],
+              ['clk', 'f.CLK'],
+            ]
+          : [
+              ['d', 'f.D'],
+              ['clk', 'n.in0'],
+              ['n', 'f.CLK'],
+            ],
+      );
+    expect(wave(run(parts(true), 12), 'f:Q')).toBe(wave(run(parts(false), 12), 'f:Q'));
+    // falls at 3, 6, 9: D was 1 before 3, 0 before 6, 1 before 9, and Q follows 1 later
+    expect(wave(run(parts(true), 12), 'f:Q')).toBe('0:0 4:1 7:0 10:1');
+  });
+
+  it('a clock going 1 -> X is not a defined falling edge: Q becomes X', () => {
+    const c = build(
+      [
+        ['k', 'INPUT', undefined, { value: 1 }],
+        ['f', 'D_FF', 0, { init: 0, fallingEdge: true }],
+        ['one', 'CONST1'],
+      ],
+      [
+        ['one', 'f.D'],
+        ['k', 'f.CLK'],
+      ],
+    );
+    const sim = new Simulator(c);
+    sim.setNet('k:out', 'X');
+    sim.runUntil(10);
+    expect(sim.value('f:Q')).toBe('X');
+  });
+
+  it('settles like the rising-edge one: before time starts nothing is clocked', () => {
+    const c = build(
+      [
+        ['clk', 'CLOCK', undefined, { startLevel: 1 }],
+        ['f', 'D_FF', 0, { init: 1, fallingEdge: true }],
+      ],
+      [['clk', 'f.CLK']],
+    );
+    expect(settle(c).nets.get('f:Q')).toBe(1);
+  });
+});
+
+describe('enable inputs: added En, and active low', () => {
+  it('a MUX 2:1 with an added En outputs 0 while En = 0, and the selected input while En = 1', () => {
+    for (const [en, low, want] of [
+      [1, false, 1],
+      [0, false, 0],
+      [0, true, 1], // active low: En = 0 enables
+      [1, true, 0],
+    ] as const) {
+      const c = build(
+        [
+          ['i1', 'INPUT', undefined, { value: 1 }],
+          ['s', 'INPUT', undefined, { value: 1 }],
+          ['e', 'INPUT', undefined, { value: en }],
+          ['m', 'MUX2', 0, { enable: true, ...(low ? { enableLow: true } : {}) }],
+        ],
+        [
+          ['i1', 'm.I1'],
+          ['s', 'm.S0'],
+          ['e', 'm.En'],
+        ],
+      );
+      expect(settle(c).nets.get('m:f')).toBe(want);
+    }
+  });
+
+  it('an unconnected added En is X, so a MUX output that would be 1 is X and one that would be 0 stays 0', () => {
+    const c = build(
+      [
+        ['i0', 'INPUT', undefined, { value: 1 }],
+        ['s', 'INPUT', undefined, { value: 0 }],
+        ['m', 'MUX2', 0, { enable: true }],
+        ['n', 'MUX2', 0, { enable: true }],
+      ],
+      [
+        ['i0', 'm.I0'],
+        ['s', 'm.S0'],
+        ['s', 'n.I0'],
+        ['s', 'n.S0'],
+      ],
+    );
+    expect(settle(c).nets.get('m:f')).toBe('X');
+    expect(settle(c).nets.get('n:f')).toBe(0);
+  });
+
+  it('a decoder with an active-low En: all outputs 0 while En = 1, one output 1 while En = 0', () => {
+    const dec = (en: 0 | 1) =>
+      build(
+        [
+          ['a', 'INPUT', undefined, { value: 1 }],
+          ['e', 'INPUT', undefined, { value: en }],
+          ['d', 'DEC2x4', 0, { enableLow: true }],
+        ],
+        [
+          ['a', 'd.I0'],
+          ['a', 'd.I1'],
+          ['e', 'd.En'],
+        ],
+      );
+    expect(['D0', 'D1', 'D2', 'D3'].map((p) => settle(dec(1)).nets.get(`d:${p}`))).toEqual([0, 0, 0, 0]);
+    expect(['D0', 'D1', 'D2', 'D3'].map((p) => settle(dec(0)).nets.get(`d:${p}`))).toEqual([0, 0, 0, 1]);
+  });
+
+  it('a counter with an added En counts only while En = 1, and an active-low one while En = 0', () => {
+    const counter = (low: boolean) =>
+      build(
+        [
+          ['clk', 'CLOCK'],
+          // enabled for the first two rising edges (t = 1, 3), off for the next two (5, 7)
+          ['e', 'INPUT', undefined, { value: low ? 0 : 1, schedule: [{ time: 4, value: low ? 1 : 0 }] }],
+          ['c', 'COUNTER4', 0, { init: 0, enable: true, ...(low ? { enableLow: true } : {}) }],
+        ],
+        [
+          ['clk', 'c.CLK'],
+          ['e', 'c.En'],
+        ],
+      );
+    for (const low of [false, true]) {
+      const sim = run(counter(low), 8);
+      expect(wave(sim, 'c:Q0')).toBe('0:0 1:1 3:0');
+      expect(wave(sim, 'c:Q1')).toBe('0:0 3:1');
+    }
+  });
+
+  it('a register with an added En loads only while En = 1', () => {
+    const c = build(
+      [
+        ['clk', 'CLOCK'],
+        ['d', 'INPUT', undefined, { value: 1, schedule: [{ time: 4, value: 0 }] }],
+        ['e', 'INPUT', undefined, { value: 0, schedule: [{ time: 2, value: 1 }, { time: 6, value: 0 }] }],
+        ['r', 'REGISTER4', 0, { init: 0, enable: true }],
+      ],
+      [
+        ['clk', 'r.CLK'],
+        ['d', 'r.D0'],
+        ['e', 'r.En'],
+      ],
+    );
+    // t = 1: En = 0, keeps 0; t = 3: loads 1; t = 5: loads 0; t = 7: En = 0, keeps 0
+    expect(wave(run(c, 8), 'r:Q0')).toBe('0:0 3:1 5:0');
+  });
+});
