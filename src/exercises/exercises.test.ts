@@ -4,6 +4,7 @@ import { validateCircuit } from '../model/validate';
 import { FAMILIES, exerciseFromKey, newExercise, rng } from './exercises';
 import type { Level } from './exercises';
 import { gradeExercise } from './grade';
+import { setLang } from '../i18n/lang';
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => i * 7919 + 13);
 
@@ -106,5 +107,40 @@ describe('the targets agree with the built-in components', () => {
       } else c.wires.push(createWire('f', ['ref', 'f'], ['F', 'in']));
       expect(gradeExercise(c, ex).correctRows).toBe(ex.outputs.length << ex.inputs.length);
     }
+  });
+});
+
+describe('self-practice in English', () => {
+  it('every text of every family, and the notes of the grade, have no Hebrew in them', () => {
+    const hebrew = /[\u0590-\u05FF]/;
+    setLang('en');
+    try {
+      for (const f of FAMILIES) {
+        for (const seed of SEEDS.slice(0, 8)) {
+          const ex = exerciseFromKey(`${f.id}:${seed}`)!;
+          for (const text of [ex.title, ex.task, ex.source, ex.hint, ex.solution().name]) {
+            expect(text, ex.key).not.toMatch(hebrew);
+          }
+          for (const c of [ex.starter(), ex.solution()]) {
+            for (const n of gradeExercise(c, ex).notes) expect(n.text, ex.key).not.toMatch(hebrew);
+          }
+        }
+      }
+    } finally {
+      setLang('he');
+    }
+  });
+
+  it('a question already on the screen follows a change of language', () => {
+    const ex = exerciseFromKey('xor-nand:7')!;
+    const he = ex.title;
+    setLang('en');
+    try {
+      expect(ex.title).not.toBe(he);
+      expect(ex.title).not.toMatch(/[\u0590-\u05FF]/);
+    } finally {
+      setLang('he');
+    }
+    expect(ex.title).toBe(he);
   });
 });

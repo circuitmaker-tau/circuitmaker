@@ -9,6 +9,8 @@ import { jkFromClock } from './jkFromClock';
 import { asymmetric, dffFeedback, mux2Fixed, norLatch, staticZero, tffPulses } from './lessons';
 import { mux2FromGates } from './mux2FromGates';
 import { rippleAdder } from './rippleAdder';
+import { isEnglish } from '../i18n/lang';
+import { EXAMPLE_EN, GROUP_EN } from './english';
 
 export interface Example {
   id: string;
@@ -20,8 +22,8 @@ export interface Example {
   lesson: string;
 }
 
-/** Teaching circuits from the course, in the order of the course. */
-export const EXAMPLES: Example[] = [
+/** The examples as written (Hebrew). */
+const HEBREW: Example[] = [
   {
     id: 'levels',
     group: 'השהיות ו-hazards',
@@ -191,3 +193,24 @@ export const EXAMPLES: Example[] = [
       "הניתוח מההרצאה: J = xy2, K = x + y2', D = x'y2' + y1'y2, z = xy1y2'. מריצים את הרצף (X משתנה מעצמו כל מחזור) ועוקבים אחרי y1 y2 בדיאגרמה: a → b → d → c, ו-Z = 1 כשמגיע ה-1 האחרון של 0101, גם אחרי קלט שרירותי. אחרי זיהוי המכונה חוזרת ל-a, ולכן ב-010101 היא מזהה רק פעם אחת. אפשר לערוך את הרצף בשינויים המתוזמנים של X ולבדוק.",
   },
 ];
+
+/**
+ * Teaching circuits from the course, in the order of the course, in the
+ * interface language. In English the circuit is named after its label.
+ */
+export const EXAMPLES: Example[] = HEBREW.map((ex) => ({
+  id: ex.id,
+  get label() {
+    return isEnglish() ? (EXAMPLE_EN[ex.id]?.label ?? ex.label) : ex.label;
+  },
+  get group() {
+    return isEnglish() ? (GROUP_EN[ex.group] ?? ex.group) : ex.group;
+  },
+  get lesson() {
+    return isEnglish() ? (EXAMPLE_EN[ex.id]?.lesson ?? ex.lesson) : ex.lesson;
+  },
+  get circuit() {
+    const en = isEnglish() ? EXAMPLE_EN[ex.id] : undefined;
+    return en ? { ...ex.circuit, name: en.label } : ex.circuit;
+  },
+}));

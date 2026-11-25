@@ -1,8 +1,9 @@
 import { CATALOG } from './catalog';
 import { CIRCUIT_VERSION } from './types';
 import type { Circuit, Component, ComponentType, Position, TimeUnit, Wire } from './types';
+import { tr } from '../i18n/lang';
 
-export function createCircuit(name = 'מעגל חדש', timeUnit: TimeUnit = 'ns'): Circuit {
+export function createCircuit(name = tr('מעגל חדש', 'New circuit'), timeUnit: TimeUnit = 'ns'): Circuit {
   return { version: CIRCUIT_VERSION, name, timeUnit, components: [], wires: [] };
 }
 
