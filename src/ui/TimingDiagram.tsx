@@ -19,6 +19,7 @@ import { allRows, useTimingStore } from '../store/timingStore';
 import { AnalysisPanel } from './AnalysisPanel';
 import { CriticalPathPanel } from './CriticalPathPanel';
 import { exportTimingImage } from './exportImage';
+import { ExercisePanel } from './ExercisePanel';
 import { PracticePanel } from './PracticePanel';
 import { SIGNAL_COLORS } from './signalColors';
 import { TruthTablePanel } from './TruthTablePanel';
@@ -191,6 +192,7 @@ export function TimingDiagram() {
               ['truth', 'טבלת אמת'],
               ['critical', 'נתיב קריטי'],
               ['practice', 'תרגול'],
+              ['exercise', 'תרגול עצמי'],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -248,6 +250,7 @@ export function TimingDiagram() {
       {open && tab === 'truth' && <TruthTablePanel />}
       {open && tab === 'critical' && <CriticalPathPanel />}
       {open && tab === 'practice' && <PracticePanel />}
+      {open && tab === 'exercise' && <ExercisePanel />}
       {timing && (
         <div className="timing-body" dir="ltr">
           <div className="timing-labels" style={{ paddingTop: AXIS_H }}>
