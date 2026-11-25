@@ -80,17 +80,54 @@ function useDelays(id: string): { progress: number; value: Signal }[] {
   });
 }
 
+/** Where the delay bar goes: the box of a block, or inside the shape of a gate or a multiplexer. */
+interface DelayBarPlace {
+  left: number;
+  width: number;
+  /** The lowest y the bar may reach (it grows upwards from there), or the y of its middle for a gate. */
+  y: number;
+  centred: boolean;
+}
+
+const BAR_H = 4;
+
+/**
+ * The delay bar's place on a component. A gate gets it in the middle of its
+ * body (between the curved back and the front, clear of the stubs); a
+ * multiplexer above its slanted bottom edge; any other box along its bottom.
+ */
+function delayBarPlace(
+  type: Component['type'],
+  isGate: boolean,
+  mux: boolean,
+  width: number,
+  bodyHeight: number,
+  inset: number,
+): DelayBarPlace {
+  if (isGate) {
+    // the body starts after the 16px input stubs (22px for the XOR family) and is 40-48px long
+    const x0 = type === 'XOR' || type === 'XNOR' ? 22 : 16;
+    return { left: x0 + 8, width: 26, y: bodyHeight / 2, centred: true };
+  }
+  if (mux) return { left: 10, width: width - 20, y: bodyHeight - inset - 4, centred: false };
+  return { left: 8, width: width - 16, y: bodyHeight - 5, centred: false };
+}
+
 /**
  * The delay happens in the component, not on the wire: while a new value is
  * inside its Tp, a bar fills across the component in the colour of that value,
  * and only when it is full does the output (and the wire after it) change.
  */
-function DelayBar({ id, width, bottom }: { id: string; width: number; bottom: number }) {
-  const delays = useDelays(id);
+function DelayBar({ id, place }: { id: string; place: DelayBarPlace }) {
+  // two values on their way share one track: the one further along behind, the newer on top of it
+  const delays = useDelays(id)
+    .slice(0, 2)
+    .sort((a, b) => b.progress - a.progress);
   if (delays.length === 0) return null;
+  const top = place.centred ? place.y - BAR_H / 2 : place.y - BAR_H;
   return (
-    <span className="cm-delay" style={{ top: bottom - 9, width: width - 16 }} dir="ltr">
-      {delays.slice(0, 2).map((d, i) => (
+    <span className="cm-delay" style={{ top, left: place.left, width: place.width }} dir="ltr">
+      {delays.map((d, i) => (
         <span
           key={i}
           className={`cm-delay-fill v-${sig(d.value)}`}
@@ -238,7 +275,9 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
         </div>
       )}
 
-      {def.category !== 'io' && <DelayBar id={c.id} width={width} bottom={bodyHeight} />}
+      {def.category !== 'io' && (
+        <DelayBar id={c.id} place={delayBarPlace(c.type, isGate, mux, width, bodyHeight, inset)} />
+      )}
 
       {outs.map((port) => (
         <Handle
