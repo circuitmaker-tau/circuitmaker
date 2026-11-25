@@ -29,12 +29,17 @@ const CELL = 48;
 const HEAD = 44;
 const COLORS = ['#4ea1ff', '#f2c94c', '#d4506e', '#a77bff', '#3fd0d0', '#ff9f43'];
 
-const PROBLEM_TEXT = {
-  shape:
-    'קבוצה היא מלבן של 1, 2, 4 או 8 תאים. אפשר לעבור את הקצה של המפה (העמודה הימנית והשמאלית צמודות, וכך גם השורה העליונה והתחתונה).',
-  'wrong-value': { sop: 'בקבוצה יש תא עם 0. בסכום מכפלות מקבצים רק 1 ו-d.', pos: 'בקבוצה יש תא עם 1. במכפלת סכומים מקבצים רק 0 ו-d.' },
-  'only-dc': 'קבוצה שיש בה רק d לא מכסה אף תא, ולכן אין בה צורך.',
-} as const;
+const problemText = (problem: 'shape' | 'wrong-value' | 'only-dc', target: Target): string =>
+  problem === 'shape'
+    ? tr(
+        'קבוצה היא מלבן של 1, 2, 4 או 8 תאים. אפשר לעבור את הקצה של המפה (העמודה הימנית והשמאלית צמודות, וכך גם השורה העליונה והתחתונה).',
+        'A group is a rectangle of 1, 2, 4 or 8 cells. It may go across the edge of the map (the leftmost and rightmost columns are neighbours, and so are the top and bottom rows).',
+      )
+    : problem === 'wrong-value'
+      ? target === 'sop'
+        ? tr('בקבוצה יש תא עם 0. בסכום מכפלות מקבצים רק 1 ו-d.', 'The group has a cell with 0. For a sum of products, group only 1s and d.')
+        : tr('בקבוצה יש תא עם 1. במכפלת סכומים מקבצים רק 0 ו-d.', 'The group has a cell with 1. For a product of sums, group only 0s and d.')
+      : tr('קבוצה שיש בה רק d לא מכסה אף תא, ולכן אין בה צורך.', 'A group of only d covers no cell, so it is not needed.');
 
 const newSeed = () => Math.floor(Math.random() * 1_000_000);
 
@@ -127,7 +132,7 @@ function KGrid({ q, shown, wrong, selected, groups, indices, onCell, onKey, sele
               type="button"
               className={cls}
               style={{ left: HEAD + ci * CELL, top: HEAD + ri * CELL, width: CELL, height: CELL }}
-              aria-label={`תא ${m}: ${v === null ? 'ריק' : v}${wrong.has(m) ? ', שגוי' : ''}${selected.has(m) ? ', נבחר' : ''}`}
+              aria-label={`${tr('תא', 'Cell')} ${m}: ${v === null ? tr('ריק', 'empty') : v}${wrong.has(m) ? tr(', שגוי', ', wrong') : ''}${selected.has(m) ? tr(', נבחר', ', selected') : ''}`}
               aria-pressed={selecting ? selected.has(m) : undefined}
               onClick={() => onCell(m)}
               onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => onKey?.(m, e.key)}
@@ -195,7 +200,12 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
     if (!parsed.ok) return setOwnError(parsed.error);
     const { vars, table } = parsed.fn;
     if (vars.length < 2 || vars.length > 4) {
-      return setOwnError(`במפת קרנו כאן יש 2 עד 4 משתנים, ובפונקציה יש ${vars.length}.`);
+      return setOwnError(
+        tr(
+          `במפת קרנו כאן יש 2 עד 4 משתנים, ובפונקציה יש ${vars.length}.`,
+          `A Karnaugh map here has 2 to 4 variables, and the function has ${vars.length}.`,
+        ),
+      );
     }
     setOwnError(null);
     start({ vars, table });
@@ -218,14 +228,13 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
     const cells = [...selected];
     const problem = groupProblem(q.table, n, cells, target);
     if (problem) {
-      const text = PROBLEM_TEXT[problem];
-      setGroupMessage(typeof text === 'string' ? text : text[target]);
+      setGroupMessage(problemText(problem, target));
       return;
     }
     const cube = cubeOf(cells, n)!;
     const key = (c: Cube) => cellsOf(c, n).join(',');
     if (groups.some((g) => key(g) === key(cube))) {
-      setGroupMessage('הקבוצה הזו כבר קיימת.');
+      setGroupMessage(tr('הקבוצה הזו כבר קיימת.', 'This group is already there.'));
       return;
     }
     setGroups([...groups, cube]);
@@ -251,22 +260,24 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
 
       <div className="expr-world">
         <main className="expr-main kmap-world">
-          <h2>מפת קרנו: מילוי וקבוצות</h2>
+          <h2>{tr('מפת קרנו: מילוי וקבוצות', 'Karnaugh map: fill it, then group')}</h2>
           <p className="hint">
-            ממלאים את המפה לפי הפונקציה ובודקים, ואחר כך מסמנים קבוצות. המשוב אומר איזה תא במקום
-            הלא נכון, איזו קבוצה לא חוקית, מה עוד לא מכוסה, ואם אפשר עם פחות.
+            {tr(
+              'ממלאים את המפה לפי הפונקציה ובודקים, ואחר כך מסמנים קבוצות. המשוב אומר איזה תא במקום הלא נכון, איזו קבוצה לא חוקית, מה עוד לא מכוסה, ואם אפשר עם פחות.',
+              'Fill in the map of the function and check it, then mark groups. The feedback says which cell is in the wrong place, which group is not allowed, what is not covered yet, and whether fewer would do.',
+            )}
           </p>
 
           <div className="kmap-source">
-            <span>שאלה חדשה:</span>
+            <span>{tr('שאלה חדשה:', 'New question:')}</span>
             <button type="button" onClick={() => start(randomQuestion(newSeed(), 3, 0))}>
-              3 משתנים
+              {tr('3 משתנים', '3 variables')}
             </button>
             <button type="button" onClick={() => start(randomQuestion(newSeed(), 4, 0))}>
-              4 משתנים
+              {tr('4 משתנים', '4 variables')}
             </button>
             <button type="button" onClick={() => start(randomQuestion(newSeed(), 4, 2))}>
-              4 משתנים עם d
+              {tr('4 משתנים עם d', "4 variables with don't cares")}
             </button>
           </div>
           <form
@@ -277,7 +288,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
             }}
           >
             <label className="expr-field">
-              <span>או פונקציה משלך (2 עד 4 משתנים)</span>
+              <span>{tr('או פונקציה משלך (2 עד 4 משתנים)', 'Or a function of your own (2 to 4 variables)')}</span>
               <input
                 type="text"
                 dir="ltr"
@@ -291,7 +302,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
               />
             </label>
             <button type="submit" disabled={!own.trim()}>
-              טעינה
+              {tr('טעינה', 'Load')}
             </button>
             <p id="kmap-own-error" className="expr-error">
               {ownError}
@@ -302,14 +313,14 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
             {describeQuestion(q)}
           </p>
 
-          <div className="kmap-steps" role="tablist" aria-label="שלבים">
+          <div className="kmap-steps" role="tablist" aria-label={tr('שלבים', 'Steps')}>
             <button
               type="button"
               role="tab"
               aria-selected={step === 'fill'}
               onClick={() => setStep('fill')}
             >
-              1. מילוי המפה
+              {tr('1. מילוי המפה', '1. Fill the map')}
             </button>
             <button
               type="button"
@@ -317,15 +328,17 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
               aria-selected={step === 'group'}
               onClick={() => setStep('group')}
             >
-              2. קבוצות
+              {tr('2. קבוצות', '2. Groups')}
             </button>
           </div>
 
           {step === 'fill' ? (
-            <section className="kmap-step" aria-label="מילוי המפה">
+            <section className="kmap-step" aria-label={tr('מילוי המפה', 'Filling the map')}>
               <p className="hint">
-                לחיצה על תא מחליפה {hasDc ? '1, 0, d' : '1, 0'}. אפשר גם להקליד 1, 0{hasDc && ' או d'}{' '}
-                כשתא מסומן. שימו לב לסדר העמודות והשורות: 00, 01, 11, 10.
+                {tr(
+                  `לחיצה על תא מחליפה ${hasDc ? '1, 0, d' : '1, 0'}. אפשר גם להקליד 1, 0${hasDc ? ' או d' : ''} כשתא מסומן. שימו לב לסדר העמודות והשורות: 00, 01, 11, 10.`,
+                  `Clicking a cell goes through ${hasDc ? '1, 0, d' : '1, 0'}. You can also type 1, 0${hasDc ? ' or d' : ''} in a focused cell. Mind the order of the columns and rows: 00, 01, 11, 10.`,
+                )}
               </p>
               <div className="kmap-board">
                 <KGrid
@@ -348,7 +361,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
               </div>
               <div className="kmap-actions">
                 <button type="button" className="primary" onClick={() => setCheckedFill(true)}>
-                  בדיקה
+                  {tr('בדיקה', 'Check')}
                 </button>
                 <button
                   type="button"
@@ -357,7 +370,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                     setCheckedFill(true);
                   }}
                 >
-                  הצגת התשובה
+                  {tr('הצגת התשובה', 'Show the answer')}
                 </button>
                 <button
                   type="button"
@@ -366,43 +379,49 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                     setCheckedFill(false);
                   }}
                 >
-                  ניקוי
+                  {tr('ניקוי', 'Clear')}
                 </button>
                 <label className="check">
                   <input type="checkbox" checked={indices} onChange={(e) => setIndices(e.target.checked)} />
-                  <span>מספרי התאים</span>
+                  <span>{tr('מספרי התאים', 'Cell numbers')}</span>
                 </label>
               </div>
               {checkedFill && (
                 <div className={`expr-verdict ${fillDone ? 'is-same' : 'is-different'}`} role="status">
                   {fillDone ? (
                     <>
-                      <strong>המפה נכונה</strong>
+                      <strong>{tr('המפה נכונה', 'The map is right')}</strong>
                       <button type="button" className="kmap-next" onClick={() => setStep('group')}>
-                        לשלב הקבוצות
+                        {tr('לשלב הקבוצות', 'On to the groups')}
                       </button>
                     </>
                   ) : (
                     <>
                       <strong>
                         {wrong.size === 0
-                          ? 'מה שמילאתם נכון'
+                          ? tr('מה שמילאתם נכון', 'What you filled in is right')
                           : wrong.size === 1
-                            ? 'תא אחד לא נכון'
-                            : `${wrong.size} תאים לא נכונים`}
-                        {empty > 0 && (empty === 1 ? ', ותא אחד עוד ריק' : `, ו-${empty} תאים עוד ריקים`)}
+                            ? tr('תא אחד לא נכון', 'One cell is wrong')
+                            : tr(`${wrong.size} תאים לא נכונים`, `${wrong.size} cells are wrong`)}
+                        {empty > 0 &&
+                          (empty === 1
+                            ? tr(', ותא אחד עוד ריק', ', and one cell is still empty')
+                            : tr(`, ו-${empty} תאים עוד ריקים`, `, and ${empty} cells are still empty`))}
                       </strong>
                       {wrong.size > 0 &&
-                        `${wrong.size === 1 ? 'הוא מסומן' : 'הם מסומנים'} באדום. מספר התא הוא הצירוף של ${q.vars.join('')} בבינארי, ו״מספרי התאים״ מראה אותו.`}
+                        tr(
+                          `${wrong.size === 1 ? 'הוא מסומן' : 'הם מסומנים'} באדום. מספר התא הוא הצירוף של ${q.vars.join('')} בבינארי, ו״מספרי התאים״ מראה אותו.`,
+                          `${wrong.size === 1 ? 'It is' : 'They are'} marked in red. The number of a cell is ${q.vars.join('')} in binary, and "Cell numbers" shows it.`,
+                        )}
                     </>
                   )}
                 </div>
               )}
             </section>
           ) : (
-            <section className="kmap-step" aria-label="קבוצות">
+            <section className="kmap-step" aria-label={tr('קבוצות', 'Groups')}>
               <fieldset className="kmap-target">
-                <legend className="visually-hidden">מה מקבצים</legend>
+                <legend className="visually-hidden">{tr('מה מקבצים', 'What to group')}</legend>
                 <label className="check">
                   <input
                     type="radio"
@@ -414,7 +433,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                       setSelected(new Set());
                     }}
                   />
-                  <span>קבוצות של 1 (סכום מכפלות)</span>
+                  <span>{tr('קבוצות של 1 (סכום מכפלות)', 'Groups of 1 (sum of products)')}</span>
                 </label>
                 <label className="check">
                   <input
@@ -427,12 +446,14 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                       setSelected(new Set());
                     }}
                   />
-                  <span>קבוצות של 0 (מכפלת סכומים)</span>
+                  <span>{tr('קבוצות של 0 (מכפלת סכומים)', 'Groups of 0 (product of sums)')}</span>
                 </label>
               </fieldset>
               <p className="hint">
-                מסמנים תאים בלחיצה ולוחצים ״הוספת קבוצה״. כל קבוצה צריכה להיות מלבן של 1, 2, 4 או 8
-                תאים של {goalName} או d, וכדאי שתהיה גדולה ככל האפשר.
+                {tr(
+                  `מסמנים תאים בלחיצה ולוחצים ״הוספת קבוצה״. כל קבוצה צריכה להיות מלבן של 1, 2, 4 או 8 תאים של ${goalName} או d, וכדאי שתהיה גדולה ככל האפשר.`,
+                  `Click cells to select them and click "Add group". Every group must be a rectangle of 1, 2, 4 or 8 cells of ${goalName} or d, and as big as possible.`,
+                )}
               </p>
               <div className="kmap-board">
                 <KGrid
@@ -454,13 +475,13 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
               </div>
               <div className="kmap-actions">
                 <button type="button" className="primary" disabled={selected.size === 0} onClick={addGroup}>
-                  הוספת קבוצה
+                  {tr('הוספת קבוצה', 'Add group')}
                 </button>
                 <button type="button" disabled={selected.size === 0} onClick={() => setSelected(new Set())}>
-                  ביטול הסימון
+                  {tr('ביטול הסימון', 'Clear selection')}
                 </button>
                 <button type="button" onClick={() => setCheckedCover(true)} disabled={groups.length === 0}>
-                  בדיקה
+                  {tr('בדיקה', 'Check')}
                 </button>
                 <button
                   type="button"
@@ -470,7 +491,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                     setCheckedCover(true);
                   }}
                 >
-                  הצגת פתרון
+                  {tr('הצגת פתרון', 'Show a solution')}
                 </button>
                 <button
                   type="button"
@@ -480,7 +501,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                   }}
                   disabled={groups.length === 0}
                 >
-                  ניקוי
+                  {tr('ניקוי', 'Clear')}
                 </button>
               </div>
               {groupMessage && (
@@ -490,7 +511,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
               )}
 
               {groups.length > 0 && (
-                <ul className="kmap-groups" aria-label="הקבוצות">
+                <ul className="kmap-groups" aria-label={tr('הקבוצות', 'The groups')}>
                   {groups.map((g, i) => (
                     <li key={cellsOf(g, n).join(',')}>
                       <span className="kmap-swatch" style={{ borderColor: COLORS[i % COLORS.length] }} />
@@ -498,7 +519,7 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                       <button
                         type="button"
                         className="kmap-remove"
-                        aria-label={`הסרת הקבוצה ${termOf(q.vars, g, target)}`}
+                        aria-label={tr(`הסרת הקבוצה ${termOf(q.vars, g, target)}`, `Remove the group ${termOf(q.vars, g, target)}`)}
                         onClick={() => setGroups(groups.filter((_, j) => j !== i))}
                       >
                         ×
@@ -518,41 +539,50 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
                 >
                   {cover.done ? (
                     <>
-                      <strong>כיסוי מינימלי</strong>
-                      {cover.mine.terms === 1 ? 'מונח אחד' : `${cover.mine.terms} מונחים`} ו-
-                      {cover.mine.literals} ליטרלים, כמו התשובה הקצרה ביותר.
+                      <strong>{tr('כיסוי מינימלי', 'A minimal cover')}</strong>
+                      {tr(
+                        `${cover.mine.terms === 1 ? 'מונח אחד' : `${cover.mine.terms} מונחים`} ו-${cover.mine.literals} ליטרלים, כמו התשובה הקצרה ביותר.`,
+                        `${cover.mine.terms === 1 ? 'One term' : `${cover.mine.terms} terms`} and ${cover.mine.literals} literals, as in the shortest answer.`,
+                      )}
                     </>
                   ) : (
                     <>
-                      <strong>עוד לא</strong>
+                      <strong>{tr('עוד לא', 'Not yet')}</strong>
                       <ul className="kmap-feedback">
                         {cover.uncovered.length > 0 && (
                           <li>
-                            {cover.uncovered.length === 1 ? 'התא' : 'התאים'}{' '}
-                            <bdi dir="ltr">{cover.uncovered.join(', ')}</bdi> (של {goalName}){' '}
-                            עוד לא בשום קבוצה.
+                            {cover.uncovered.length === 1 ? tr('התא', 'The cell') : tr('התאים', 'The cells')}{' '}
+                            <bdi dir="ltr">{cover.uncovered.join(', ')}</bdi> ({tr('של', 'of')} {goalName}){' '}
+                            {tr('עוד לא בשום קבוצה.', cover.uncovered.length === 1 ? 'is not in any group yet.' : 'are not in any group yet.')}
                           </li>
                         )}
                         {cover.notPrime.map((p) => (
                           <li key={`p${p.index}`}>
-                            את הקבוצה <bdi dir="ltr">{termOf(q.vars, groups[p.index], target)}</bdi>{' '}
-                            אפשר להגדיל ל-<bdi dir="ltr">{p.better}</bdi>: קבוצה גדולה יותר נותנת מונח
-                            עם פחות ליטרלים.
+                            {tr('את הקבוצה', 'The group')}{' '}
+                            <bdi dir="ltr">{termOf(q.vars, groups[p.index], target)}</bdi>{' '}
+                            {tr('אפשר להגדיל ל-', 'can grow into')}
+                            <bdi dir="ltr">{p.better}</bdi>
+                            {tr(
+                              ': קבוצה גדולה יותר נותנת מונח עם פחות ליטרלים.',
+                              ': a bigger group gives a term with fewer literals.',
+                            )}
                           </li>
                         ))}
                         {cover.redundant.map((i) => (
                           <li key={`r${i}`}>
-                            הקבוצה <bdi dir="ltr">{termOf(q.vars, groups[i], target)}</bdi> מיותרת: כל
-                            התאים שלה כבר בקבוצות אחרות.
+                            {tr('הקבוצה', 'The group')}{' '}
+                            <bdi dir="ltr">{termOf(q.vars, groups[i], target)}</bdi>{' '}
+                            {tr('מיותרת: כל התאים שלה כבר בקבוצות אחרות.', 'is not needed: all its cells are in other groups already.')}
                           </li>
                         ))}
                         {cover.uncovered.length === 0 &&
                           cover.redundant.length === 0 &&
                           cover.notPrime.length === 0 && (
                             <li>
-                              הכיסוי נכון, אבל לא הקצר ביותר: אפשר ב-{cover.minimal.terms} מונחים ו-
-                              {cover.minimal.literals} ליטרלים (לכם {cover.mine.terms} ו-
-                              {cover.mine.literals}). נסו קבוצות אחרות.
+                              {tr(
+                                `הכיסוי נכון, אבל לא הקצר ביותר: אפשר ב-${cover.minimal.terms} מונחים ו-${cover.minimal.literals} ליטרלים (לכם ${cover.mine.terms} ו-${cover.mine.literals}). נסו קבוצות אחרות.`,
+                                `The cover is right, but not the shortest: ${cover.minimal.terms} terms and ${cover.minimal.literals} literals will do (you have ${cover.mine.terms} and ${cover.mine.literals}). Try other groups.`,
+                              )}
                             </li>
                           )}
                       </ul>

@@ -16,13 +16,13 @@ import { WorldNav } from './WorldNav';
 import { tr } from '../i18n/lang';
 
 /** Pairs from the Boolean algebra of the course: laws, and one common mistake. */
-const PAIRS: { label: string; a: string; b: string }[] = [
-  { label: 'פילוג', a: 'A + BC', b: '(A + B)(A + C)' },
-  { label: 'דה מורגן', a: "(AB)'", b: "A' + B'" },
-  { label: 'טעות נפוצה', a: "(A + B)'", b: "A' + B'" },
-  { label: 'קונצנזוס', a: "AB + A'C + BC", b: "AB + A'C" },
-  { label: 'XOR', a: 'A ⊕ B', b: "AB' + A'B" },
-  { label: 'עם d', a: 'F(A,B,C,D) = Σ(2,3,4,5,10,11,15) + d(14)', b: "A'BC' + AC + B'C" },
+const PAIRS: { label: [string, string]; a: string; b: string }[] = [
+  { label: ['פילוג', 'Distributive'], a: 'A + BC', b: '(A + B)(A + C)' },
+  { label: ['דה מורגן', 'De Morgan'], a: "(AB)'", b: "A' + B'" },
+  { label: ['טעות נפוצה', 'A common mistake'], a: "(A + B)'", b: "A' + B'" },
+  { label: ['קונצנזוס', 'Consensus'], a: "AB + A'C + BC", b: "AB + A'C" },
+  { label: ['XOR', 'XOR'], a: 'A ⊕ B', b: "AB' + A'B" },
+  { label: ['עם d', "With don't cares"], a: 'F(A,B,C,D) = Σ(2,3,4,5,10,11,15) + d(14)', b: "A'BC' + AC + B'C" },
 ];
 
 const cell = (v: Value) => (v === 'd' ? 'd' : String(v));
@@ -38,23 +38,37 @@ function Verdict({ vars, rows, differences, dontCares: dc }: {
   if (differences.length === 0) {
     return (
       <div className="expr-verdict is-same" role="status">
-        <strong>שקולים: זו אותה פונקציה</strong>
-        שני הביטויים נותנים אותו ערך בכל {rows.length} השורות של טבלת האמת
-        {dc > 0 && (dc === 1 ? ', פרט לשורה אחת עם d, שבה כל ערך מתאים' : `, פרט ל-${dc} שורות עם d, שבהן כל ערך מתאים`)}.
+        <strong>{tr('שקולים: זו אותה פונקציה', 'Equivalent: the same function')}</strong>
+        {tr(
+          `שני הביטויים נותנים אותו ערך בכל ${rows.length} השורות של טבלת האמת`,
+          `Both expressions give the same value in all ${rows.length} rows of the truth table`,
+        )}
+        {dc > 0 &&
+          (dc === 1
+            ? tr(', פרט לשורה אחת עם d, שבה כל ערך מתאים', ", except one row with a don't care, where any value fits")
+            : tr(`, פרט ל-${dc} שורות עם d, שבהן כל ערך מתאים`, `, except ${dc} rows with don't cares, where any value fits`))}
+        .
       </div>
     );
   }
   const first = differences[0];
   return (
     <div className="expr-verdict is-different" role="status">
-      <strong>לא שקולים</strong>
-      למשל כש-<bdi dir="ltr">{assignment(vars, first)}</bdi>: הביטוי הראשון נותן {cell(first.a)}, והשני
-      נותן {cell(first.b)}.{' '}
+      <strong>{tr('לא שקולים', 'Not equivalent')}</strong>
+      {tr('למשל כש-', 'For example, with ')}
+      <bdi dir="ltr">{assignment(vars, first)}</bdi>
+      {tr(
+        `: הביטוי הראשון נותן ${cell(first.a)}, והשני נותן ${cell(first.b)}.`,
+        ` the first expression gives ${cell(first.a)}, and the second ${cell(first.b)}.`,
+      )}{' '}
       {differences.length === 1 ? (
-        'זו השורה היחידה שבה הם שונים.'
+        tr('זו השורה היחידה שבה הם שונים.', 'This is the only row where they differ.')
       ) : (
         <>
-          הם שונים ב-{differences.length} מתוך {rows.length} השורות (
+          {tr(
+            `הם שונים ב-${differences.length} מתוך ${rows.length} השורות (`,
+            `They differ in ${differences.length} of the ${rows.length} rows (`,
+          )}
           <bdi dir="ltr">m = {differences.map((d) => d.m).join(', ')}</bdi>).
         </>
       )}
@@ -75,7 +89,7 @@ function Form({ title, fn, onOpen }: { title: string; fn: ParsedFunction; onOpen
         {fn.name} = {describe(formFor(fn, 'sop'))}
       </p>
       <button type="button" onClick={onOpen}>
-        פתיחה כמעגל
+        {tr('פתיחה כמעגל', 'Open as a circuit')}
       </button>
     </section>
   );
@@ -100,7 +114,10 @@ export function ExpressionsWorld({ onHome, onHelp }: { onHome: () => void; onHel
       .getState()
       .loadCircuit(
         circuit,
-        `נבנה מהביטוי ${text.trim()} בעולם הביטויים הבוליאניים. המתגים הם ${fn.vars.join(', ')}. Ctrl+Z מחזיר את המעגל הקודם.`,
+        tr(
+          `נבנה מהביטוי ${text.trim()} בעולם הביטויים הבוליאניים. המתגים הם ${fn.vars.join(', ')}. Ctrl+Z מחזיר את המעגל הקודם.`,
+          `Built from the expression ${text.trim()} in the Boolean expressions world. The switches are ${fn.vars.join(', ')}. Ctrl+Z brings the previous circuit back.`,
+        ),
       );
     window.location.hash = '#/editor';
   };
@@ -123,23 +140,28 @@ export function ExpressionsWorld({ onHome, onHelp }: { onHome: () => void; onHel
 
       <div className="expr-world">
         <main className="expr-main">
-          <h2>אותה פונקציה בשתי כתיבות?</h2>
+          <h2>{tr('אותה פונקציה בשתי כתיבות?', 'The same function, written two ways?')}</h2>
           <p className="hint">
-            כותבים שני ביטויים כמו בקורס: גרש הוא NOT, צמידות היא AND, + הוא OR, ⊕ או ^ הוא XOR,
-            ואפשר סוגריים. אפשר גם רשימת מינטרמים, כמו{' '}
+            {tr(
+              'כותבים שני ביטויים כמו בקורס: גרש הוא NOT, צמידות היא AND, + הוא OR, ⊕ או ^ הוא XOR, ואפשר סוגריים. אפשר גם רשימת מינטרמים, כמו',
+              "Write two expressions as in the course: ' is NOT, writing side by side is AND, + is OR, ⊕ or ^ is XOR, and brackets are fine. A list of minterms works too, like",
+            )}{' '}
             <bdi dir="ltr" className="expr-code">
               Σ(1,3) + d(5)
             </bdi>
-            , או מקסטרמים,{' '}
+            {tr(', או מקסטרמים,', ', or of maxterms,')}{' '}
             <bdi dir="ltr" className="expr-code">
               Π(0,2)
             </bdi>
-            . הבדיקה עוברת על כל שורות טבלת האמת של המשתנים של שני הביטויים יחד.
+            {tr(
+              '. הבדיקה עוברת על כל שורות טבלת האמת של המשתנים של שני הביטויים יחד.',
+              '. The check goes over every row of the truth table of the variables of both expressions together.',
+            )}
           </p>
 
           <div className="expr-inputs">
             <label className="expr-field">
-              <span>ביטוי ראשון</span>
+              <span>{tr('ביטוי ראשון', 'First expression')}</span>
               <input
                 type="text"
                 dir="ltr"
@@ -155,7 +177,7 @@ export function ExpressionsWorld({ onHome, onHelp }: { onHome: () => void; onHel
               </p>
             </label>
             <label className="expr-field">
-              <span>ביטוי שני</span>
+              <span>{tr('ביטוי שני', 'Second expression')}</span>
               <input
                 type="text"
                 dir="ltr"
@@ -173,17 +195,17 @@ export function ExpressionsWorld({ onHome, onHelp }: { onHome: () => void; onHel
           </div>
 
           <div className="expr-examples">
-            <span>דוגמאות:</span>
+            <span>{tr('דוגמאות:', 'Examples:')}</span>
             {PAIRS.map((p) => (
               <button
-                key={p.label}
+                key={p.label[1]}
                 type="button"
                 onClick={() => {
                   setA(p.a);
                   setB(p.b);
                 }}
               >
-                {p.label}
+                {tr(...p.label)}
               </button>
             ))}
           </div>
@@ -197,19 +219,19 @@ export function ExpressionsWorld({ onHome, onHelp }: { onHome: () => void; onHel
                 dontCares={result.dontCares}
               />
               <div className="expr-forms">
-                <Form title="הביטוי הראשון" fn={result.a} onOpen={() => open(a, result.a)} />
-                <Form title="הביטוי השני" fn={result.b} onOpen={() => open(b, result.b)} />
+                <Form title={tr('הביטוי הראשון', 'The first expression')} fn={result.a} onOpen={() => open(a, result.a)} />
+                <Form title={tr('הביטוי השני', 'The second expression')} fn={result.b} onOpen={() => open(b, result.b)} />
               </div>
               <div className="expr-table-wrap">
-                <table className="truth-table expr-table" dir="ltr" aria-label="טבלת האמת של שני הביטויים">
+                <table className="truth-table expr-table" dir="ltr" aria-label={tr('טבלת האמת של שני הביטויים', 'The truth table of both expressions')}>
                   <thead>
                     <tr>
                       <th className="truth-m">m</th>
                       {result.vars.map((v) => (
                         <th key={v}>{v}</th>
                       ))}
-                      <th className="truth-out">ראשון</th>
-                      <th>שני</th>
+                      <th className="truth-out">{tr('ראשון', 'First')}</th>
+                      <th>{tr('שני', 'Second')}</th>
                       <th aria-hidden />
                     </tr>
                   </thead>
@@ -222,7 +244,7 @@ export function ExpressionsWorld({ onHome, onHelp }: { onHome: () => void; onHel
                         ))}
                         <td className={`truth-out v-${cell(r.a)}`}>{cell(r.a)}</td>
                         <td className={`v-${cell(r.b)}`}>{cell(r.b)}</td>
-                        <td className="expr-mark">{r.differs ? 'שונה' : ''}</td>
+                        <td className="expr-mark">{r.differs ? tr('שונה', 'differs') : ''}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -6,10 +6,14 @@ import { button, lamp, node, openExample } from './helpers';
 async function wire(page: Page, from: [string, string], to: [string, string]) {
   const a = (await node(page, from[0]).locator(`[data-handleid="${from[1]}"]`).boundingBox())!;
   const b = (await node(page, to[0]).locator(`[data-handleid="${to[1]}"]`).boundingBox())!;
+  const edges = page.locator('.react-flow__edge');
+  const before = await edges.count();
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
   await page.mouse.down();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
   await page.mouse.up();
+  // say which wire did not take, rather than failing later on the lamp
+  await expect(edges, `the wire ${from.join('.')} → ${to.join('.')}`).toHaveCount(before + 1);
 }
 
 test('save a MUX 2:1 built from gates as a block, use it, and look inside', async ({ page }) => {
@@ -25,6 +29,9 @@ test('save a MUX 2:1 built from gates as a block, use it, and look inside', asyn
   await page.locator('.palette-mine .palette-item', { hasText: 'MUX2g' }).click();
   for (const t of ['מתג', 'מתג', 'מתג', 'נורה']) await button(page, t).click();
   await page.locator('.react-flow__controls-fitview').click();
+  // fitting puts the parts right at the edges of a short canvas, where a handle can sit under the
+  // zoom buttons and a drag onto it is lost; one step out leaves a margin
+  await page.locator('.react-flow__controls-zoomout').click();
   await expect(node(page, 'B1')).toContainText('MUX2g');
 
   await wire(page, ['sw1', 'out'], ['B1', 'I0']);

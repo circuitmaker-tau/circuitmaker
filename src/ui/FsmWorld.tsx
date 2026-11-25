@@ -28,19 +28,25 @@ const example = (id: string) => EXAMPLES.find((e) => e.id === id)!;
 const MACHINES: Machine[] = [
   {
     id: 'bamba',
-    label: 'מכונת הבמבה (WK9B)',
+get label() {
+      return tr('מכונת הבמבה (WK9B)', 'The bamba machine (WK9B)');
+    },
     circuit: example('bamba').circuit,
     equations: ["T1 = x'y1 + xy2", 'T2 = x + y2', "z = x'y1"],
   },
   {
     id: 'detector',
-    label: 'מזהה 0101 (WK9A)',
+get label() {
+      return tr('מזהה 0101 (WK9A)', 'The 0101 detector (WK9A)');
+    },
     circuit: example('detector').circuit,
     equations: ['J1 = xy2', "K1 = x + y2'", "D2 = x'y2' + y1'y2", "z = xy1y2'"],
   },
   {
     id: 'plane',
-    label: 'מכונת המטוס (2026 מועד א)',
+get label() {
+      return tr('מכונת המטוס (2026 מועד א)', 'The airplane machine (2026, A)');
+    },
     circuit: example('plane').circuit,
     equations: [
       "S1 = XL'XR' + y2XL' + y2XR'",
@@ -98,7 +104,7 @@ function Diagram({
       width={SIZE}
       height={SIZE}
       role="group"
-      aria-label="דיאגרמת המצבים"
+      aria-label={tr('דיאגרמת המצבים', 'The state diagram')}
       direction="ltr"
     >
       <defs>
@@ -162,7 +168,7 @@ function Diagram({
           className={`fsm-state${picked === s ? ' is-picked' : ''}`}
           role="button"
           tabIndex={0}
-          aria-label={`מצב ${code(s, k)}${picked === s ? ', נבחר' : ''}`}
+          aria-label={`${tr('מצב', 'State')} ${code(s, k)}${picked === s ? tr(', נבחר', ', selected') : ''}`}
           aria-pressed={picked === s}
           onClick={() => onState(s)}
           onKeyDown={(e: KeyboardEvent<SVGGElement>) => {
@@ -220,7 +226,7 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
     const problem = fsmProblem(circuit);
     if (problem) return setSourceError(problem);
     setSourceError(null);
-    start({ id: 'editor', label: circuit.name || 'המעגל שבעורך', circuit, equations: [] });
+    start({ id: 'editor', label: circuit.name || tr('המעגל שבעורך', 'The circuit in the editor'), circuit, equations: [] });
   };
 
   const answer = (kind: 'ns' | 'z', s: number, x: number) =>
@@ -264,7 +270,10 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
           maxLength={width}
           size={Math.max(width, 2)}
           value={cells[key] ?? ''}
-          aria-label={`${kind === 'ns' ? 'המצב הבא' : 'הפלט'} ממצב ${code(s, k)} כש-${xLabel(x)}${wrongCells.has(key) ? ', שגוי' : ''}`}
+          aria-label={tr(
+            `${kind === 'ns' ? 'המצב הבא' : 'הפלט'} ממצב ${code(s, k)} כש-${xLabel(x)}${wrongCells.has(key) ? ', שגוי' : ''}`,
+            `${kind === 'ns' ? 'Next state' : 'Output'} from state ${code(s, k)} when ${xLabel(x)}${wrongCells.has(key) ? ', wrong' : ''}`,
+          )}
           aria-invalid={wrongCells.has(key) ? true : undefined}
           onChange={(e) => setCells({ ...cells, [key]: clean(e.target.value).slice(0, width) })}
         />
@@ -290,14 +299,16 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
 
       <div className="expr-world">
         <main className="expr-main kmap-world">
-          <h2>מכונת מצבים: מהמעגל לטבלה ולדיאגרמה</h2>
+          <h2>{tr('מכונת מצבים: מהמעגל לטבלה ולדיאגרמה', 'A state machine: from the circuit to the table and the diagram')}</h2>
           <p className="hint">
-            מנתחים מכונה שבנויה מ-flip-flops, כמו בהרצאה: ממלאים את טבלת המצבים (המצב הבא והפלט לכל
-            מצב ולכל קלט), ואחר כך מציירים את דיאגרמת המצבים. המשוב בודק כל תא וכל חץ מול המעגל עצמו.
+            {tr(
+              'מנתחים מכונה שבנויה מ-flip-flops, כמו בהרצאה: ממלאים את טבלת המצבים (המצב הבא והפלט לכל מצב ולכל קלט), ואחר כך מציירים את דיאגרמת המצבים. המשוב בודק כל תא וכל חץ מול המעגל עצמו.',
+              'Analyse a machine built from flip-flops, as in the lecture: fill in its state table (the next state and the output for every state and input), then draw its state diagram. The feedback checks every cell and every arrow against the circuit itself.',
+            )}
           </p>
 
           <div className="kmap-source">
-            <span>מכונה:</span>
+            <span>{tr('מכונה:', 'Machine:')}</span>
             {MACHINES.map((mc) => (
               <button
                 key={mc.id}
@@ -312,7 +323,7 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
               </button>
             ))}
             <button type="button" aria-pressed={machine.id === 'editor'} onClick={fromEditor}>
-              המעגל שבעורך
+              {tr('המעגל שבעורך', 'The circuit in the editor')}
             </button>
           </div>
           {sourceError && (
@@ -328,8 +339,10 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
               </p>
             )}
             <p className="hint">
-              flip-flops: {t.flipFlops.join(', ')} (המצב הוא {t.flipFlops.join('')}), כניסות:{' '}
-              {t.inputs.join(', ') || 'אין'}, יציאות: {t.outputs.join(', ')}. לתזכורת:{' '}
+              {tr(
+                `flip-flops: ${t.flipFlops.join(', ')} (המצב הוא ${t.flipFlops.join('')}), כניסות: ${t.inputs.join(', ') || 'אין'}, יציאות: ${t.outputs.join(', ')}. לתזכורת:`,
+                `flip-flops: ${t.flipFlops.join(', ')} (the state is ${t.flipFlops.join('')}), inputs: ${t.inputs.join(', ') || 'none'}, outputs: ${t.outputs.join(', ')}. Reminder:`,
+              )}{' '}
               <bdi dir="ltr" className="expr-code">
                 D: Y = D, T: Y = T ⊕ y, JK: Y = Jy&apos; + K&apos;y, SR: Y = S + R&apos;y
               </bdi>
@@ -343,25 +356,27 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                 }}
                 hidden={machine.id === 'editor'}
               >
-                פתיחת המעגל בעורך
+                {tr('פתיחת המעגל בעורך', 'Open the circuit in the editor')}
               </button>
             </p>
           </div>
 
-          <div className="kmap-steps" role="tablist" aria-label="שלבים">
+          <div className="kmap-steps" role="tablist" aria-label={tr('שלבים', 'Steps')}>
             <button type="button" role="tab" aria-selected={step === 'table'} onClick={() => setStep('table')}>
-              1. טבלת מצבים
+              {tr('1. טבלת מצבים', '1. State table')}
             </button>
             <button type="button" role="tab" aria-selected={step === 'diagram'} onClick={() => setStep('diagram')}>
-              2. דיאגרמת מצבים
+              {tr('2. דיאגרמת מצבים', '2. State diagram')}
             </button>
           </div>
 
           {step === 'table' ? (
-            <section className="kmap-step" aria-label="טבלת מצבים">
+            <section className="kmap-step" aria-label={tr('טבלת מצבים', 'State table')}>
               <p className="hint">
-                בכל תא כותבים את המצב הבא ({t.flipFlops.map((f) => f.toUpperCase()).join('')}) או את הפלט
-                ({t.outputs.join('')}), בספרות 0 ו-1.
+                {tr(
+                  `בכל תא כותבים את המצב הבא (${t.flipFlops.map((f) => f.toUpperCase()).join('')}) או את הפלט (${t.outputs.join('')}), בספרות 0 ו-1.`,
+                  `In every cell write the next state (${t.flipFlops.map((f) => f.toUpperCase()).join('')}) or the output (${t.outputs.join('')}), in the digits 0 and 1.`,
+                )}
               </p>
               <div className="expr-table-wrap">
                 <table className="truth-table fsm-table" dir="ltr">
@@ -401,7 +416,7 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
               </div>
               <div className="kmap-actions">
                 <button type="button" className="primary" onClick={() => setCheckedTable(true)}>
-                  בדיקה
+                  {tr('בדיקה', 'Check')}
                 </button>
                 <button
                   type="button"
@@ -415,7 +430,7 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                     setCheckedTable(true);
                   }}
                 >
-                  הצגת התשובה
+                  {tr('הצגת התשובה', 'Show the answer')}
                 </button>
                 <button
                   type="button"
@@ -424,41 +439,51 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                     setCheckedTable(false);
                   }}
                 >
-                  ניקוי
+                  {tr('ניקוי', 'Clear')}
                 </button>
               </div>
               {checkedTable && (
                 <div className={`expr-verdict ${tableDone ? 'is-same' : 'is-different'}`} role="status">
                   {tableDone ? (
                     <>
-                      <strong>הטבלה נכונה</strong>
-                      זו מכונת {t.mealy ? 'Mealy: הפלט תלוי גם בקלט' : 'Moore: הפלט תלוי רק במצב'}.
+                      <strong>{tr('הטבלה נכונה', 'The table is right')}</strong>
+                      {t.mealy
+                        ? tr('זו מכונת Mealy: הפלט תלוי גם בקלט.', 'This is a Mealy machine: the output depends on the input too.')
+                        : tr('זו מכונת Moore: הפלט תלוי רק במצב.', 'This is a Moore machine: the output depends on the state alone.')}
                       <button type="button" className="kmap-next" onClick={() => setStep('diagram')}>
-                        לדיאגרמת המצבים
+                        {tr('לדיאגרמת המצבים', 'On to the state diagram')}
                       </button>
                     </>
                   ) : (
                     <>
                       <strong>
                         {wrongCells.size === 0
-                          ? 'מה שמילאתם נכון'
+                          ? tr('מה שמילאתם נכון', 'What you filled in is right')
                           : wrongCells.size === 1
-                            ? 'תא אחד לא נכון'
-                            : `${wrongCells.size} תאים לא נכונים`}
-                        {empty > 0 && (empty === 1 ? ', ותא אחד עוד ריק' : `, ו-${empty} תאים עוד ריקים`)}
+                            ? tr('תא אחד לא נכון', 'One cell is wrong')
+                            : tr(`${wrongCells.size} תאים לא נכונים`, `${wrongCells.size} cells are wrong`)}
+                        {empty > 0 &&
+                          (empty === 1
+                            ? tr(', ותא אחד עוד ריק', ', and one cell is still empty')
+                            : tr(`, ו-${empty} תאים עוד ריקים`, `, and ${empty} cells are still empty`))}
                       </strong>
                       {wrongCells.size > 0 &&
-                        'התאים השגויים מסומנים באדום. מציבים את המצב ואת הקלט במשוואות של כניסות ה-flip-flops, ואז במשוואה האופיינית שלהם.'}
+                        tr(
+                          'התאים השגויים מסומנים באדום. מציבים את המצב ואת הקלט במשוואות של כניסות ה-flip-flops, ואז במשוואה האופיינית שלהם.',
+                          'The wrong cells are marked in red. Put the state and the input into the equations of the flip-flop inputs, then into their characteristic equation.',
+                        )}
                     </>
                   )}
                 </div>
               )}
             </section>
           ) : (
-            <section className="kmap-step" aria-label="דיאגרמת מצבים">
+            <section className="kmap-step" aria-label={tr('דיאגרמת מצבים', 'State diagram')}>
               <p className="hint">
-                לוחצים על המצב שממנו יוצא החץ ואז על המצב שאליו הוא הולך (אותו מצב פעמיים: לולאה),
-                בוחרים את הקלט ואת הפלט ומוסיפים. כמו בקורס, כל חץ כתוב{' '}
+                {tr(
+                  'לוחצים על המצב שממנו יוצא החץ ואז על המצב שאליו הוא הולך (אותו מצב פעמיים: לולאה), בוחרים את הקלט ואת הפלט ומוסיפים. כמו בקורס, כל חץ כתוב',
+                  'Click the state the arrow leaves, then the state it goes to (the same state twice: a loop), pick the input and the output, and add it. As in the course, every arrow is written',
+                )}{' '}
                 <bdi dir="ltr">
                   {inputName}/{t.outputs.join('')}
                 </bdi>
@@ -468,10 +493,12 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                 <Diagram t={t} arrows={arrows} picked={from} onState={pick} />
                 <div className="fsm-form" aria-live="polite">
                   {from === null ? (
-                    <p className="hint">בחרו מצב שממנו יוצא החץ.</p>
+                    <p className="hint">{tr('בחרו מצב שממנו יוצא החץ.', 'Pick the state the arrow leaves.')}</p>
                   ) : to === null ? (
                     <p className="hint">
-                      מ-<bdi dir="ltr">{code(from, k)}</bdi>. עכשיו בחרו לאן.
+                      {tr('מ-', 'From ')}
+                      <bdi dir="ltr">{code(from, k)}</bdi>
+                      {tr('. עכשיו בחרו לאן.', '. Now pick where to.')}
                     </p>
                   ) : (
                     <form
@@ -483,10 +510,13 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                       }}
                     >
                       <p>
-                        חץ מ-<bdi dir="ltr">{code(from, k)}</bdi> אל <bdi dir="ltr">{code(to, k)}</bdi>
+                        {tr('חץ מ-', 'An arrow from ')}
+                        <bdi dir="ltr">{code(from, k)}</bdi> {tr('אל', 'to')} <bdi dir="ltr">{code(to, k)}</bdi>
                       </p>
                       <label className="fsm-select">
-                        <span>קלט {inputName}</span>
+                        <span>
+                          {tr('קלט', 'Input')} {inputName}
+                        </span>
                         <select value={input} onChange={(e) => setInput(Number(e.target.value))}>
                           {[...Array(inputsCount).keys()].map((x) => (
                             <option key={x} value={x}>
@@ -496,7 +526,9 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                         </select>
                       </label>
                       <label className="fsm-select">
-                        <span>פלט {t.outputs.join('')}</span>
+                        <span>
+                          {tr('פלט', 'Output')} {t.outputs.join('')}
+                        </span>
                         <select value={output} onChange={(e) => setOutput(e.target.value)}>
                           {outputCodes.map((o) => (
                             <option key={o} value={o}>
@@ -507,7 +539,7 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                       </label>
                       <div className="kmap-actions">
                         <button type="submit" className="primary">
-                          הוספת החץ
+                          {tr('הוספת החץ', 'Add the arrow')}
                         </button>
                         <button
                           type="button"
@@ -516,14 +548,14 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                             setTo(null);
                           }}
                         >
-                          ביטול
+                          {tr('ביטול', 'Cancel')}
                         </button>
                       </div>
                     </form>
                   )}
 
                   {arrows.length > 0 && (
-                    <ul className="kmap-groups fsm-arrows" aria-label="החצים">
+                    <ul className="kmap-groups fsm-arrows" aria-label={tr('החצים', 'The arrows')}>
                       {arrows.map((a, i) => (
                         <li key={i}>
                           <bdi dir="ltr">
@@ -532,7 +564,10 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                           <button
                             type="button"
                             className="kmap-remove"
-                            aria-label={`הסרת החץ מ-${code(a.from, k)} אל ${code(a.to, k)}`}
+                            aria-label={tr(
+                              `הסרת החץ מ-${code(a.from, k)} אל ${code(a.to, k)}`,
+                              `Remove the arrow from ${code(a.from, k)} to ${code(a.to, k)}`,
+                            )}
                             onClick={() => setArrows(arrows.filter((_, j) => j !== i))}
                           >
                             ×
@@ -545,7 +580,7 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
               </div>
               <div className="kmap-actions">
                 <button type="button" className="primary" disabled={arrows.length === 0} onClick={() => setCheckedDiagram(true)}>
-                  בדיקה
+                  {tr('בדיקה', 'Check')}
                 </button>
                 <button
                   type="button"
@@ -554,7 +589,7 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                     setCheckedDiagram(true);
                   }}
                 >
-                  הצגת הדיאגרמה
+                  {tr('הצגת הדיאגרמה', 'Show the diagram')}
                 </button>
                 <button
                   type="button"
@@ -564,19 +599,22 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                     setCheckedDiagram(false);
                   }}
                 >
-                  ניקוי
+                  {tr('ניקוי', 'Clear')}
                 </button>
               </div>
               {checkedDiagram && arrows.length > 0 && (
                 <div className={`expr-verdict ${feedback.done ? 'is-same' : 'is-different'}`} role="status">
                   {feedback.done ? (
                     <>
-                      <strong>הדיאגרמה נכונה</strong>
-                      {transitionsOf(t).length} חצים, אחד לכל מצב ולכל קלט.
+                      <strong>{tr('הדיאגרמה נכונה', 'The diagram is right')}</strong>
+                      {tr(
+                        `${transitionsOf(t).length} חצים, אחד לכל מצב ולכל קלט.`,
+                        `${transitionsOf(t).length} arrows, one for every state and input.`,
+                      )}
                     </>
                   ) : (
                     <>
-                      <strong>עוד לא</strong>
+                      <strong>{tr('עוד לא', 'Not yet')}</strong>
                       <ul className="kmap-feedback">
                         {feedback.wrong.map((w) => {
                           const a = arrows[w.index];
@@ -584,29 +622,37 @@ export function FsmWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                           const what = a.output !== w.output;
                           return (
                             <li key={`w${w.index}`}>
-                              החץ מ-<bdi dir="ltr">{code(a.from, k)}</bdi> בקלט{' '}
+                              {tr('החץ מ-', 'The arrow from ')}
+                              <bdi dir="ltr">{code(a.from, k)}</bdi> {tr('בקלט', 'on input')}{' '}
                               <bdi dir="ltr">{code(a.input, m)}</bdi>:{' '}
                               {where && what
-                                ? 'גם המצב שאליו הוא הולך וגם הפלט לא נכונים.'
+                                ? tr('גם המצב שאליו הוא הולך וגם הפלט לא נכונים.', 'both the state it goes to and the output are wrong.')
                                 : where
-                                  ? 'הולך למצב הלא נכון.'
-                                  : 'הפלט לא נכון.'}
+                                  ? tr('הולך למצב הלא נכון.', 'goes to the wrong state.')
+                                  : tr('הפלט לא נכון.', 'the output is wrong.')}
                             </li>
                           );
                         })}
                         {feedback.duplicate.map((i) => (
                           <li key={`d${i}`}>
-                            יש יותר מחץ אחד מ-<bdi dir="ltr">{code(arrows[i].from, k)}</bdi> בקלט{' '}
-                            <bdi dir="ltr">{code(arrows[i].input, m)}</bdi>. במכונה דטרמיניסטית יש בדיוק אחד.
+                            {tr('יש יותר מחץ אחד מ-', 'There is more than one arrow from ')}
+                            <bdi dir="ltr">{code(arrows[i].from, k)}</bdi> {tr('בקלט', 'on input')}{' '}
+                            <bdi dir="ltr">{code(arrows[i].input, m)}</bdi>
+                            {tr('. במכונה דטרמיניסטית יש בדיוק אחד.', '. A deterministic machine has exactly one.')}
                           </li>
                         ))}
                         {feedback.missing.length > 0 && (
                           <li>
-                            {feedback.missing.length === 1 ? 'חסר חץ' : `חסרים ${feedback.missing.length} חצים`}:{' '}
+                            {feedback.missing.length === 1
+                              ? tr('חסר חץ', 'An arrow is missing')
+                              : tr(`חסרים ${feedback.missing.length} חצים`, `${feedback.missing.length} arrows are missing`)}
+                            :{' '}
                             {feedback.missing.map((x, i) => (
                               <span key={i}>
                                 {i > 0 && ', '}
-                                מ-<bdi dir="ltr">{code(x.from, k)}</bdi> בקלט <bdi dir="ltr">{code(x.input, m)}</bdi>
+                                {tr('מ-', 'from ')}
+                                <bdi dir="ltr">{code(x.from, k)}</bdi> {tr('בקלט', 'on input')}{' '}
+                                <bdi dir="ltr">{code(x.input, m)}</bdi>
                               </span>
                             ))}
                             .

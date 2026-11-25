@@ -22,21 +22,26 @@ const ADDER = (() => {
   return lists.map((l, b) => `S${2 - b}(A1,A0,B1,B0) = Σ(${l.join(',')})`).join('\n');
 })();
 
-const PROBLEMS: { id: string; label: string; text: string; mode: 'rom' | 'pla' }[] = [
-  { id: 'fg', label: 'f ו-g מההרצאה (ROM 8×2)', text: 'f(a,b,c) = Σ(0,2,4,6,7)\ng(a,b,c) = Σ(0,1,2,3,4,5)', mode: 'rom' },
-  { id: 'adder', label: 'מחבר 2 ביט (2020)', text: ADDER, mode: 'rom' },
-  { id: 'fa', label: 'מסכם מלא', text: 'S = A ⊕ B ⊕ C\nCout = AB + AC + BC', mode: 'pla' },
-  { id: 'lecture', label: 'ההרצאה (2023א)', text: "f(a,b,c,d) = cb' + ab\ng(a,b,c,d) = a'b'cd", mode: 'pla' },
-  { id: 'e24', label: '2024 מועד ב', text: "f2 = C'\nh = A' + C'", mode: 'pla' },
+const PROBLEMS: { id: string; label: [string, string]; text: string; mode: 'rom' | 'pla' }[] = [
+  {
+    id: 'fg',
+    label: ['f ו-g מההרצאה (ROM 8×2)', 'f and g from the lecture (ROM 8×2)'],
+    text: 'f(a,b,c) = Σ(0,2,4,6,7)\ng(a,b,c) = Σ(0,1,2,3,4,5)',
+    mode: 'rom',
+  },
+  { id: 'adder', label: ['מחבר 2 ביט (2020)', 'A 2-bit adder (2020)'], text: ADDER, mode: 'rom' },
+  { id: 'fa', label: ['מסכם מלא', 'A full adder'], text: 'S = A ⊕ B ⊕ C\nCout = AB + AC + BC', mode: 'pla' },
+  { id: 'lecture', label: ['ההרצאה (2023א)', 'The lecture (2023, A)'], text: "f(a,b,c,d) = cb' + ab\ng(a,b,c,d) = a'b'cd", mode: 'pla' },
+  { id: 'e24', label: ['2024 מועד ב', '2024, B'], text: "f2 = C'\nh = A' + C'", mode: 'pla' },
   {
     id: 'e22',
-    label: '2022 מועד ב: 4 מספרים ב-2sc',
+    label: ['2022 מועד ב: 4 מספרים ב-2sc', '2022, B: 4 numbers in 2sc'],
     text: "Out3(S1,S0) = S1'\nOut2(S1,S0) = S0\nOut1(S1,S0) = S0\nOut0(S1,S0) = 1",
     mode: 'pla',
   },
   {
     id: 's25',
-    label: 'WK11A שקף 25',
+    label: ['WK11A שקף 25', 'WK11A slide 25'],
     text: "O1(I1,I2,I3,I4) = I1I2 + I1'I2'I3'I4'\nO2(I1,I2,I3,I4) = I1I3' + I1'I3I4 + I2\nO3(I1,I2,I3,I4) = I1I2 + I1I1'I2'I4'",
     mode: 'pla',
   },
@@ -67,17 +72,19 @@ function RomStep({ set }: { set: FunctionSet }) {
   return (
     <section className="kmap-step" aria-label="ROM">
       <p className="hint">
-        ב-ROM המפענח קבוע: שורה לכל צירוף של {set.vars.join(', ')}. מתכנתים את מערך ה-OR: בכל שורה
-        &quot;שורפים&quot; חיבור (●) לכל יציאה שערכה 1. כך ה-ROM הוא בדיוק טבלת האמת.
+        {tr(
+          `ב-ROM המפענח קבוע: שורה לכל צירוף של ${set.vars.join(', ')}. מתכנתים את מערך ה-OR: בכל שורה "שורפים" חיבור (●) לכל יציאה שערכה 1. כך ה-ROM הוא בדיוק טבלת האמת.`,
+          `In a ROM the decoder is fixed: a row for every combination of ${set.vars.join(', ')}. You program the OR array: in every row, "burn" a connection (●) for each output that is 1. So the ROM is exactly the truth table.`,
+        )}
       </p>
       <div className="rom-size">
-        <span>גודל ה-ROM:</span>
+        <span>{tr('גודל ה-ROM:', 'ROM size:')}</span>
         <input
           inputMode="numeric"
           dir="ltr"
           size={3}
           value={words}
-          aria-label="מספר המילים"
+          aria-label={tr('מספר המילים', 'Number of words')}
           onChange={(e) => setWords(e.target.value.replace(/\D/g, ''))}
         />
         <span>×</span>
@@ -86,13 +93,13 @@ function RomStep({ set }: { set: FunctionSet }) {
           dir="ltr"
           size={2}
           value={bits}
-          aria-label="ביטים בכל מילה"
+          aria-label={tr('ביטים בכל מילה', 'Bits in each word')}
           onChange={(e) => setBits(e.target.value.replace(/\D/g, ''))}
         />
-        <span className="hint">(מילים × ביטים)</span>
+        <span className="hint">{tr('(מילים × ביטים)', '(words × bits)')}</span>
       </div>
       <div className="expr-table-wrap">
-        <table className="truth-table rom-table" dir="ltr" aria-label="מערך ה-OR של ה-ROM">
+        <table className="truth-table rom-table" dir="ltr" aria-label={tr('מערך ה-OR של ה-ROM', 'The OR array of the ROM')}>
           <thead>
             <tr>
               <th className="truth-m">m</th>
@@ -122,7 +129,7 @@ function RomStep({ set }: { set: FunctionSet }) {
                         type="button"
                         className={`rom-dot${on ? ' is-on' : ''}${bad ? ' is-wrong' : ''}`}
                         aria-pressed={on}
-                        aria-label={`${f.name} בשורה ${m}${bad ? ', שגוי' : ''}`}
+                        aria-label={tr(`${f.name} בשורה ${m}${bad ? ', שגוי' : ''}`, `${f.name} in row ${m}${bad ? ', wrong' : ''}`)}
                         onClick={() =>
                           setBurnt(burnt.map((r, i) => (i === m ? r.map((x, jj) => (jj === j ? !x : x)) : r)))
                         }
@@ -139,7 +146,7 @@ function RomStep({ set }: { set: FunctionSet }) {
       </div>
       <div className="kmap-actions">
         <button type="button" className="primary" onClick={() => setChecked(true)}>
-          בדיקה
+          {tr('בדיקה', 'Check')}
         </button>
         <button
           type="button"
@@ -150,33 +157,41 @@ function RomStep({ set }: { set: FunctionSet }) {
             setChecked(true);
           }}
         >
-          הצגת התשובה
+          {tr('הצגת התשובה', 'Show the answer')}
         </button>
       </div>
       {checked && (
         <div className={`expr-verdict ${done ? 'is-same' : 'is-different'}`} role="status">
           {done ? (
             <>
-              <strong>ה-ROM נכון</strong>
+              <strong>{tr('ה-ROM נכון', 'The ROM is right')}</strong>
               <bdi dir="ltr">
                 {size.words}×{size.bits}
               </bdi>
-              : {n} כניסות כתובת נותנות 2<sup>{n}</sup> = {size.words} מילים, ובכל מילה ביט לכל פונקציה.
+              : {tr(`${n} כניסות כתובת נותנות`, `${n} address inputs give`)} 2<sup>{n}</sup> = {size.words}{' '}
+              {tr('מילים, ובכל מילה ביט לכל פונקציה.', 'words, and every word has a bit for each function.')}
             </>
           ) : (
             <>
-              <strong>עוד לא</strong>
+              <strong>{tr('עוד לא', 'Not yet')}</strong>
               <ul className="kmap-feedback">
                 {wrong.size > 0 && (
                   <li>
-                    {wrong.size === 1 ? 'חיבור אחד לא נכון' : `${wrong.size} חיבורים לא נכונים`}, מסומנים
-                    באדום: חיבור שרוף הוא 1 ביציאה, וחסר חיבור הוא 0.
+                    {wrong.size === 1
+                      ? tr('חיבור אחד לא נכון', 'One connection is wrong')
+                      : tr(`${wrong.size} חיבורים לא נכונים`, `${wrong.size} connections are wrong`)}
+                    {tr(
+                      ', מסומנים באדום: חיבור שרוף הוא 1 ביציאה, וחסר חיבור הוא 0.',
+                      ', marked in red: a burnt connection is a 1 at the output, and no connection is a 0.',
+                    )}
                   </li>
                 )}
                 {!sizeOk && (
                   <li>
-                    הגודל לא נכון. מספר המילים הוא מספר הכתובות (2 בחזקת מספר הכניסות), ורוחב המילה הוא מספר
-                    היציאות.
+                    {tr(
+                      'הגודל לא נכון. מספר המילים הוא מספר הכתובות (2 בחזקת מספר הכניסות), ורוחב המילה הוא מספר היציאות.',
+                      'The size is wrong. The number of words is the number of addresses (2 to the number of inputs), and the width of a word is the number of outputs.',
+                    )}
                   </li>
                 )}
               </ul>
@@ -216,12 +231,13 @@ function PlaStep({ set }: { set: FunctionSet }) {
   return (
     <section className="kmap-step" aria-label="PLA">
       <p className="hint">
-        כל שורה היא מכפלה P במישור ה-AND: לחיצה על משתנה מחליפה בין לא מחובר, המשתנה, והמשלים שלו
-        (שורה בלי משתנים היא הקבוע 1). במישור ה-OR מחברים (●) כל מכפלה ליציאות שהיא משתתפת בהן.
-        המטרה: כמה שפחות מכפלות (p), גם אם זה אומר לשתף מכפלה שלא נראית בביטוי המינימלי של פונקציה.
+        {tr(
+          'כל שורה היא מכפלה P במישור ה-AND: לחיצה על משתנה מחליפה בין לא מחובר, המשתנה, והמשלים שלו (שורה בלי משתנים היא הקבוע 1). במישור ה-OR מחברים (●) כל מכפלה ליציאות שהיא משתתפת בהן. המטרה: כמה שפחות מכפלות (p), גם אם זה אומר לשתף מכפלה שלא נראית בביטוי המינימלי של פונקציה.',
+          'Every row is a product P in the AND plane: clicking a variable goes through not connected, the variable, and its complement (a row with no variables is the constant 1). In the OR plane, connect (●) each product to the outputs it takes part in. The aim: as few products (p) as possible, even if that means sharing a product that is not in the minimal expression of a function.',
+        )}
       </p>
       <div className="expr-table-wrap">
-        <table className="truth-table pla-table" dir="ltr" aria-label="מישורי ה-AND וה-OR">
+        <table className="truth-table pla-table" dir="ltr" aria-label={tr('מישורי ה-AND וה-OR', 'The AND and OR planes')}>
           <thead>
             <tr>
               <th className="truth-m" />
@@ -257,7 +273,7 @@ function PlaStep({ set }: { set: FunctionSet }) {
                       <button
                         type="button"
                         className={`pla-lit${bit === undefined ? '' : ' is-on'}`}
-                        aria-label={`P${i + 1}, ${v}: ${bit === undefined ? 'לא מחובר' : bit === 1 ? v : `${v}'`}`}
+                        aria-label={`P${i + 1}, ${v}: ${bit === undefined ? tr('לא מחובר', 'not connected') : bit === 1 ? v : `${v}'`}`}
                         onClick={() => cycle(i, k)}
                       >
                         {bit === undefined ? '' : bit === 1 ? v : `${v}'`}
@@ -271,7 +287,7 @@ function PlaStep({ set }: { set: FunctionSet }) {
                       type="button"
                       className={`rom-dot${t.outs[j] ? ' is-on' : ''}`}
                       aria-pressed={t.outs[j]}
-                      aria-label={`P${i + 1} אל ${f.name}`}
+                      aria-label={tr(`P${i + 1} אל ${f.name}`, `P${i + 1} to ${f.name}`)}
                       onClick={() => toggle(i, j)}
                     >
                       {t.outs[j] ? '●' : ''}
@@ -282,7 +298,7 @@ function PlaStep({ set }: { set: FunctionSet }) {
                   <button
                     type="button"
                     className="kmap-remove"
-                    aria-label={`הסרת P${i + 1}`}
+                    aria-label={tr(`הסרת P${i + 1}`, `Remove P${i + 1}`)}
                     onClick={() => setTerms(terms.filter((_, ti) => ti !== i))}
                   >
                     ×
@@ -305,10 +321,10 @@ function PlaStep({ set }: { set: FunctionSet }) {
       </div>
       <div className="kmap-actions">
         <button type="button" onClick={() => setTerms([...terms, emptyTerm(set)])}>
-          הוספת מכפלה
+          {tr('הוספת מכפלה', 'Add a product')}
         </button>
         <button type="button" className="primary" onClick={() => setChecked(true)}>
-          בדיקה
+          {tr('בדיקה', 'Check')}
         </button>
         <button
           type="button"
@@ -317,7 +333,7 @@ function PlaStep({ set }: { set: FunctionSet }) {
             setChecked(true);
           }}
         >
-          הצגת פתרון
+          {tr('הצגת פתרון', 'Show a solution')}
         </button>
         <button
           type="button"
@@ -326,41 +342,55 @@ function PlaStep({ set }: { set: FunctionSet }) {
             setChecked(false);
           }}
         >
-          ניקוי
+          {tr('ניקוי', 'Clear')}
         </button>
       </div>
       {checked && (
         <div className={`expr-verdict ${feedback.done ? 'is-same' : 'is-different'}`} role="status">
           {feedback.done ? (
             <>
-              <strong>PLA מינימלי</strong>
+              <strong>{tr('PLA מינימלי', 'A minimal PLA')}</strong>
               <bdi dir="ltr">
                 n×m×p = {n}×{set.fns.length}×{feedback.p}
               </bdi>
-              : {n} כניסות, {set.fns.length} יציאות ו-{feedback.p} מכפלות, הכי מעט שאפשר.
+              :{' '}
+              {tr(
+                `${n} כניסות, ${set.fns.length} יציאות ו-${feedback.p} מכפלות, הכי מעט שאפשר.`,
+                `${n} inputs, ${set.fns.length} outputs and ${feedback.p} products, the fewest possible.`,
+              )}
             </>
           ) : (
             <>
-              <strong>{allRight ? 'הפונקציות נכונות' : 'עוד לא'}</strong>
+              <strong>{allRight ? tr('הפונקציות נכונות', 'The functions are right') : tr('עוד לא', 'Not yet')}</strong>
               <ul className="kmap-feedback">
                 {feedback.outputs.map((o, j) =>
                   o ? (
                     <li key={`o${j}`}>
-                      {set.fns[j].name} לא נכונה: כש-<bdi dir="ltr">{rowText(set, o.m)}</bdi> יוצא {o.got}, וצריך{' '}
-                      {o.want}.
+                      {set.fns[j].name} {tr('לא נכונה: כש-', 'is wrong: with ')}
+                      <bdi dir="ltr">{rowText(set, o.m)}</bdi>
+                      {tr(` יוצא ${o.got}, וצריך ${o.want}.`, ` it gives ${o.got}, and should give ${o.want}.`)}
                     </li>
                   ) : null,
                 )}
                 {feedback.unused.map((i) => (
-                  <li key={`u${i}`}>P{i + 1} לא מחוברת לאף יציאה, ולכן אין בה צורך.</li>
+                  <li key={`u${i}`}>
+                    {tr(`P${i + 1} לא מחוברת לאף יציאה, ולכן אין בה צורך.`, `P${i + 1} feeds no output, so it is not needed.`)}
+                  </li>
                 ))}
                 {feedback.duplicate.map((i) => (
-                  <li key={`d${i}`}>P{i + 1} זהה למכפלה קודמת. מכפלה אחת יכולה להזין כמה יציאות.</li>
+                  <li key={`d${i}`}>
+                    {tr(
+                      `P${i + 1} זהה למכפלה קודמת. מכפלה אחת יכולה להזין כמה יציאות.`,
+                      `P${i + 1} is the same as an earlier product. One product can feed several outputs.`,
+                    )}
+                  </li>
                 ))}
                 {allRight && feedback.p > feedback.minimalP && (
                   <li>
-                    יש לכם p = {feedback.p}, ואפשר ב-p = {feedback.minimalP}. חפשו מכפלה שאפשר לשתף בין
-                    הפונקציות.
+                    {tr(
+                      `יש לכם p = ${feedback.p}, ואפשר ב-p = ${feedback.minimalP}. חפשו מכפלה שאפשר לשתף בין הפונקציות.`,
+                      `You have p = ${feedback.p}, and p = ${feedback.minimalP} will do. Look for a product the functions can share.`,
+                    )}
                   </li>
                 )}
               </ul>
@@ -413,17 +443,19 @@ export function RomWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
 
       <div className="expr-world">
         <main className="expr-main kmap-world">
-          <h2>ROM ו-PLA</h2>
+          <h2>{tr('ROM ו-PLA', 'ROM and PLA')}</h2>
           <p className="hint">
-            אותן פונקציות בשתי דרכים: ב-ROM (מפענח קבוע של כל המינטרמים ומערך OR מתוכנת) וב-PLA (מישור
-            AND ומישור OR מתוכנתים, עם כמה שפחות מכפלות).
+            {tr(
+              'אותן פונקציות בשתי דרכים: ב-ROM (מפענח קבוע של כל המינטרמים ומערך OR מתוכנת) וב-PLA (מישור AND ומישור OR מתוכנתים, עם כמה שפחות מכפלות).',
+              'The same functions in two ways: in a ROM (a fixed decoder of every minterm and a programmed OR array) and in a PLA (programmed AND and OR planes, with as few products as possible).',
+            )}
           </p>
 
           <div className="kmap-source">
-            <span>שאלה:</span>
+            <span>{tr('שאלה:', 'Question:')}</span>
             {PROBLEMS.map((p) => (
               <button key={p.id} type="button" aria-pressed={problem === p.id} onClick={() => load(p.text, p.id, p.mode)}>
-                {p.label}
+                {tr(...p.label)}
               </button>
             ))}
           </div>
@@ -435,7 +467,9 @@ export function RomWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
             }}
           >
             <label className="expr-field">
-              <span>הפונקציות (אחת בכל שורה, עד 4 משתנים ו-4 פונקציות)</span>
+              <span>
+                {tr('הפונקציות (אחת בכל שורה, עד 4 משתנים ו-4 פונקציות)', 'The functions (one per line, up to 4 variables and 4 functions)')}
+              </span>
               <textarea
                 dir="ltr"
                 rows={Math.min(4, Math.max(2, text.split('\n').length))}
@@ -446,13 +480,13 @@ export function RomWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
                 aria-describedby="rom-error"
               />
             </label>
-            <button type="submit">טעינה</button>
+            <button type="submit">{tr('טעינה', 'Load')}</button>
             <p id="rom-error" className="expr-error">
               {error}
             </p>
           </form>
 
-          <div className="kmap-steps" role="tablist" aria-label="מימוש">
+          <div className="kmap-steps" role="tablist" aria-label={tr('מימוש', 'Implementation')}>
             <button type="button" role="tab" aria-selected={mode === 'rom'} onClick={() => setMode('rom')}>
               ROM
             </button>
