@@ -8,7 +8,7 @@ import './worlds.css';
 const WORLDS: { id: string; label: string; ready: boolean }[] = [
   { id: 'editor', label: 'מעגלים', ready: true },
   { id: 'expressions', label: 'ביטויים בוליאניים', ready: true },
-  { id: 'karnaugh', label: 'מפות קרנו', ready: false },
+  { id: 'karnaugh', label: 'מפות קרנו', ready: true },
   { id: 'fsm', label: 'מכונות מצבים', ready: false },
   { id: 'rom', label: 'ROM ו-PLA', ready: false },
 ];

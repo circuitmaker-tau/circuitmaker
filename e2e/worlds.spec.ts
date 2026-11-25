@@ -34,3 +34,39 @@ test('the worlds menu leads to Boolean expressions, which finds a counterexample
   await expect(page).toHaveURL(/#\/editor/);
   for (const id of ['A', 'B']) await expect(node(page, id)).toBeVisible();
 });
+
+test('a Karnaugh map: a misplaced cell, a group that is not a rectangle, then the minimal cover', async ({
+  page,
+}) => {
+  await page.goto('./#/karnaugh');
+  const cell = (m: number) => page.getByRole('button', { name: new RegExp(`^תא ${m}:`) });
+  await page.getByLabel(/פונקציה משלך/).fill('F(A,B,C,D) = Σ(0,2,5,7,8,10,13,15)');
+  await button(page, 'טעינה').click();
+  await expect(page.locator('.kmap-question')).toHaveText('F(A,B,C,D) = Σm(0, 2, 5, 7, 8, 10, 13, 15)');
+
+  // 3 instead of 2: the column order is 00, 01, 11, 10
+  for (const m of [0, 3]) await cell(m).click();
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('תא אחד לא נכון');
+  await expect(cell(3)).toHaveClass(/is-wrong/);
+
+  await button(page, 'הצגת התשובה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('המפה נכונה');
+  await button(page, 'לשלב הקבוצות').click();
+
+  // three cells are not a group
+  for (const m of [0, 2, 8]) await cell(m).click();
+  await button(page, 'הוספת קבוצה').click();
+  await expect(page.getByRole('alert')).toContainText('מלבן של 1, 2, 4 או 8');
+
+  // the four corners, then check: the middle is not covered yet
+  await cell(10).click();
+  await button(page, 'הוספת קבוצה').click();
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('5, 7, 13, 15');
+
+  for (const m of [5, 7, 13, 15]) await cell(m).click();
+  await button(page, 'הוספת קבוצה').click();
+  await expect(page.locator('.kmap-expression')).toHaveText("F = B'·D' + B·D");
+  await expect(page.locator('.expr-verdict')).toContainText('כיסוי מינימלי');
+});

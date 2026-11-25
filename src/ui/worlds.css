@@ -238,3 +238,255 @@
     padding: 16px 12px 40px;
   }
 }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Karnaugh world */
+
+.kmap-source,
+.kmap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.kmap-source > span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.kmap-own {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: end;
+  max-width: 560px;
+}
+
+.kmap-own .expr-error {
+  grid-column: 1 / -1;
+}
+
+.kmap-question {
+  margin: 4px 0 14px;
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  text-align: right;
+}
+
+.kmap-steps {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.kmap-steps button {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  padding: 6px 12px;
+}
+
+.kmap-steps button[aria-selected='true'] {
+  color: var(--fg);
+  font-weight: 600;
+  border-bottom-color: var(--fg);
+}
+
+.kmap-world .primary,
+.kmap-next {
+  color: var(--bg);
+  background: var(--fg);
+  border-color: var(--fg);
+  font-weight: 600;
+}
+
+.kmap-next {
+  margin-top: 8px;
+  display: block;
+}
+
+.kmap-board {
+  display: flex;
+  justify-content: flex-start;
+  margin: 8px 0 14px;
+  overflow-x: auto;
+}
+
+.kgrid {
+  position: relative;
+  flex-shrink: 0;
+  font-family: var(--mono);
+}
+
+.kgrid-corner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.5px),
+    var(--line-strong) 50%,
+    transparent calc(50% + 0.5px)
+  );
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.kgrid-cols {
+  position: absolute;
+  right: 3px;
+  top: 2px;
+}
+
+.kgrid-rows {
+  position: absolute;
+  left: 3px;
+  bottom: 2px;
+}
+
+.kgrid-head {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.kgrid-cell {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+}
+
+.kgrid-cell:hover {
+  border-color: var(--line-strong);
+  background: #16161a;
+}
+
+.kgrid-cell:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: -3px;
+  z-index: 2;
+}
+
+.kgrid-cell small {
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.kgrid-cell.v-0,
+.kgrid-cell.v-d {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.kgrid-cell.is-wrong {
+  background: rgba(255, 92, 92, 0.22);
+  box-shadow: inset 0 0 0 2px var(--sig-0);
+}
+
+.kgrid-cell.is-selected {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 2px var(--fg);
+}
+
+.kgrid-group {
+  position: absolute;
+  border: 2.5px solid;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kmap-target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  border: none;
+  padding: 0;
+  margin: 0 0 6px;
+}
+
+.kmap-groups {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  margin: 0 0 8px;
+}
+
+.kmap-groups li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 4px 2px 8px;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+}
+
+.kmap-swatch {
+  width: 12px;
+  height: 12px;
+  border: 2.5px solid;
+  border-radius: 4px;
+}
+
+.kmap-remove {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.kmap-expression {
+  margin: 0 0 14px;
+  text-align: right;
+  font-size: 1rem;
+}
+
+.kmap-group-error {
+  margin: -4px 0 10px;
+  font-size: 0.88rem;
+}
+
+.kmap-feedback {
+  margin: 4px 0 0;
+  padding-inline-start: 20px;
+}
+
+.kmap-feedback li + li {
+  margin-top: 4px;
+}
