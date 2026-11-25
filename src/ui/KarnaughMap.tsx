@@ -6,6 +6,7 @@
  */
 import type { Cube } from '../analysis/func';
 import type { Logic } from '../engine/logic';
+import { tr } from '../i18n/lang';
 
 const CELL = 34;
 const HEAD = 30;
@@ -67,7 +68,7 @@ export function KarnaughMap({ vars, values, groups, marked = [] }: KarnaughMapPr
       width={width}
       height={height}
       role="img"
-      aria-label={`מפת קרנו של ${vars.join(', ')}`}
+      aria-label={tr(`מפת קרנו של ${vars.join(', ')}`, `Karnaugh map of ${vars.join(', ')}`)}
       direction="ltr"
     >
       <text className="kmap-axis" x={2} y={12}>

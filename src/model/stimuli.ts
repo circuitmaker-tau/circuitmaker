@@ -4,6 +4,7 @@
  */
 import { isValidDelay } from './time';
 import type { Stimulus } from './types';
+import { tr } from '../i18n/lang';
 
 export type ParsedSchedule = { ok: true; schedule: Stimulus[] } | { ok: false; error: string };
 
@@ -17,14 +18,17 @@ export function parseSchedule(text: string): ParsedSchedule {
     const m = /^(\d+(?:\.\d+)?)\s*[:=]\s*([01])$/.exec(part);
     const time = m ? Number(m[1]) : NaN;
     if (!m || !isValidDelay(time)) {
-      return { ok: false, error: `"${part}" אינו בצורה זמן:ערך, למשל 5:0 (זמן בקפיצות של 0.1)` };
+      return { ok: false, error: tr(
+          `"${part}" אינו בצורה זמן:ערך, למשל 5:0 (זמן בקפיצות של 0.1)`,
+          `"${part}" is not in the form time:value, e.g. 5:0 (time in steps of 0.1)`,
+        ) };
     }
     schedule.push({ time, value: m[2] === '1' ? 1 : 0 });
   }
   schedule.sort((a, b) => a.time - b.time);
   for (let i = 1; i < schedule.length; i++) {
     if (schedule[i].time === schedule[i - 1].time) {
-      return { ok: false, error: `שני שינויים באותו זמן (t = ${schedule[i].time})` };
+      return { ok: false, error: tr(`שני שינויים באותו זמן (t = ${schedule[i].time})`, `Two changes at the same time (t = ${schedule[i].time})`) };
     }
   }
   return { ok: true, schedule };

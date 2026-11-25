@@ -4,6 +4,7 @@ import { browserStorage } from './browserStorage';
 import { createDebouncedSaver, restoreCircuit } from './persistence';
 import { decodeShare, sharedData } from './shareLink';
 import type { KeyValueStore } from './persistence';
+import { tr } from '../i18n/lang';
 
 /**
  * On start: bring back the circuit saved in this browser, if there is one.
@@ -28,7 +29,10 @@ async function openShared() {
   store.loadCircuit(
     shared.circuit,
     shared.note ??
-      `נפתח מקישור שיתוף.${hadCircuit ? ' המעגל שהיה כאן קודם: Ctrl+Z מחזיר אותו.' : ''}`,
+      tr(
+        `נפתח מקישור שיתוף.${hadCircuit ? ' המעגל שהיה כאן קודם: Ctrl+Z מחזיר אותו.' : ''}`,
+        `Opened from a share link.${hadCircuit ? ' The circuit that was here before: Ctrl+Z brings it back.' : ''}`,
+      ),
   );
 }
 

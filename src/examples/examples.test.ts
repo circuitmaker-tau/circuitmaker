@@ -328,3 +328,14 @@ describe('exam content checked against the official solutions', () => {
     }
   });
 });
+
+describe('the examples in English', () => {
+  it('every example and every group has an English text', async () => {
+    const { EXAMPLE_EN, GROUP_EN } = await import('./english');
+    for (const ex of EXAMPLES) {
+      expect(EXAMPLE_EN[ex.id], ex.id).toBeDefined();
+      expect(EXAMPLE_EN[ex.id].lesson.length).toBeGreaterThan(40);
+      expect(GROUP_EN[ex.group], ex.group).toBeDefined();
+    }
+  });
+});
