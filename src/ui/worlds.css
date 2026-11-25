@@ -490,3 +490,158 @@
 .kmap-feedback li + li {
   margin-top: 4px;
 }
+
+/* ---------------------------------------------------------------- state machine world */
+
+.kmap-source button[aria-pressed='true'] {
+  border-color: var(--fg);
+  font-weight: 600;
+}
+
+.fsm-given {
+  margin-bottom: 12px;
+}
+
+.fsm-given .analysis-func {
+  text-align: right;
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.worlds-page .inline-link,
+.kmap-world .inline-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--fg);
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+.fsm-table th,
+.fsm-table td {
+  padding: 3px 6px;
+}
+
+.fsm-table tbody th {
+  font-weight: 500;
+}
+
+.fsm-cell {
+  width: auto;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  text-align: center;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 3px 4px;
+}
+
+.fsm-cell:focus {
+  outline: none;
+  border-color: var(--fg);
+}
+
+.fsm-cell.is-wrong {
+  border-color: var(--sig-0);
+  background: rgba(255, 92, 92, 0.18);
+}
+
+.fsm-board {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+  margin: 8px 0 12px;
+}
+
+.fsm-diagram {
+  flex-shrink: 0;
+  max-width: 100%;
+  height: auto;
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.fsm-state circle {
+  fill: var(--panel);
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+
+.fsm-state text {
+  fill: var(--fg);
+  font-family: var(--mono);
+  font-size: 14px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.fsm-state {
+  cursor: pointer;
+  outline: none;
+}
+
+.fsm-state:hover circle,
+.fsm-state:focus-visible circle {
+  stroke-width: 2.5;
+}
+
+.fsm-state.is-picked circle {
+  fill: rgba(255, 255, 255, 0.2);
+  stroke-width: 3;
+}
+
+.fsm-edge path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+.fsm-edge {
+  color: var(--muted);
+}
+
+.fsm-edge text {
+  fill: var(--fg);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+}
+
+.fsm-form {
+  flex: 1;
+  min-width: 220px;
+}
+
+.fsm-form p {
+  margin: 0 0 8px;
+}
+
+.fsm-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px 12px;
+  font-size: 0.9rem;
+}
+
+.fsm-select select {
+  font: inherit;
+  font-family: var(--mono);
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.fsm-arrows {
+  margin-top: 8px;
+}
