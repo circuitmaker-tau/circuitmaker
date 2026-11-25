@@ -740,3 +740,38 @@
   text-align: right;
   margin-bottom: 2px;
 }
+
+/* ---------------------------------------------------------------- request a circuit */
+
+.request-sentence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 4px 0 10px;
+}
+
+.request-sentence label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.request-sentence select {
+  min-width: 0;
+  max-width: 100%;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+.request-dialog textarea {
+  font-family: var(--mono);
+}
+
+.request-ok {
+  color: var(--sig-1);
+}

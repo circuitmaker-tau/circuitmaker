@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { button, node } from './helpers';
+import { button, lamp, node } from './helpers';
 
 test('the worlds menu leads to Boolean expressions, which finds a counterexample', async ({
   page,
@@ -123,4 +123,29 @@ test('ROM and PLA: burn the OR array, then a PLA with too many products', async 
   await button(page, 'הוספת מכפלה').click();
   await button(page, 'בדיקה').click();
   await expect(page.locator('.expr-verdict')).toContainText('P8 לא מחוברת לאף יציאה');
+});
+
+test('request a circuit: a half adder from NAND gates only, checked before it loads', async ({ page }) => {
+  await page.goto('./#/editor');
+  await button(page, 'בקשת מעגל').click();
+  await page.getByLabel('בנה').selectOption({ label: 'חצי מסכם' });
+  await page.getByLabel('בעזרת').selectOption({ label: 'שערי NAND בלבד' });
+  await expect(page.locator('.request-dialog .request-ok')).toContainText('נכון בכל 4 השורות');
+  await button(page, 'בניית המעגל').click();
+  await expect(page.locator('.request-dialog')).not.toBeVisible();
+  for (const id of ['A', 'B', 'S', 'Cout']) await expect(node(page, id)).toBeVisible();
+
+  // A = B = 1: S = 0, Cout = 1
+  await node(page, 'A').locator('.cm-switch').click();
+  await node(page, 'B').locator('.cm-switch').click();
+  await button(page, 'דלג לסוף').click();
+  await expect(lamp(page, 'S')).toHaveText('0');
+  await expect(lamp(page, 'Cout')).toHaveText('1');
+
+  // a request that cannot be built says why, and cannot be confirmed
+  await button(page, 'בקשת מעגל').click();
+  await page.getByLabel('בעזרת').selectOption({ label: 'מפענח ושערי OR' });
+  await page.getByLabel(/ביטוי לכל יציאה/).fill('F = ABCD');
+  await expect(page.locator('.request-dialog .request-error')).toContainText('2 או 3 משתנים');
+  await expect(button(page, 'בניית המעגל')).toBeDisabled();
 });
