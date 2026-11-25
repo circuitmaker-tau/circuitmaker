@@ -101,3 +101,26 @@ test('a state machine: the bamba table cell by cell, then its diagram arrow by a
   await expect(page.locator('.expr-verdict')).toContainText('הדיאגרמה נכונה');
   await expect(page.locator('.fsm-arrows li')).toHaveCount(8);
 });
+
+test('ROM and PLA: burn the OR array, then a PLA with too many products', async ({ page }) => {
+  await page.goto('./#/rom');
+  // f(a,b,c) = Σ(0,2,4,6,7), g(a,b,c) = Σ(0,1,2,3,4,5) in a ROM: g is 0 in row 7
+  await page.getByRole('button', { name: 'g בשורה 7', exact: true }).click();
+  await page.getByLabel('מספר המילים').fill('8');
+  await page.getByLabel('ביטים בכל מילה').fill('2');
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('חיבורים לא נכונים');
+  await expect(page.locator('.expr-verdict')).not.toContainText('הגודל לא נכון');
+  await button(page, 'הצגת התשובה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('ה-ROM נכון');
+
+  // the full adder in a PLA: the minimal answer has p = 7
+  await button(page, 'מסכם מלא').click();
+  await expect(page.getByRole('tab', { name: 'PLA' })).toHaveAttribute('aria-selected', 'true');
+  await button(page, 'הצגת פתרון').click();
+  await expect(page.locator('.expr-verdict')).toContainText('3×2×7');
+  // one more product that feeds nothing
+  await button(page, 'הוספת מכפלה').click();
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('P8 לא מחוברת לאף יציאה');
+});
