@@ -70,3 +70,34 @@ test('a Karnaugh map: a misplaced cell, a group that is not a rectangle, then th
   await expect(page.locator('.kmap-expression')).toHaveText("F = B'·D' + B·D");
   await expect(page.locator('.expr-verdict')).toContainText('כיסוי מינימלי');
 });
+
+test('a state machine: the bamba table cell by cell, then its diagram arrow by arrow', async ({ page }) => {
+  await page.goto('./#/fsm');
+  // WK9B slide 14: from 00 on x = 1 the machine goes to 01; from 01 on x = 1 to 10
+  await page.getByLabel('המצב הבא ממצב 00 כש-X=1').fill('01');
+  await page.getByLabel('המצב הבא ממצב 01 כש-X=1').fill('11');
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('תא אחד לא נכון');
+  await expect(page.getByLabel(/המצב הבא ממצב 01 כש-X=1, שגוי/)).toBeVisible();
+
+  await button(page, 'הצגת התשובה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('Mealy');
+  await button(page, 'לדיאגרמת המצבים').click();
+
+  const state = (c: string) => page.getByRole('button', { name: new RegExp(`^מצב ${c}`) });
+  // a loop on 00 for x = 0, and an arrow 10 -> 00 on x = 1, which is wrong
+  await state('00').click();
+  await state('00').click();
+  await button(page, 'הוספת החץ').click();
+  await state('10').click();
+  await state('00').click();
+  await page.getByLabel(/קלט/).selectOption('1');
+  await button(page, 'הוספת החץ').click();
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('הולך למצב הלא נכון');
+  await expect(page.locator('.expr-verdict')).toContainText('חסרים 6 חצים');
+
+  await button(page, 'הצגת הדיאגרמה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('הדיאגרמה נכונה');
+  await expect(page.locator('.fsm-arrows li')).toHaveCount(8);
+});
