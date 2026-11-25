@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { button, node } from './helpers';
+import { button, lamp, node } from './helpers';
 
 test('the worlds menu leads to Boolean expressions, which finds a counterexample', async ({
   page,
@@ -100,4 +100,52 @@ test('a state machine: the bamba table cell by cell, then its diagram arrow by a
   await button(page, 'הצגת הדיאגרמה').click();
   await expect(page.locator('.expr-verdict')).toContainText('הדיאגרמה נכונה');
   await expect(page.locator('.fsm-arrows li')).toHaveCount(8);
+});
+
+test('ROM and PLA: burn the OR array, then a PLA with too many products', async ({ page }) => {
+  await page.goto('./#/rom');
+  // f(a,b,c) = Σ(0,2,4,6,7), g(a,b,c) = Σ(0,1,2,3,4,5) in a ROM: g is 0 in row 7
+  await page.getByRole('button', { name: 'g בשורה 7', exact: true }).click();
+  await page.getByLabel('מספר המילים').fill('8');
+  await page.getByLabel('ביטים בכל מילה').fill('2');
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('חיבורים לא נכונים');
+  await expect(page.locator('.expr-verdict')).not.toContainText('הגודל לא נכון');
+  await button(page, 'הצגת התשובה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('ה-ROM נכון');
+
+  // the full adder in a PLA: the minimal answer has p = 7
+  await button(page, 'מסכם מלא').click();
+  await expect(page.getByRole('tab', { name: 'PLA' })).toHaveAttribute('aria-selected', 'true');
+  await button(page, 'הצגת פתרון').click();
+  await expect(page.locator('.expr-verdict')).toContainText('3×2×7');
+  // one more product that feeds nothing
+  await button(page, 'הוספת מכפלה').click();
+  await button(page, 'בדיקה').click();
+  await expect(page.locator('.expr-verdict')).toContainText('P8 לא מחוברת לאף יציאה');
+});
+
+test('request a circuit: a half adder from NAND gates only, checked before it loads', async ({ page }) => {
+  await page.goto('./#/editor');
+  await button(page, 'בקשת מעגל').click();
+  await page.getByLabel('בנה').selectOption({ label: 'חצי מסכם' });
+  await page.getByLabel('בעזרת').selectOption({ label: 'שערי NAND בלבד' });
+  await expect(page.locator('.request-dialog .request-ok')).toContainText('נכון בכל 4 השורות');
+  await button(page, 'בניית המעגל').click();
+  await expect(page.locator('.request-dialog')).not.toBeVisible();
+  for (const id of ['A', 'B', 'S', 'Cout']) await expect(node(page, id)).toBeVisible();
+
+  // A = B = 1: S = 0, Cout = 1
+  await node(page, 'A').locator('.cm-switch').click();
+  await node(page, 'B').locator('.cm-switch').click();
+  await button(page, 'דלג לסוף').click();
+  await expect(lamp(page, 'S')).toHaveText('0');
+  await expect(lamp(page, 'Cout')).toHaveText('1');
+
+  // a request that cannot be built says why, and cannot be confirmed
+  await button(page, 'בקשת מעגל').click();
+  await page.getByLabel('בעזרת').selectOption({ label: 'מפענח ושערי OR' });
+  await page.getByLabel(/ביטוי לכל יציאה/).fill('F = ABCD');
+  await expect(page.locator('.request-dialog .request-error')).toContainText('2 או 3 משתנים');
+  await expect(button(page, 'בניית המעגל')).toBeDisabled();
 });

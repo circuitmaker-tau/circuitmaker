@@ -10,7 +10,7 @@ const WORLDS: { id: string; label: string; ready: boolean }[] = [
   { id: 'expressions', label: 'ביטויים בוליאניים', ready: true },
   { id: 'karnaugh', label: 'מפות קרנו', ready: true },
   { id: 'fsm', label: 'מכונות מצבים', ready: true },
-  { id: 'rom', label: 'ROM ו-PLA', ready: false },
+  { id: 'rom', label: 'ROM ו-PLA', ready: true },
 ];
 
 export function WorldNav({ current }: { current: string }) {

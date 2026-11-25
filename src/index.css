@@ -1417,7 +1417,7 @@ button:disabled:hover {
 
 /* circuit from an expression */
 
-:is(.from-expression, .share-dialog) {
+:is(.from-expression, .share-dialog, .request-dialog) {
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   overflow: auto;
@@ -1428,22 +1428,22 @@ button:disabled:hover {
   border-radius: 10px;
 }
 
-:is(.from-expression, .share-dialog)::backdrop {
+:is(.from-expression, .share-dialog, .request-dialog)::backdrop {
   background: rgba(0, 0, 0, 0.7);
 }
 
-:is(.from-expression, .share-dialog) h2 {
+:is(.from-expression, .share-dialog, .request-dialog) h2 {
   margin: 0 0 14px;
   font-size: 1.15rem;
 }
 
-:is(.from-expression, .share-dialog) form {
+:is(.from-expression, .share-dialog, .request-dialog) form {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-:is(.from-expression, .share-dialog) .field input {
+:is(.from-expression, .share-dialog, .request-dialog) .field input {
   width: 100%;
   font-family: var(--mono);
   font-size: 16px; /* no zoom on iPhone */
@@ -1451,7 +1451,7 @@ button:disabled:hover {
   text-align: left;
 }
 
-:is(.from-expression, .share-dialog) .hint {
+:is(.from-expression, .share-dialog, .request-dialog) .hint {
   margin: 0;
 }
 
@@ -1482,33 +1482,33 @@ button:disabled:hover {
   color: var(--muted);
 }
 
-.from-preview {
+:is(.from-preview, .request-preview) {
   min-height: 3.2em;
 }
 
-.from-preview p {
+:is(.from-preview, .request-preview) p {
   margin: 0 0 4px;
   overflow-wrap: anywhere;
 }
 
-.from-error {
+:is(.from-error, .request-error) {
   color: var(--sig-x);
 }
 
-.from-actions {
+:is(.from-actions, .request-actions) {
   display: flex;
   gap: 8px;
 }
 
-.from-actions .primary {
+:is(.from-actions, .request-actions) .primary {
   color: var(--bg);
   background: var(--fg);
   border-color: var(--fg);
   font-weight: 600;
 }
 
-:is(.from-expression, .share-dialog) .field input,
-:is(.from-expression, .share-dialog) {
+:is(.from-expression, .share-dialog, .request-dialog) .field input,
+:is(.from-expression, .share-dialog, .request-dialog) {
   box-sizing: border-box;
 }
 
@@ -1744,7 +1744,7 @@ button:disabled:hover {
 }
 
 /* share link */
-:is(.from-expression, .share-dialog) textarea {
+:is(.from-expression, .share-dialog, .request-dialog) textarea {
   width: 100%;
   box-sizing: border-box;
   font: inherit;
