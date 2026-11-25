@@ -645,3 +645,98 @@
 .fsm-arrows {
   margin-top: 8px;
 }
+
+/* ---------------------------------------------------------------- ROM and PLA world */
+
+.rom-own {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: end;
+  max-width: 620px;
+}
+
+.rom-own textarea {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 6px 10px;
+  resize: vertical;
+}
+
+.rom-own textarea:focus {
+  outline: none;
+  border-color: var(--fg);
+}
+
+.rom-own .expr-error {
+  grid-column: 1 / -1;
+}
+
+.rom-size {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.rom-size input {
+  font-family: var(--mono);
+  font-size: 1rem;
+  text-align: center;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 3px 4px;
+}
+
+.rom-size .hint {
+  margin: 0;
+}
+
+.rom-table tbody tr,
+.pla-table tbody tr {
+  cursor: default;
+}
+
+.rom-dot,
+.pla-lit {
+  min-width: 34px;
+  height: 28px;
+  padding: 0 6px;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px dashed var(--line-strong);
+  border-radius: 4px;
+}
+
+.rom-dot.is-on,
+.pla-lit.is-on {
+  border-style: solid;
+  border-color: var(--fg);
+}
+
+.rom-dot.is-wrong {
+  border: 2px solid var(--sig-0);
+  background: rgba(255, 92, 92, 0.18);
+}
+
+.pla-table tr.is-diff {
+  background: rgba(255, 92, 92, 0.12);
+}
+
+.pla-formulas {
+  margin: 8px 0 12px;
+}
+
+.pla-formulas .analysis-func {
+  text-align: right;
+  margin-bottom: 2px;
+}
