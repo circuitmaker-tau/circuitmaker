@@ -23,6 +23,7 @@ import {
 import type { KQuestion, Target } from '../analysis/kmapPractice';
 import type { Value } from '../analysis/minimize';
 import { WorldNav } from './WorldNav';
+import { tr } from '../i18n/lang';
 
 const CELL = 48;
 const HEAD = 44;
@@ -236,13 +237,13 @@ export function KarnaughWorld({ onHome, onHelp }: { onHome: () => void; onHelp: 
     <div className="app">
       <header className="topbar">
         <h1>
-          <button type="button" className="home-link" onClick={onHome} aria-label="דף הבית">
+          <button type="button" className="home-link" onClick={onHome} aria-label={tr('דף הבית', 'Home page')}>
             CircuitMaker
           </button>
         </h1>
         <div className="actions">
-          <button type="button" onClick={onHelp} title="מדריך למשתמש">
-            עזרה
+          <button type="button" onClick={onHelp} title={tr('מדריך למשתמש', 'User guide')}>
+            {tr('עזרה', 'Help')}
           </button>
         </div>
       </header>

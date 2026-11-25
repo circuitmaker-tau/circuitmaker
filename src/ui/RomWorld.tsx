@@ -10,6 +10,7 @@ import type { Cube } from '../analysis/func';
 import { checkPla, minimalPlaTerms, productText, readFunctions, romSize, rowBits, wrongRomCells } from '../analysis/romPla';
 import type { FunctionSet, PlaTerm } from '../analysis/romPla';
 import { WorldNav } from './WorldNav';
+import { tr } from '../i18n/lang';
 
 /** A 2-bit adder, A1A0 + B1B0 = S2S1S0 (exam 2020): its three outputs as lists of minterms. */
 const ADDER = (() => {
@@ -398,13 +399,13 @@ export function RomWorld({ onHome, onHelp }: { onHome: () => void; onHelp: () =>
     <div className="app">
       <header className="topbar">
         <h1>
-          <button type="button" className="home-link" onClick={onHome} aria-label="דף הבית">
+          <button type="button" className="home-link" onClick={onHome} aria-label={tr('דף הבית', 'Home page')}>
             CircuitMaker
           </button>
         </h1>
         <div className="actions">
-          <button type="button" onClick={onHelp} title="מדריך למשתמש">
-            עזרה
+          <button type="button" onClick={onHelp} title={tr('מדריך למשתמש', 'User guide')}>
+            {tr('עזרה', 'Help')}
           </button>
         </div>
       </header>

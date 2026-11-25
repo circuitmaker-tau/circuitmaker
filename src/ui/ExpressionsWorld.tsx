@@ -13,6 +13,7 @@ import { circuitFromFunction, describe, formFor } from '../analysis/fromFunction
 import type { Value } from '../analysis/minimize';
 import { useCircuitStore } from '../store/circuitStore';
 import { WorldNav } from './WorldNav';
+import { tr } from '../i18n/lang';
 
 /** Pairs from the Boolean algebra of the course: laws, and one common mistake. */
 const PAIRS: { label: string; a: string; b: string }[] = [
@@ -108,13 +109,13 @@ export function ExpressionsWorld({ onHome, onHelp }: { onHome: () => void; onHel
     <div className="app">
       <header className="topbar">
         <h1>
-          <button type="button" className="home-link" onClick={onHome} aria-label="דף הבית">
+          <button type="button" className="home-link" onClick={onHome} aria-label={tr('דף הבית', 'Home page')}>
             CircuitMaker
           </button>
         </h1>
         <div className="actions">
-          <button type="button" onClick={onHelp} title="מדריך למשתמש">
-            עזרה
+          <button type="button" onClick={onHelp} title={tr('מדריך למשתמש', 'User guide')}>
+            {tr('עזרה', 'Help')}
           </button>
         </div>
       </header>

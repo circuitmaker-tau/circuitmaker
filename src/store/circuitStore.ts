@@ -30,6 +30,7 @@ import type { SaveStatus } from '../persistence/persistence';
 import { nodeLayout } from '../ui/geometry';
 import { useAnalysisStore } from './analysisStore';
 import { useTimingStore } from './timingStore';
+import { tr } from '../i18n/lang';
 
 /**
  * A component name is what the course writes: a letter, then letters, digits
@@ -37,12 +38,12 @@ import { useTimingStore } from './timingStore';
  * used, or null.
  */
 export function componentNameProblem(name: string, circuit: Circuit, self?: string): string | null {
-  if (!name) return 'צריך לתת לרכיב שם.';
+  if (!name) return tr('צריך לתת לרכיב שם.', 'The component needs a name.');
   if (!/^[A-Za-z][A-Za-z0-9_]{0,11}$/.test(name)) {
-    return `השם "${name}" לא מתאים: מתחילים באות לועזית, ואחריה אותיות, ספרות או _ (עד 12 תווים), למשל X0 או Cin.`;
+    return tr(`השם "${name}" לא מתאים: מתחילים באות לועזית, ואחריה אותיות, ספרות או _ (עד 12 תווים), למשל X0 או Cin.`, `The name "${name}" does not fit: start with a Latin letter, then letters, digits or _ (up to 12 characters), e.g. X0 or Cin.`);
   }
   if (circuit.components.some((c) => c.id === name && c.id !== self)) {
-    return `כבר יש במעגל רכיב בשם ${name}.`;
+    return tr(`כבר יש במעגל רכיב בשם ${name}.`, `The circuit already has a component called ${name}.`);
   }
   return null;
 }
@@ -210,7 +211,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
       remember();
       set({
         circuit: r.circuit,
-        message: `${id} פורק ל: ${r.summary}. כל חלק אפשר לפרק שוב, ו-Ctrl+Z מחזיר.`,
+        message: tr(`${id} פורק ל: ${r.summary}. כל חלק אפשר לפרק שוב, ו-Ctrl+Z מחזיר.`, `${id} was taken apart into: ${r.summary}. Each part can be taken apart again, and Ctrl+Z undoes it.`),
       });
       return r.parts;
     },
@@ -256,7 +257,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
       const def = CATALOG[current.type];
 
       if (patch.delay !== undefined && !isValidDelay(patch.delay)) {
-        set({ message: 'Tp חייב להיות מספר אי-שלילי בקפיצות של 0.1' });
+        set({ message: tr('Tp חייב להיות מספר אי-שלילי בקפיצות של 0.1', 'Tp must be a non-negative number in steps of 0.1') });
         return false;
       }
       if (
@@ -265,13 +266,13 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
           patch.inputs < def.minInputs ||
           patch.inputs > def.maxInputs)
       ) {
-        set({ message: `ל-${current.type} אפשר ${def.minInputs} עד ${def.maxInputs} כניסות` });
+        set({ message: tr(`ל-${current.type} אפשר ${def.minInputs} עד ${def.maxInputs} כניסות`, `${current.type} can have ${def.minInputs} to ${def.maxInputs} inputs`) });
         return false;
       }
 
       const hp = patch.props?.halfPeriod;
       if (hp !== undefined && (!isValidDelay(hp) || hp === 0)) {
-        set({ message: 'חצי מחזור חייב להיות מספר חיובי בקפיצות של 0.1' });
+        set({ message: tr('חצי מחזור חייב להיות מספר חיובי בקפיצות של 0.1', 'A half period must be a positive number in steps of 0.1') });
         return false;
       }
 
@@ -376,7 +377,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
       remember();
       set({
         circuit: { ...circuit, blocks: [...(circuit.blocks ?? []), r.block] },
-        message: `הבלוק ${r.block.name} נשמר, עם הכניסות ${r.block.inputs.join(', ')} והיציאות ${r.block.outputs.join(', ')}. הוא מופיע בסרגל הרכיבים, ב״הבלוקים שלי״.`,
+        message: tr(`הבלוק ${r.block.name} נשמר, עם הכניסות ${r.block.inputs.join(', ')} והיציאות ${r.block.outputs.join(', ')}. הוא מופיע בסרגל הרכיבים, ב״הבלוקים שלי״.`, `The block ${r.block.name} was saved, with the inputs ${r.block.inputs.join(', ')} and the outputs ${r.block.outputs.join(', ')}. It is in the component library, under "My blocks".`),
       });
       return null;
     },
@@ -395,7 +396,7 @@ export const useCircuitStore = create<CircuitState>()((set, get) => {
       const users = blocksUsedBy(circuit, circuit.components).some((b) => b.name === name) ||
         (circuit.blocks ?? []).some((b) => b.name !== name && blocksUsedBy(circuit, b.components).some((u) => u.name === name));
       if (users) {
-        set({ message: `הבלוק ${name} נמצא בשימוש במעגל. מוחקים קודם את הרכיבים שמשתמשים בו.` });
+        set({ message: tr(`הבלוק ${name} נמצא בשימוש במעגל. מוחקים קודם את הרכיבים שמשתמשים בו.`, `The block ${name} is used in the circuit. Delete the components that use it first.`) });
         return;
       }
       remember();

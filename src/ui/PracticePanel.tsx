@@ -13,6 +13,7 @@ import { useCircuitStore } from '../store/circuitStore';
 import { frontsOf, structureSignature, useSimStore } from '../store/simStore';
 import { allRows, useTimingStore } from '../store/timingStore';
 import { SIGNAL_COLORS } from './signalColors';
+import { textDir, tr } from '../i18n/lang';
 
 const ROW_H = 34;
 const HIGH = 8;
@@ -102,8 +103,10 @@ export function PracticePanel() {
   if (!question.rows.some((r) => !r.given)) {
     return (
       <p className="hint analysis-empty">
-        אין אותות לשרטט. מוסיפים אותות לדיאגרמת הזמנים מפאנל המאפיינים, או לוחצים על שם של אות כדי
-        שיהיה לשרטוט.
+        {tr(
+          'אין אותות לשרטט. מוסיפים אותות לדיאגרמת הזמנים מפאנל המאפיינים, או לוחצים על שם של אות כדי שיהיה לשרטוט.',
+          'No signals to draw. Add signals to the timing diagram from the properties panel, or click the name of a signal to make it one to draw.',
+        )}
       </p>
     );
   }
@@ -155,19 +158,25 @@ export function PracticePanel() {
   const wrongCells = (net: string) => result?.wrong.get(net) ?? [];
 
   return (
-    <div className="practice" dir="rtl">
+    <div className="practice" dir={textDir()}>
       <div className="practice-bar">
         <span className="practice-status" aria-live="polite">
           {result
             ? result.rightRows === result.rows
-              ? 'הכול נכון!'
-              : `${result.rightRows} מתוך ${result.rows} אותות נכונים. הקטעים השגויים מסומנים באדום.`
-            : 'משרטטים את האותות: לחיצה או גרירה על קטע הופכת אותו ל-0 או ל-1. הערך ב-t = 0 נתון.'}
+              ? tr('הכול נכון!', 'All correct!')
+              : tr(
+                  `${result.rightRows} מתוך ${result.rows} אותות נכונים. הקטעים השגויים מסומנים באדום.`,
+                  `${result.rightRows} of ${result.rows} signals are right. The wrong stretches are marked in red.`,
+                )
+            : tr(
+                'משרטטים את האותות: לחיצה או גרירה על קטע הופכת אותו ל-0 או ל-1. הערך ב-t = 0 נתון.',
+                'Draw the signals: clicking or dragging over a stretch turns it to 0 or 1. The value at t = 0 is given.',
+              )}
         </span>
         <span className="practice-tools">
           {hasClock && (
             <label>
-              <span>מחזורים</span>
+              <span>{tr('מחזורים', 'Cycles')}</span>
               <select value={periods} onChange={(e) => setPeriods(Number(e.target.value))}>
                 {PERIOD_CHOICES.map((p) => (
                   <option key={p} value={p}>
@@ -178,16 +187,20 @@ export function PracticePanel() {
             </label>
           )}
           <button type="button" className="primary" onClick={check}>
-            בדיקה
+            {tr('בדיקה', 'Check')}
           </button>
           <button type="button" onClick={() => setAnswerFor(showAnswer ? null : behaviour)} aria-pressed={showAnswer}>
-            {showAnswer ? 'הסתרת התשובה' : 'הצגת התשובה'}
+            {showAnswer ? tr('הסתרת התשובה', 'Hide the answer') : tr('הצגת התשובה', 'Show the answer')}
           </button>
           <button type="button" onClick={() => setDrawn({ key: behaviour, guesses: new Map(), result: null })}>
-            ניקוי
+            {tr('ניקוי', 'Clear')}
           </button>
-          <button type="button" onClick={playInDiagram} title="הרצת המעגל ומעבר לדיאגרמת הזמנים">
-            הרצה בדיאגרמה
+          <button
+            type="button"
+            onClick={playInDiagram}
+            title={tr('הרצת המעגל ומעבר לדיאגרמת הזמנים', 'Run the circuit and go to the timing diagram')}
+          >
+            {tr('הרצה בדיאגרמה', 'Run in the diagram')}
           </button>
         </span>
       </div>
@@ -209,10 +222,14 @@ export function PracticePanel() {
                     return next;
                   })
                 }
-                title={r.given ? 'נתון. לחיצה הופכת אותו לאות לשרטוט' : 'לשרטוט. לחיצה הופכת אותו לנתון'}
+                title={
+                  r.given
+                    ? tr('נתון. לחיצה הופכת אותו לאות לשרטוט', 'Given. Click to make it one to draw')
+                    : tr('לשרטוט. לחיצה הופכת אותו לנתון', 'To draw. Click to make it given')
+                }
               >
                 <bdi>{r.label}</bdi>
-                <b>{r.given ? 'נתון' : result ? (bad === 0 ? '✓' : '✗') : ''}</b>
+                <b>{r.given ? tr('נתון', 'given') : result ? (bad === 0 ? '✓' : '✗') : ''}</b>
               </button>
             );
           })}
@@ -223,7 +240,10 @@ export function PracticePanel() {
             height={height}
             className="timing-svg practice-svg"
             role="img"
-            aria-label="שרטוט דיאגרמת הזמנים: לחיצה או גרירה על קטע הופכת אותו"
+            aria-label={tr(
+              'שרטוט דיאגרמת הזמנים: לחיצה או גרירה על קטע הופכת אותו',
+              'Drawing the timing diagram: clicking or dragging over a stretch flips it',
+            )}
             onPointerDown={(e) => {
               const { k, i } = at(e);
               const row = question.rows[i];

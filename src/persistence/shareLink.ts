@@ -6,6 +6,7 @@
  */
 import { parseCircuit } from '../model';
 import type { Circuit } from '../model';
+import { tr } from '../i18n/lang';
 
 const PARAM = 'c';
 
@@ -46,12 +47,12 @@ export async function decodeShare(data: string): Promise<SharedResult> {
   try {
     const bytes = await pipe(fromBase64Url(data), new DecompressionStream('deflate-raw'));
     const payload = JSON.parse(new TextDecoder().decode(bytes)) as Partial<Payload>;
-    if (payload.v !== 1 || !payload.c) return { ok: false, error: 'הקישור לא מכיל מעגל.' };
+    if (payload.v !== 1 || !payload.c) return { ok: false, error: tr('הקישור לא מכיל מעגל.', 'The link holds no circuit.') };
     const parsed = parseCircuit(JSON.stringify(payload.c));
-    if (!parsed.ok) return { ok: false, error: `המעגל בקישור לא תקין: ${parsed.errors.join('; ')}` };
+    if (!parsed.ok) return { ok: false, error: tr(`המעגל בקישור לא תקין: ${parsed.errors.join('; ')}`, `The circuit in the link is not valid: ${parsed.errors.join('; ')}`) };
     return { ok: true, circuit: parsed.circuit, note: typeof payload.l === 'string' ? payload.l : null };
   } catch {
-    return { ok: false, error: 'הקישור פגום או חלקי. אולי הוא נחתך כשהועתק?' };
+    return { ok: false, error: tr('הקישור פגום או חלקי. אולי הוא נחתך כשהועתק?', 'The link is broken or partial. Was it cut when it was copied?') };
   }
 }
 

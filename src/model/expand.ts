@@ -15,6 +15,7 @@
  */
 import { createComponent, createWire, nextId } from './factory';
 import type { BlockDef, Circuit, ComponentProps, ComponentType, Component, Wire } from './types';
+import { tr } from '../i18n/lang';
 
 /** "part.port", or a block port name for the outside. */
 type Ref = string;
@@ -63,7 +64,7 @@ function mux(n: number): Expansion {
       ],
       inputs: { I0: ['a0.in0'], I1: ['a1.in0'], S0: ['n.in0', 'a1.in1'] },
       outputs: { f: 'o.out' },
-      summary: "NOT, שני AND ו-OR: f = S0'·I0 + S0·I1",
+      summary: tr("NOT, שני AND ו-OR: f = S0'·I0 + S0·I1", "NOT, two AND and an OR: f = S0'·I0 + S0·I1"),
     };
   }
   const half = n / 2;
@@ -90,7 +91,7 @@ function mux(n: number): Expansion {
     ],
     inputs,
     outputs: { f: 't.f' },
-    summary: `שני MUX ${half}:1 ו-MUX 2:1 שבוחר ביניהם לפי ${top} (המימוש הרקורסיבי)`,
+    summary: tr(`שני MUX ${half}:1 ו-MUX 2:1 שבוחר ביניהם לפי ${top} (המימוש הרקורסיבי)`, `two MUX ${half}:1 and a MUX 2:1 that picks between them by ${top} (the recursive construction)`),
   };
 }
 
@@ -117,7 +118,7 @@ function decoder(n: number): Expansion {
     wires,
     inputs,
     outputs,
-    summary: `מהפך לכל כניסה ו-AND לכל יציאה (${1 << n} שערי AND עם En)`,
+    summary: tr(`מהפך לכל כניסה ו-AND לכל יציאה (${1 << n} שערי AND עם En)`, `an inverter per input and an AND per output (${1 << n} AND gates with En)`),
   };
 }
 
@@ -135,7 +136,7 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
         wires: [],
         inputs: { A: ['x.in0', 'a.in0'], B: ['x.in1', 'a.in1'] },
         outputs: { S: 'x.out', C: 'a.out' },
-        summary: 'XOR לסכום ו-AND ל-carry: S = A⊕B, C = A·B',
+        summary: tr('XOR לסכום ו-AND ל-carry: S = A⊕B, C = A·B', 'XOR for the sum and AND for the carry: S = A⊕B, C = A·B'),
       };
     case 'FULL_ADDER':
       return {
@@ -151,7 +152,7 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
         ],
         inputs: { A: ['h1.A'], B: ['h1.B'], Cin: ['h2.B'] },
         outputs: { S: 'h2.S', Cout: 'o.out' },
-        summary: 'שני חצאי מסכם ו-OR: S = A⊕B⊕Cin, Cout = AB + Cin(A⊕B)',
+        summary: tr('שני חצאי מסכם ו-OR: S = A⊕B⊕Cin, Cout = AB + Cin(A⊕B)', 'two half adders and an OR: S = A⊕B⊕Cin, Cout = AB + Cin(A⊕B)'),
       };
     case 'MUX2':
     case 'MUX4':
@@ -189,7 +190,7 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
           En: ['e1.in1', 'e0.in1', 'ev.in1'],
         },
         outputs: { X1: 'e1.out', X0: 'e0.out', V: 'ev.out' },
-        summary: "X1 = D3 + D2, X0 = D3 + D2'D1, V = D0 + D1 + D2 + D3, כולם כפול En",
+        summary: tr("X1 = D3 + D2, X0 = D3 + D2'D1, V = D0 + D1 + D2 + D3, כולם כפול En", "X1 = D3 + D2, X0 = D3 + D2'D1, V = D0 + D1 + D2 + D3, all times En"),
       };
     case 'REGISTER4': {
       const init = c.props?.init;
@@ -205,7 +206,7 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
         wires: [],
         inputs: { ...Object.fromEntries(seq('D', 4).map((p, i) => [p, [`d${i}.D`]])), CLK: seq('d', 4).map((d) => `${d}.CLK`) },
         outputs: Object.fromEntries(seq('Q', 4).map((p, i) => [p, `d${i}.Q`])),
-        summary: 'ארבעה D flip-flop עם שעון משותף',
+        summary: tr('ארבעה D flip-flop עם שעון משותף', 'four D flip-flops with a shared clock'),
       };
     }
     case 'COUNTER4': {
@@ -244,7 +245,7 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
         wires,
         inputs,
         outputs: Object.fromEntries(seq('Q', 4).map((p, i) => [p, `t${i}.Q`])),
-        summary: 'ארבעה T flip-flop: T0 = 1, T1 = Q0, T2 = Q0Q1, T3 = Q0Q1Q2 (מונה סינכרוני)',
+        summary: tr('ארבעה T flip-flop: T0 = 1, T1 = Q0, T2 = Q0Q1, T3 = Q0Q1Q2 (מונה סינכרוני)', 'four T flip-flops: T0 = 1, T1 = Q0, T2 = Q0Q1, T3 = Q0Q1Q2 (a synchronous counter)'),
       };
     }
     default:
@@ -271,7 +272,7 @@ export function blockExpansion(def: BlockDef): Expansion {
     wires,
     inputs,
     outputs,
-    summary: `${inner.length} הרכיבים שבתוך הבלוק ${def.name}`,
+    summary: tr(`${inner.length} הרכיבים שבתוך הבלוק ${def.name}`, `the ${inner.length} components inside the block ${def.name}`),
   };
 }
 

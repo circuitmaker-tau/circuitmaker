@@ -2,18 +2,20 @@ import type { DragEvent } from 'react';
 import { CATALOG } from '../model';
 import type { BlockDef, ComponentType } from '../model';
 import { useCircuitStore } from '../store/circuitStore';
-import { PALETTE_LABEL } from './labels';
+import { labelOf } from '../i18n/components';
+import { tr } from '../i18n/lang';
+import { paletteLabel } from './labels';
 
 /** MIME type used to carry a component type from the palette to the canvas. */
 export const DRAG_MIME = 'application/x-circuitmaker-component';
 /** The same for one of the student's own blocks (carries its name). */
 export const BLOCK_MIME = 'application/x-circuitmaker-block';
 
-const GROUPS: { title: string; types: ComponentType[] }[] = [
-  { title: 'כניסות ויציאות', types: ['INPUT', 'OUTPUT', 'CONST0', 'CONST1', 'CLOCK'] },
-  { title: 'שערים', types: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR', 'XNOR', 'BUF'] },
+const GROUPS: { title: [string, string]; types: ComponentType[] }[] = [
+  { title: ['כניסות ויציאות', 'Inputs and outputs'], types: ['INPUT', 'OUTPUT', 'CONST0', 'CONST1', 'CLOCK'] },
+  { title: ['שערים', 'Gates'], types: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR', 'XNOR', 'BUF'] },
   {
-    title: 'רכיבים צירופיים',
+    title: ['רכיבים צירופיים', 'Combinational'],
     types: [
       'HALF_ADDER',
       'FULL_ADDER',
@@ -28,13 +30,13 @@ const GROUPS: { title: string; types: ComponentType[] }[] = [
     ],
   },
   {
-    title: 'רכיבים עקיבים',
+    title: ['רכיבים עקיבים', 'Sequential'],
     types: ['D_FF', 'T_FF', 'JK_FF', 'SR_FF', 'SR_LATCH', 'D_LATCH', 'REGISTER4', 'COUNTER4'],
   },
 ];
 
 const buttonLabel = (type: ComponentType) =>
-  CATALOG[type].category === 'gate' ? type : (PALETTE_LABEL[type] ?? CATALOG[type].label);
+  CATALOG[type].category === 'gate' ? type : (paletteLabel(type) ?? labelOf(type));
 
 interface PaletteProps {
   onAdd: (type: ComponentType) => void;
@@ -49,12 +51,12 @@ export function Palette({ onAdd, onAddBlock, blocks = [] }: PaletteProps) {
   };
 
   return (
-    <aside className="palette" aria-label="ספריית רכיבים">
-      <h2>רכיבים</h2>
-      <p className="hint">גוררים למשטח, או לוחצים כדי להוסיף.</p>
+    <aside className="palette" aria-label={tr('ספריית רכיבים', 'Component library')}>
+      <h2>{tr('רכיבים', 'Components')}</h2>
+      <p className="hint">{tr('גוררים למשטח, או לוחצים כדי להוסיף.', 'Drag onto the canvas, or click to add.')}</p>
       {GROUPS.map((group) => (
-        <section key={group.title}>
-          <h3>{group.title}</h3>
+        <section key={group.title[1]}>
+          <h3>{tr(...group.title)}</h3>
           <div className="palette-grid">
             {group.types.map((type) => (
               <button
@@ -64,7 +66,7 @@ export function Palette({ onAdd, onAddBlock, blocks = [] }: PaletteProps) {
                 draggable
                 onDragStart={(e) => onDragStart(e, type)}
                 onClick={() => onAdd(type)}
-                title={CATALOG[type].label}
+                title={labelOf(type)}
               >
                 {buttonLabel(type)}
               </button>
@@ -73,10 +75,13 @@ export function Palette({ onAdd, onAddBlock, blocks = [] }: PaletteProps) {
         </section>
       ))}
       <section className="palette-mine">
-        <h3>הבלוקים שלי</h3>
+        <h3>{tr('הבלוקים שלי', 'My blocks')}</h3>
         {blocks.length === 0 ? (
           <p className="hint">
-            בונים משהו משערים, עם מתגים לכניסות ונורות ליציאות, בוחרים את כולם ולוחצים ״שמירה כבלוק״.
+            {tr(
+              'בונים משהו משערים, עם מתגים לכניסות ונורות ליציאות, בוחרים את כולם ולוחצים ״שמירה כבלוק״.',
+              'Build something from gates, with switches for inputs and lamps for outputs, select it all and click "Save as block".',
+            )}
           </p>
         ) : (
           <div className="palette-grid">
@@ -91,15 +96,18 @@ export function Palette({ onAdd, onAddBlock, blocks = [] }: PaletteProps) {
                     e.dataTransfer.effectAllowed = 'move';
                   }}
                   onClick={() => onAddBlock?.(b.name)}
-                  title={`${b.name}: כניסות ${b.inputs.join(', ')}, יציאות ${b.outputs.join(', ')}`}
+                  title={tr(
+                    `${b.name}: כניסות ${b.inputs.join(', ')}, יציאות ${b.outputs.join(', ')}`,
+                    `${b.name}: inputs ${b.inputs.join(', ')}, outputs ${b.outputs.join(', ')}`,
+                  )}
                 >
                   <bdi>{b.name}</bdi>
                 </button>
                 <button
                   type="button"
                   className="palette-remove"
-                  aria-label={`מחיקת הבלוק ${b.name}`}
-                  title="מחיקת הבלוק מהרשימה"
+                  aria-label={tr(`מחיקת הבלוק ${b.name}`, `Delete the block ${b.name}`)}
+                  title={tr('מחיקת הבלוק מהרשימה', 'Delete the block from the list')}
                   onClick={() => useCircuitStore.getState().deleteBlock(b.name)}
                 >
                   ×

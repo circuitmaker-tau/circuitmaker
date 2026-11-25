@@ -34,6 +34,7 @@ import { TimingDiagram } from './TimingDiagram';
 import { usePlaybackClock } from './usePlaybackClock';
 import { WireEdge } from './WireEdge';
 import type { WireFlowEdge } from './WireEdge';
+import { textDir, tr } from '../i18n/lang';
 
 const nodeTypes = { component: ComponentNode };
 const edgeTypes = { wire: WireEdge };
@@ -44,10 +45,10 @@ const isComponentType = (t: string): t is ComponentType =>
   (COMPONENT_TYPES as readonly string[]).includes(t);
 
 type Sheet = 'none' | 'palette' | 'props' | 'timing';
-const SHEETS: [Exclude<Sheet, 'none'>, string][] = [
-  ['palette', 'רכיבים'],
-  ['props', 'מאפיינים'],
-  ['timing', 'זמנים וניתוח'],
+const SHEETS: [Exclude<Sheet, 'none'>, string, string][] = [
+  ['palette', 'רכיבים', 'Components'],
+  ['props', 'מאפיינים', 'Properties'],
+  ['timing', 'זמנים וניתוח', 'Timing & analysis'],
 ];
 
 export function Editor() {
@@ -291,8 +292,8 @@ export function Editor() {
               <Controls showInteractive={false}>
                 <ControlButton
                   onClick={() => void exportCircuitImage(nodes, circuit.name)}
-                  title="שמירת המעגל כתמונה (PNG)"
-                  aria-label="שמירת המעגל כתמונה"
+                  title={tr('שמירת המעגל כתמונה (PNG)', 'Save the circuit as an image (PNG)')}
+                  aria-label={tr('שמירת המעגל כתמונה', 'Save the circuit as an image')}
                 >
                   <svg viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 12.5h11" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -302,9 +303,9 @@ export function Editor() {
             </ReactFlow>
           </div>
           {message && (
-            <div className="status" role="status" dir="rtl">
+            <div className="status" role="status" dir={textDir()}>
               <span>{message}</span>
-              <button type="button" onClick={clearMessage} aria-label="סגירת ההודעה">
+              <button type="button" onClick={clearMessage} aria-label={tr('סגירת ההודעה', 'Close the message')}>
                 ×
               </button>
             </div>
@@ -321,8 +322,8 @@ export function Editor() {
           setNodeMeta(({ [from]: meta, ...rest }) => (meta ? { ...rest, [to]: meta } : rest))
         }
       />
-      <nav className="mobile-tabs" aria-label="חלוניות">
-        {SHEETS.map(([id, label]) => (
+      <nav className="mobile-tabs" aria-label={tr('חלוניות', 'Panels')}>
+        {SHEETS.map(([id, he, en]) => (
           <button
             key={id}
             type="button"
@@ -330,7 +331,7 @@ export function Editor() {
             className={id === 'props' && selectedComponent ? 'has-badge' : undefined}
             onClick={() => toggleSheet(id)}
           >
-            {label}
+            {tr(he, en)}
           </button>
         ))}
       </nav>

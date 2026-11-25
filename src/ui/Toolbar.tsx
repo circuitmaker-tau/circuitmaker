@@ -7,13 +7,15 @@ import { useCircuitStore } from '../store/circuitStore';
 import { FromExpression } from './FromExpression';
 import { RequestDialog } from './RequestDialog';
 import { ShareDialog } from './ShareDialog';
+import { tr } from '../i18n/lang';
 
-const STATUS_TEXT: Record<SaveStatus, string> = {
-  idle: '',
-  saving: 'שומר…',
-  saved: 'נשמר בדפדפן',
-  error: 'השמירה בדפדפן נכשלה. כדאי לייצא JSON',
-};
+const statusText = (s: SaveStatus) =>
+  ({
+    idle: '',
+    saving: tr('שומר…', 'Saving…'),
+    saved: tr('נשמר בדפדפן', 'Saved in this browser'),
+    error: tr('השמירה בדפדפן נכשלה. כדאי לייצא JSON', 'Saving in the browser failed. Export JSON to be safe'),
+  })[s];
 
 interface ToolbarProps {
   onHome: () => void;
@@ -38,30 +40,35 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
     if (!file) return;
     const result = await readCircuitFile(file);
     if (!result.ok) {
-      showMessage(`לא ניתן לטעון את ${file.name}: ${result.errors.join(' · ')}`);
+      showMessage(tr(`לא ניתן לטעון את ${file.name}: ${result.errors.join(' · ')}`, `Cannot load ${file.name}: ${result.errors.join(' · ')}`));
       return;
     }
     loadCircuit(result.circuit);
     if (result.warnings.length > 0) {
-      showMessage(`המעגל נטען. ${result.warnings.length} כניסות לא מחוברות (ערכן X).`);
+      showMessage(
+        tr(
+          `המעגל נטען. ${result.warnings.length} כניסות לא מחוברות (ערכן X).`,
+          `The circuit was loaded. ${result.warnings.length} inputs are not connected (their value is X).`,
+        ),
+      );
     }
   };
 
   return (
     <header className="topbar">
       <h1>
-        <button type="button" className="home-link" onClick={onHome} aria-label="דף הבית">
+        <button type="button" className="home-link" onClick={onHome} aria-label={tr('דף הבית', 'Home page')}>
           CircuitMaker
         </button>
       </h1>
       <input
         className="circuit-name"
-        aria-label="שם המעגל"
+        aria-label={tr('שם המעגל', 'Circuit name')}
         value={name}
         onChange={(e) => renameCircuit(e.target.value)}
       />
       <span className="save-status" role="status" data-status={saveStatus}>
-        {STATUS_TEXT[saveStatus]}
+        {statusText(saveStatus)}
       </span>
       <div className="actions">
         <button
@@ -69,8 +76,8 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
           className="icon"
           onClick={undo}
           disabled={!canUndo}
-          aria-label="ביטול הפעולה האחרונה"
-          title="ביטול (Ctrl+Z)"
+          aria-label={tr('ביטול הפעולה האחרונה', 'Undo the last action')}
+          title={tr('ביטול (Ctrl+Z)', 'Undo (Ctrl+Z)')}
         >
           ↶
         </button>
@@ -79,27 +86,31 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
           className="icon"
           onClick={redo}
           disabled={!canRedo}
-          aria-label="ביצוע מחדש"
-          title="ביצוע מחדש (Ctrl+Shift+Z)"
+          aria-label={tr('ביצוע מחדש', 'Redo')}
+          title={tr('ביצוע מחדש (Ctrl+Shift+Z)', 'Redo (Ctrl+Shift+Z)')}
         >
           ↷
         </button>
         <button type="button" onClick={newCircuit}>
-          מעגל חדש
+          {tr('מעגל חדש', 'New circuit')}
         </button>
-        <button type="button" onClick={() => setFromExpression(true)} title="בניית מעגל מביטוי בוליאני או מרשימת מינטרמים">
-          מעגל מביטוי
+        <button
+          type="button"
+          onClick={() => setFromExpression(true)}
+          title={tr('בניית מעגל מביטוי בוליאני או מרשימת מינטרמים', 'Build a circuit from a Boolean expression or a list of minterms')}
+        >
+          {tr('מעגל מביטוי', 'From expression')}
         </button>
         <button
           type="button"
           onClick={() => setRequesting(true)}
-          title="בנה [מה] בעזרת [אילו רכיבים] עם [מגבלות]: מעגל לפי תבנית"
+          title={tr('בנה [מה] בעזרת [אילו רכיבים] עם [מגבלות]: מעגל לפי תבנית', 'Build [what] using [which parts] with [limits]: a circuit from a template')}
         >
-          בקשת מעגל
+          {tr('בקשת מעגל', 'Request a circuit')}
         </button>
         <select
           className="examples"
-          aria-label="טעינת מעגל דוגמה"
+          aria-label={tr('טעינת מעגל דוגמה', 'Load an example circuit')}
           value=""
           onChange={(e) => {
             const ex = EXAMPLES.find((x) => x.id === e.target.value);
@@ -107,7 +118,7 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
           }}
         >
           <option value="" disabled>
-            דוגמאות מהקורס
+            {tr('דוגמאות מהקורס', 'Course examples')}
           </option>
           {[...new Set(EXAMPLES.map((x) => x.group))].map((group) => (
             <optgroup key={group} label={group}>
@@ -120,16 +131,20 @@ export function Toolbar({ onHome, onHelp }: ToolbarProps) {
           ))}
         </select>
         <button type="button" onClick={() => fileInput.current?.click()}>
-          ייבוא JSON
+          {tr('ייבוא JSON', 'Import JSON')}
         </button>
         <button type="button" onClick={() => downloadCircuit(useCircuitStore.getState().circuit)}>
-          ייצוא JSON
+          {tr('ייצוא JSON', 'Export JSON')}
         </button>
-        <button type="button" onClick={() => setSharing(true)} title="קישור שפותח את המעגל הזה אצל מישהו אחר">
-          שיתוף
+        <button
+          type="button"
+          onClick={() => setSharing(true)}
+          title={tr('קישור שפותח את המעגל הזה אצל מישהו אחר', 'A link that opens this circuit for someone else')}
+        >
+          {tr('שיתוף', 'Share')}
         </button>
-        <button type="button" onClick={onHelp} title="מדריך למשתמש">
-          עזרה
+        <button type="button" onClick={onHelp} title={tr('מדריך למשתמש', 'User guide')}>
+          {tr('עזרה', 'Help')}
         </button>
         <input
           ref={fileInput}

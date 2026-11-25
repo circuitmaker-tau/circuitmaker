@@ -7,6 +7,7 @@
 import { MAX_FUNCTION_VARS, orderVariables, parseFunction } from './expression';
 import type { ParsedFunction } from './expression';
 import type { Value } from './minimize';
+import { tr } from '../i18n/lang';
 
 export interface ComparedRow {
   /** Row number on the shared variables (MSB first), as in Σm. */
@@ -83,7 +84,7 @@ export function compareFunctions(textA: string, textB: string): Comparison {
     return {
       ok: false,
       side: 'both',
-      error: `יחד יש ${vars.length} משתנים (${vars.join(', ')}). אפשר עד ${MAX_FUNCTION_VARS}.`,
+      error: tr(`יחד יש ${vars.length} משתנים (${vars.join(', ')}). אפשר עד ${MAX_FUNCTION_VARS}.`, `Together there are ${vars.length} variables (${vars.join(', ')}). Up to ${MAX_FUNCTION_VARS} are allowed.`),
     };
   }
   const a = lift(pa.fn, vars);

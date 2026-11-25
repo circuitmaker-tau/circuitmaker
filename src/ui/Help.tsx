@@ -4,6 +4,7 @@
  */
 import type { MouseEvent } from 'react';
 import './help.css';
+import { LangSwitch } from './LangSwitch';
 
 interface HelpProps {
   onOpenEditor: () => void;
@@ -41,6 +42,7 @@ export function Help({ onOpenEditor, onStartTour, onHome }: HelpProps) {
           CircuitMaker
         </button>
         <div className="help-actions">
+          <LangSwitch />
           <button type="button" onClick={onStartTour}>
             סיור בעורך
           </button>

@@ -8,6 +8,8 @@ import { GateSymbol } from './GateSymbol';
 import { GATE_FORMULA } from './gateFormula';
 import { isMux, muxInset, nodeLayout, portLocal } from './geometry';
 import { BOX_TITLE } from './labels';
+import { tr } from '../i18n/lang';
+import { labelOf } from '../i18n/components';
 
 /** `lampNet` is the net that feeds an OUTPUT. */
 export type ComponentNodeData = { component: Component; lampNet?: string };
@@ -133,7 +135,10 @@ function DelayBar({ id, place }: { id: string; place: DelayBarPlace }) {
           className={`cm-delay-fill v-${sig(d.value)}`}
           style={{ width: `${Math.round(d.progress * 100)}%` }}
           role="img"
-          aria-label={`${id}: ${d.value} בדרך דרך ה-Tp (${Math.round(d.progress * 100)}%)`}
+          aria-label={tr(
+            `${id}: ${d.value} בדרך דרך ה-Tp (${Math.round(d.progress * 100)}%)`,
+            `${id}: ${d.value} on its way through the Tp (${Math.round(d.progress * 100)}%)`,
+          )}
         />
       ))}
     </span>
@@ -197,12 +202,12 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
                 // a bubble before it: the falling edge is the active one
                 <span
                   className={`cm-port cm-port-in cm-clk${c.props?.fallingEdge ? ' is-falling' : ''}`}
-                  aria-label={c.props?.fallingEdge ? 'CLK, ירידת שעון' : 'CLK'}
+                  aria-label={c.props?.fallingEdge ? tr('CLK, ירידת שעון', 'CLK, falling edge') : 'CLK'}
                 />
               ) : (
                 <span
                   className={`cm-port ${below ? 'cm-port-below' : 'cm-port-in'}${port === 'En' && enableActiveLow(c) ? ' is-low' : ''}`}
-                  aria-label={port === 'En' && enableActiveLow(c) ? 'En, פעיל ב-0' : undefined}
+                  aria-label={port === 'En' && enableActiveLow(c) ? tr('En, פעיל ב-0', 'En, active low') : undefined}
                 >
                   {port}
                 </span>
@@ -231,7 +236,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
             <button
               type="button"
               className={`cm-switch nodrag ${value === 1 ? 'is-on' : 'is-off'}`}
-              aria-label={`מתג ${c.id}, ערך ${value}`}
+              aria-label={tr(`מתג ${c.id}, ערך ${value}`, `Switch ${c.id}, value ${value}`)}
               onClick={() => flip(c.id)}
             >
               {value}
@@ -244,7 +249,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
             <span
               className={`cm-lamp lamp-${lamp === 'X' || lamp === undefined ? 'x' : lamp}`}
               role="img"
-              aria-label={`נורה ${c.id}: ${lamp ?? 'X'}`}
+              aria-label={tr(`נורה ${c.id}: ${lamp ?? 'X'}`, `Lamp ${c.id}: ${lamp ?? 'X'}`)}
             >
               {lamp ?? 'X'}
             </span>
@@ -252,7 +257,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
             <span
               className={`cm-clock v-${sig(level)}`}
               role="img"
-              aria-label={`שעון ${c.id}: ${level ?? 'X'}`}
+              aria-label={tr(`שעון ${c.id}: ${level ?? 'X'}`, `Clock ${c.id}: ${level ?? 'X'}`)}
             >
               <svg width="26" height="14" viewBox="0 0 26 14" aria-hidden="true">
                 <path d="M1 12 H7 V2 H13 V12 H19 V2 H25" fill="none" stroke="currentColor" />
@@ -262,7 +267,7 @@ export function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) 
           ) : (
             <>
               <span className="cm-label">
-                {c.type === 'BLOCK' ? (c.props?.block ?? 'בלוק') : (BOX_TITLE[c.type] ?? def.label)}
+                {c.type === 'BLOCK' ? (c.props?.block ?? tr('בלוק', 'Block')) : (BOX_TITLE[c.type] ?? labelOf(c.type))}
               </span>
               {state && <StoredValue type={c.type} state={state} />}
             </>

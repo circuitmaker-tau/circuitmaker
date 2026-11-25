@@ -10,6 +10,7 @@ import { minterms } from '../analysis/format';
 import { circuitFromFunction, describe, formFor } from '../analysis/fromFunction';
 import type { BuildMode } from '../analysis/fromFunction';
 import { useCircuitStore } from '../store/circuitStore';
+import { textDir, tr } from '../i18n/lang';
 
 const EXAMPLES = [
   "F = X0X1 + X1'X2",
@@ -18,12 +19,13 @@ const EXAMPLES = [
   'f = AB ⊕ CD',
 ];
 
-const MODES: { id: BuildMode; label: string }[] = [
-  { id: 'written', label: 'כמו שכתבתי' },
-  { id: 'sop', label: 'סכום מכפלות מינימלי' },
-  { id: 'pos', label: 'מכפלת סכומים מינימלית' },
-  { id: 'canonical', label: 'סכום מינטרמים' },
+const MODES: { id: BuildMode; he: string; en: string }[] = [
+  { id: 'written', he: 'כמו שכתבתי', en: 'As written' },
+  { id: 'sop', he: 'סכום מכפלות מינימלי', en: 'Minimal sum of products' },
+  { id: 'pos', he: 'מכפלת סכומים מינימלית', en: 'Minimal product of sums' },
+  { id: 'canonical', he: 'סכום מינטרמים', en: 'Sum of minterms' },
 ];
+const modeLabel = (m: (typeof MODES)[number]) => tr(m.he, m.en);
 
 const ones = (fn: ParsedFunction) => fn.table.flatMap((v, m) => (v === 1 ? [m] : []));
 const dontCares = (fn: ParsedFunction) => fn.table.flatMap((v, m) => (v === 'd' ? [m] : []));
@@ -48,12 +50,15 @@ export function FromExpression({ open, onClose }: { open: boolean; onClose: () =
   const build = () => {
     if (!fn) return;
     const circuit = circuitFromFunction(fn, effective);
-    const form = MODES.find((m) => m.id === effective)!.label;
+    const form = modeLabel(MODES.find((m) => m.id === effective)!);
     useCircuitStore
       .getState()
       .loadCircuit(
         circuit,
-        `נבנה מהביטוי ${text.trim()} (${form}). המתגים הם ${fn.vars.join(', ')}, ו-${circuit.components.find((c) => c.type === 'OUTPUT')!.id} היא הנורה. בלשונית ״טבלת אמת״ רואים את הפונקציה, ובלשונית ״ניתוח hazards״ את ה-hazards של המבנה שנבנה. Ctrl+Z מחזיר את המעגל הקודם.`,
+        tr(
+          `נבנה מהביטוי ${text.trim()} (${form}). המתגים הם ${fn.vars.join(', ')}, ו-${circuit.components.find((c) => c.type === 'OUTPUT')!.id} היא הנורה. בלשונית ״טבלת אמת״ רואים את הפונקציה, ובלשונית ״ניתוח hazards״ את ה-hazards של המבנה שנבנה. Ctrl+Z מחזיר את המעגל הקודם.`,
+          `Built from the expression ${text.trim()} (${form}). The switches are ${fn.vars.join(', ')}, and ${circuit.components.find((c) => c.type === 'OUTPUT')!.id} is the lamp. The "Truth table" tab shows the function, and "Hazard analysis" the hazards of the structure that was built. Ctrl+Z brings the previous circuit back.`,
+        ),
       );
     onClose();
   };
@@ -62,7 +67,7 @@ export function FromExpression({ open, onClose }: { open: boolean; onClose: () =
     <dialog
       ref={dialog}
       className="from-expression"
-      dir="rtl"
+      dir={textDir()}
       aria-labelledby="from-expression-title"
       onClose={onClose}
       onClick={(e) => e.target === dialog.current && onClose()}
@@ -74,9 +79,9 @@ export function FromExpression({ open, onClose }: { open: boolean; onClose: () =
           build();
         }}
       >
-        <h2 id="from-expression-title">מעגל מביטוי</h2>
+        <h2 id="from-expression-title">{tr('מעגל מביטוי', 'Circuit from an expression')}</h2>
         <label className="field">
-          <span>הפונקציה</span>
+          <span>{tr('הפונקציה', 'The function')}</span>
           <input
             type="text"
             dir="ltr"
@@ -88,8 +93,10 @@ export function FromExpression({ open, onClose }: { open: boolean; onClose: () =
           />
         </label>
         <p id="from-expression-help" className="hint">
-          כמו בקורס: X1&apos; הוא NOT, AB הוא AND, + הוא OR, ⊕ או ^ הוא XOR, ואפשר סוגריים. או רשימת
-          מינטרמים: Σ(3,4,5,7) + d(…), או מקסטרמים: Π(…).
+          {tr(
+            "כמו בקורס: X1' הוא NOT, AB הוא AND, + הוא OR, ⊕ או ^ הוא XOR, ואפשר סוגריים. או רשימת מינטרמים: Σ(3,4,5,7) + d(…), או מקסטרמים: Π(…).",
+            "As in the course: X1' is NOT, AB is AND, + is OR, ⊕ or ^ is XOR, and brackets are fine. Or a list of minterms: Σ(3,4,5,7) + d(…), or maxterms: Π(…).",
+          )}
         </p>
         <div className="from-examples">
           {EXAMPLES.map((ex) => (
@@ -100,7 +107,7 @@ export function FromExpression({ open, onClose }: { open: boolean; onClose: () =
         </div>
 
         <fieldset className="from-modes">
-          <legend>איך לבנות</legend>
+          <legend>{tr('איך לבנות', 'How to build')}</legend>
           {MODES.map((m) => (
             <label key={m.id} className="check">
               <input
@@ -110,7 +117,7 @@ export function FromExpression({ open, onClose }: { open: boolean; onClose: () =
                 disabled={m.id === 'written' && fn !== null && !fn.expr}
                 onChange={() => setMode(m.id)}
               />
-              <span>{m.label}</span>
+              <span>{modeLabel(m)}</span>
             </label>
           ))}
         </fieldset>
@@ -133,10 +140,10 @@ export function FromExpression({ open, onClose }: { open: boolean; onClose: () =
 
         <div className="from-actions">
           <button type="submit" className="primary" disabled={!fn}>
-            בניית המעגל
+            {tr('בניית המעגל', 'Build the circuit')}
           </button>
           <button type="button" onClick={onClose}>
-            ביטול
+            {tr('ביטול', 'Cancel')}
           </button>
         </div>
       </form>

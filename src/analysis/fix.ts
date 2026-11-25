@@ -7,6 +7,7 @@ import { createComponent, createWire, nextId } from '../model';
 import type { Circuit, Component } from '../model';
 import { variablesOf } from './func';
 import type { Cube, TwoLevel } from './func';
+import { tr } from '../i18n/lang';
 
 export type FixResult =
   | { ok: true; circuit: Circuit; added: string[] }
@@ -15,7 +16,10 @@ export type FixResult =
 export function addConsensus(circuit: Circuit, structure: TwoLevel, consensus: Cube): FixResult {
   const root = circuit.components.find((c) => c.id === structure.root)!;
   if (root.inputs >= 4) {
-    return { ok: false, error: `ל-${root.id} יש כבר 4 כניסות, ואי אפשר להוסיף לו מונח` };
+    return {
+      ok: false,
+      error: tr(`ל-${root.id} יש כבר 4 כניסות, ואי אפשר להוסיף לו מונח`, `${root.id} already has 4 inputs, so no term can be added to it`),
+    };
   }
   const vars = variablesOf(circuit);
   const c: Circuit = structuredClone(circuit);

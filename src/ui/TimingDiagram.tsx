@@ -23,6 +23,7 @@ import { ExercisePanel } from './ExercisePanel';
 import { PracticePanel } from './PracticePanel';
 import { SIGNAL_COLORS } from './signalColors';
 import { TruthTablePanel } from './TruthTablePanel';
+import { textDir, tr } from '../i18n/lang';
 
 const ROW_H = 30;
 const HIGH = 7;
@@ -157,14 +158,14 @@ export function TimingDiagram() {
     <section
       className={`timing${open ? '' : ' is-closed'}`}
       style={open ? { height: panelHeight } : undefined}
-      aria-label="דיאגרמת זמנים וניתוח"
+      aria-label={tr('דיאגרמת זמנים וניתוח', 'Timing diagram and analysis')}
     >
       {open && (
         <div
           className="timing-resize"
           role="separator"
           aria-orientation="horizontal"
-          aria-label="גובה דיאגרמת הזמנים"
+          aria-label={tr('גובה דיאגרמת הזמנים', 'Height of the timing diagram')}
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
             drag.current = { y: e.clientY, h: panelHeight };
@@ -187,14 +188,14 @@ export function TimingDiagram() {
         <div className="panel-tabs" role="tablist">
           {(
             [
-              ['timing', 'דיאגרמת זמנים'],
-              ['analysis', 'ניתוח hazards'],
-              ['truth', 'טבלת אמת'],
-              ['critical', 'נתיב קריטי'],
-              ['practice', 'תרגול'],
-              ['exercise', 'תרגול עצמי'],
+              ['timing', 'דיאגרמת זמנים', 'Timing diagram'],
+              ['analysis', 'ניתוח hazards', 'Hazard analysis'],
+              ['truth', 'טבלת אמת', 'Truth table'],
+              ['critical', 'נתיב קריטי', 'Critical path'],
+              ['practice', 'תרגול', 'Practice'],
+              ['exercise', 'תרגול עצמי', 'Self-practice'],
             ] as const
-          ).map(([id, label]) => (
+          ).map(([id, he, en]) => (
             <button
               key={id}
               type="button"
@@ -202,7 +203,7 @@ export function TimingDiagram() {
               aria-selected={open && tab === id}
               onClick={() => (open && tab === id ? setOpen(false) : setTab(id))}
             >
-              {label}
+              {tr(he, en)}
             </button>
           ))}
         </div>
@@ -216,29 +217,29 @@ export function TimingDiagram() {
             </span>
             {glitchCount > 0 && (
               <span className="timing-glitches">
-                {glitchCount === 1 ? 'ריצוד אחד' : `${glitchCount} ריצודים`}
+                {glitchCount === 1 ? tr('ריצוד אחד', 'one glitch') : tr(`${glitchCount} ריצודים`, `${glitchCount} glitches`)}
               </span>
             )}
             <span className="timing-tools">
-              <button type="button" onClick={() => setZoom(pxPerUnit * 1.5)} aria-label="הגדלה">
+              <button type="button" onClick={() => setZoom(pxPerUnit * 1.5)} aria-label={tr('הגדלה', 'Zoom in')}>
                 +
               </button>
-              <button type="button" onClick={() => setZoom(pxPerUnit / 1.5)} aria-label="הקטנה">
+              <button type="button" onClick={() => setZoom(pxPerUnit / 1.5)} aria-label={tr('הקטנה', 'Zoom out')}>
                 −
               </button>
               <button type="button" onClick={() => setZoom(null)} disabled={zoom === null}>
-                הכול
+                {tr('הכול', 'All')}
               </button>
               <button
                 type="button"
                 onClick={() => void exportTimingImage(circuit.name)}
-                title="שמירת הדיאגרמה כתמונה (PNG)"
+                title={tr('שמירת הדיאגרמה כתמונה (PNG)', 'Save the diagram as an image (PNG)')}
               >
-                תמונה
+                {tr('תמונה', 'Image')}
               </button>
               {cursor !== null && (
                 <button type="button" onClick={() => setCursor(null)}>
-                  ניקוי סמן
+                  {tr('ניקוי סמן', 'Clear cursor')}
                 </button>
               )}
             </span>
@@ -268,8 +269,11 @@ export function TimingDiagram() {
               );
             })}
             {rows.length === 0 && (
-              <p className="hint" dir="rtl">
-                אין אותות להצגה. בוחרים רכיב ומסמנים &quot;בדיאגרמת הזמנים&quot;.
+              <p className="hint" dir={textDir()}>
+                {tr(
+                  'אין אותות להצגה. בוחרים רכיב ומסמנים "בדיאגרמת הזמנים".',
+                  'No signals to show. Select a component and tick "In the timing diagram".',
+                )}
               </p>
             )}
           </div>
@@ -282,7 +286,7 @@ export function TimingDiagram() {
               onMouseLeave={() => setHover(null)}
               onClick={(e) => setCursor(timeFromEvent(e), e.shiftKey && cursor !== null)}
               role="img"
-              aria-label="צורות הגל של האותות לאורך הזמן"
+              aria-label={tr('צורות הגל של האותות לאורך הזמן', 'The waveforms of the signals over time')}
             >
               <g className="timing-axis">
                 {ticks.map((t) => (

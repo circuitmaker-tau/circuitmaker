@@ -9,6 +9,7 @@ import type { CriticalPath, CriticalResult } from '../analysis/critical';
 import type { Circuit } from '../model';
 import { useAnalysisStore } from '../store/analysisStore';
 import { useCircuitStore } from '../store/circuitStore';
+import { textDir, tr } from '../i18n/lang';
 
 /** Highlight colour of the critical path (0 and 1 are the racing paths of the hazard analysis). */
 const CRITICAL = 2;
@@ -54,26 +55,31 @@ export function CriticalPathPanel() {
   const clockBound = toStored.length > 0 ? toStored[0] : null;
 
   return (
-    <div className="critical" dir="rtl">
+    <div className="critical" dir={textDir()}>
       <div className="critical-summary">
         <p className="critical-total">
-          השהיית המעגל: <b dir="ltr">{time(worst.delay)}</b>
+          {tr('השהיית המעגל:', 'Circuit delay:')} <b dir="ltr">{time(worst.delay)}</b>
           <span className="critical-levels">
-            {worst.levels === 1 ? 'רמה אחת' : `${worst.levels} רמות`}
+            {worst.levels === 1 ? tr('רמה אחת', 'one level') : tr(`${worst.levels} רמות`, `${worst.levels} levels`)}
           </span>
         </p>
         <p className="analysis-func" dir="ltr">
           {chain(worst)}
         </p>
         <p className="hint">
-          זה הנתיב הארוך ביותר מכניסה ליציאה, והוא מסומן בכתום במעגל. כל רכיב נספר עם ההשהיה הגדולה מבין
-          tpLH ו-tpHL. עד שעובר הזמן הזה, היציאות עלולות עוד להשתנות.
+          {tr(
+            'זה הנתיב הארוך ביותר מכניסה ליציאה, והוא מסומן בכתום במעגל. כל רכיב נספר עם ההשהיה הגדולה מבין tpLH ו-tpHL. עד שעובר הזמן הזה, היציאות עלולות עוד להשתנות.',
+            'This is the longest path from an input to an output, marked in orange in the circuit. Every component counts with the larger of tpLH and tpHL. Until this time has passed, the outputs may still change.',
+          )}
         </p>
         {hasClock && clockBound && (
           <p className="hint">
-            בין שתי עליות שעון השינוי צריך להספיק להגיע מיציאת flip-flop לכניסה של flip-flop: הנתיב
-            הארוך ביותר כזה הוא <b dir="ltr">{time(clockBound.delay)}</b>, ולכן מחזור השעון צריך להיות
-            לפחות כזה.
+            {tr(
+              'בין שתי עליות שעון השינוי צריך להספיק להגיע מיציאת flip-flop לכניסה של flip-flop: הנתיב הארוך ביותר כזה הוא',
+              'Between two clock edges a change must get from a flip-flop output to a flip-flop input: the longest such path is',
+            )}{' '}
+            <b dir="ltr">{time(clockBound.delay)}</b>
+            {tr(', ולכן מחזור השעון צריך להיות לפחות כזה.', ', so the clock period must be at least that.')}
           </p>
         )}
       </div>
@@ -81,10 +87,10 @@ export function CriticalPathPanel() {
         <table className="truth-table critical-table">
           <thead>
             <tr>
-              <th>אל</th>
-              <th>השהיה</th>
-              <th>רמות</th>
-              <th>הנתיב</th>
+              <th>{tr('אל', 'To')}</th>
+              <th>{tr('השהיה', 'Delay')}</th>
+              <th>{tr('רמות', 'Levels')}</th>
+              <th>{tr('הנתיב', 'Path')}</th>
             </tr>
           </thead>
           <tbody>
@@ -100,7 +106,7 @@ export function CriticalPathPanel() {
                     setChosen(p.end);
                   }
                 }}
-                title="לחיצה מסמנת את הנתיב הזה במעגל"
+                title={tr('לחיצה מסמנת את הנתיב הזה במעגל', 'Click to mark this path in the circuit')}
               >
                 <td>
                   <bdi>{p.end}</bdi>

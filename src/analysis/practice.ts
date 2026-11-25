@@ -9,6 +9,7 @@ import { Simulator } from '../engine/simulator';
 import type { Transition } from '../engine/simulator';
 import type { Circuit } from '../model';
 import { delayToTicks } from '../model/time';
+import { tr } from '../i18n/lang';
 
 export interface PracticeRow {
   net: string;
@@ -56,7 +57,10 @@ export function cannotPractise(circuit: Circuit): string | null {
   const clock = circuit.components.some((c) => c.type === 'CLOCK');
   const scheduled = circuit.components.some((c) => c.type === 'INPUT' && (c.props?.schedule?.length ?? 0) > 0);
   if (!clock && !scheduled) {
-    return 'כדי לתרגל צריך שמשהו ישתנה בזמן: שעון, או מתג עם "שינויים מתוזמנים" (בפאנל המאפיינים, למשל 5:1).';
+    return tr(
+      'כדי לתרגל צריך שמשהו ישתנה בזמן: שעון, או מתג עם "שינויים מתוזמנים" (בפאנל המאפיינים, למשל 5:1).',
+      'Practice needs something that changes in time: a clock, or a switch with "Scheduled changes" (in the properties panel, e.g. 5:1).',
+    );
   }
   return null;
 }

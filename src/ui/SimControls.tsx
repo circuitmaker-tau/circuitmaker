@@ -3,6 +3,7 @@ import { delayToTicks } from '../model/time';
 import { SPEEDS, useSimStore } from '../store/simStore';
 import type { Speed } from '../store/simStore';
 import { useCircuitStore } from '../store/circuitStore';
+import { textDir, tr } from '../i18n/lang';
 
 const SPEED_LABEL: Record<Speed, string> = {
   0.25: '×0.25',
@@ -34,48 +35,51 @@ export function SimControls() {
   const time = sim ? (sim.now / 10).toFixed(1) : '0.0';
 
   return (
-    <div className="sim-controls" role="toolbar" aria-label="הרצת הסימולציה" dir="rtl">
+    <div className="sim-controls" role="toolbar" aria-label={tr('הרצת הסימולציה', 'Running the simulation')} dir={textDir()}>
       <span className="sim-time" aria-live="off">
         t = <bdi>{time}</bdi>
         {unit !== 'none' && ` ${unit}`}
       </span>
       <span className="sim-state">
         {playing
-          ? 'בתנועה'
+          ? tr('בתנועה', 'running')
           : stoppedAt !== null && sim?.now === stoppedAt
-            ? 'נעצר בנקודת העצירה'
+            ? tr('נעצר בנקודת העצירה', 'stopped at the breakpoint')
             : quiet
-              ? 'במנוחה'
-              : 'בהשהיה'}
+              ? tr('במנוחה', 'at rest')
+              : tr('בהשהיה', 'paused')}
       </span>
       {playing ? (
         <button type="button" onClick={pause}>
-          עצירה
+          {tr('עצירה', 'Pause')}
         </button>
       ) : (
         <button type="button" onClick={play} disabled={idle}>
-          {sim && sim.now > 0 ? 'המשך' : 'הפעלה'}
+          {sim && sim.now > 0 ? tr('המשך', 'Resume') : tr('הפעלה', 'Play')}
         </button>
       )}
       <button type="button" onClick={step} disabled={idle}>
-        צעד
+        {tr('צעד', 'Step')}
       </button>
       <button
         type="button"
         onClick={skipToEnd}
         disabled={quiet}
-        title="עד שכל השינויים שבדרך מגיעים ליעדם"
+        title={tr('עד שכל השינויים שבדרך מגיעים ליעדם', 'Until every change on its way has arrived')}
       >
-        דלג לסוף
+        {tr('דלג לסוף', 'Skip to end')}
       </button>
       {period > 0 && (
-        <button type="button" onClick={cycle} title="מחזור שעון אחד קדימה">
-          מחזור
+        <button type="button" onClick={cycle} title={tr('מחזור שעון אחד קדימה', 'One clock cycle ahead')}>
+          {tr('מחזור', 'Cycle')}
         </button>
       )}
-      <span className="sim-breaks" role="group" aria-label="נקודות עצירה">
-        <label className="sim-stop-at" title="ההרצה (וגם ״דלג לסוף״) נעצרת בזמן הזה">
-          עצירה ב-t =
+      <span className="sim-breaks" role="group" aria-label={tr('נקודות עצירה', 'Breakpoints')}>
+        <label
+          className="sim-stop-at"
+          title={tr('ההרצה (וגם ״דלג לסוף״) נעצרת בזמן הזה', 'Running (and "Skip to end") stops at this time')}
+        >
+          {tr('עצירה ב-t =', 'Stop at t =')}
           <input
             type="number"
             inputMode="decimal"
@@ -94,18 +98,18 @@ export function SimControls() {
           />
         </label>
         {period > 0 && (
-          <label className="sim-stop-cycle" title="ההרצה נעצרת בסוף כל מחזור שעון">
+          <label className="sim-stop-cycle" title={tr('ההרצה נעצרת בסוף כל מחזור שעון', 'Running stops at the end of every clock cycle')}>
             <input
               type="checkbox"
               checked={stopEachCycle}
               onChange={(e) => setStopEachCycle(e.target.checked)}
             />
-            בסוף כל מחזור
+            {tr('בסוף כל מחזור', 'At the end of every cycle')}
           </label>
         )}
       </span>
       <label className="sim-speed">
-        מהירות
+        {tr('מהירות', 'Speed')}
         <select value={speed} onChange={(e) => setSpeed(Number(e.target.value) as Speed)}>
           {SPEEDS.map((s) => (
             <option key={s} value={s}>
@@ -117,9 +121,9 @@ export function SimControls() {
       <button
         type="button"
         onClick={() => reset(useCircuitStore.getState().circuit)}
-        title="חזרה ל-t = 0 עם הערכים הנוכחיים של המתגים"
+        title={tr('חזרה ל-t = 0 עם הערכים הנוכחיים של המתגים', 'Back to t = 0 with the switches as they are now')}
       >
-        איפוס זמן
+        {tr('איפוס זמן', 'Reset time')}
       </button>
     </div>
   );
