@@ -2,18 +2,21 @@ import { useEffect, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useAutosave } from './persistence/useAutosave';
 import { Editor } from './ui/Editor';
+import { ExpressionsWorld } from './ui/ExpressionsWorld';
 import { useFirstVisitTour, useTourStore } from './store/tourStore';
 import { Help } from './ui/Help';
 import { Home } from './ui/Home';
 import { Toolbar } from './ui/Toolbar';
 import { Tour } from './ui/Tour';
+import { WorldNav } from './ui/WorldNav';
 
-type View = 'home' | 'editor' | 'help';
+type View = 'home' | 'editor' | 'expressions' | 'help';
 
-/** Hash routes (#/, #/editor, #/help) work on GitHub Pages without any server rewrite. */
+/** Hash routes (#/, #/editor, #/expressions, #/help) work on GitHub Pages without any server rewrite. */
 const viewFromHash = (): View => {
   const h = window.location.hash;
   if (h.startsWith('#/editor')) return 'editor';
+  if (h.startsWith('#/expressions')) return 'expressions';
   if (h.startsWith('#/help')) return 'help';
   return 'home';
 };
@@ -48,6 +51,9 @@ export default function App() {
       />
     );
   }
+  if (view === 'expressions') {
+    return <ExpressionsWorld onHome={() => go('home')} onHelp={() => go('help')} />;
+  }
   return <EditorView onHome={() => go('home')} onHelp={() => go('help')} />;
 }
 
@@ -57,6 +63,7 @@ function EditorView({ onHome, onHelp }: { onHome: () => void; onHelp: () => void
   return (
     <div className="app">
       <Toolbar onHome={onHome} onHelp={onHelp} />
+      <WorldNav current="editor" />
       <ReactFlowProvider>
         <Editor />
       </ReactFlowProvider>

@@ -63,6 +63,9 @@ export function Home({ onOpenEditor, onHelp }: HomeProps) {
           CircuitMaker
         </span>
         <nav className="home-links">
+          <a href="#/expressions" className="quiet-link">
+            ביטויים בוליאניים
+          </a>
           <button type="button" className="quiet-link" onClick={onHelp}>
             מדריך
           </button>
