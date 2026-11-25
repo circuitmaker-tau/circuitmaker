@@ -183,3 +183,51 @@ describe('analysis demo', () => {
     expect(useSimStore.getState().playing).toBe(false);
   });
 });
+
+describe('breakpoints', () => {
+  it('playing stops exactly at the set time, with the changes of that moment done', () => {
+    const st = useSimStore.getState();
+    st.setStopAt(20); // t = 2: the glitch of TC-H1
+    st.flip('S0');
+    st.advance(MS_PER_TYPICAL_TP * 10); // far beyond
+    const s = useSimStore.getState();
+    expect(s.sim!.now).toBe(20);
+    expect(s.playing).toBe(false);
+    expect(s.stoppedAt).toBe(20);
+    expect(s.sim!.value('o1:out')).toBe(0);
+    // going on runs to the end, past the breakpoint
+    s.play();
+    useSimStore.getState().advance(MS_PER_TYPICAL_TP * 10);
+    expect(useSimStore.getState().sim!.value('o1:out')).toBe(1);
+    useSimStore.getState().setStopAt(null);
+  });
+
+  it('"skip to the end" also stops at a breakpoint that comes first', () => {
+    const st = useSimStore.getState();
+    st.setStopAt(20);
+    st.flip('S0');
+    st.skipToEnd();
+    expect(useSimStore.getState().sim!.now).toBe(20);
+    expect(useSimStore.getState().stoppedAt).toBe(20);
+    useSimStore.getState().skipToEnd(); // the breakpoint is behind now: to the end
+    expect(useSimStore.getState().sim!.value('o1:out')).toBe(1);
+    expect(useSimStore.getState().stoppedAt).toBe(null);
+    useSimStore.getState().setStopAt(null);
+  });
+
+  it('can stop at the end of every clock period', () => {
+    useCircuitStore.getState().loadCircuit(structuredClone(downCounter));
+    useSimStore.getState().reset(useCircuitStore.getState().circuit);
+    const { period } = useSimStore.getState();
+    expect(period > 0).toBe(true);
+    useSimStore.getState().setStopEachCycle(true);
+    useSimStore.getState().play();
+    for (let k = 1; k <= 3; k++) {
+      useSimStore.getState().play();
+      useSimStore.getState().advance(MS_PER_TYPICAL_TP * 1000);
+      expect(useSimStore.getState().sim!.now).toBe(k * period);
+      expect(useSimStore.getState().playing).toBe(false);
+    }
+    useSimStore.getState().setStopEachCycle(false);
+  });
+});

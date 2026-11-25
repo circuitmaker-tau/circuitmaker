@@ -123,6 +123,8 @@ function decoder(n: number): Expansion {
 
 /** The parts of a block, or null when it is already as small as it gets. */
 export function expansionOf(c: Component, connected: ReadonlySet<string>): Expansion | null {
+  // an added or active-low En has no parts yet: the block stays whole
+  if (c.props?.enable || c.props?.enableLow) return null;
   switch (c.type) {
     case 'HALF_ADDER':
       return {
@@ -191,12 +193,14 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
       };
     case 'REGISTER4': {
       const init = c.props?.init;
+      // the parts keep the edge the register works on
+      const falling = c.props?.fallingEdge ? { fallingEdge: true } : {};
       return {
         parts: seq('', 4).map((_, i) => ({
           key: `d${i}`,
           type: 'D_FF' as ComponentType,
           at: [0, 110 * i] as [number, number],
-          props: init !== undefined ? { init } : undefined,
+          props: init !== undefined || c.props?.fallingEdge ? { ...(init !== undefined ? { init } : {}), ...falling } : undefined,
         })),
         wires: [],
         inputs: { ...Object.fromEntries(seq('D', 4).map((p, i) => [p, [`d${i}.D`]])), CLK: seq('d', 4).map((d) => `${d}.CLK`) },
@@ -207,7 +211,11 @@ export function expansionOf(c: Component, connected: ReadonlySet<string>): Expan
     case 'COUNTER4': {
       const init = c.props?.init;
       const reset = connected.has('RESET');
-      const ffProps: ComponentProps = { ...(init !== undefined ? { init } : {}), ...(reset ? { async: true } : {}) };
+      const ffProps: ComponentProps = {
+        ...(init !== undefined ? { init } : {}),
+        ...(reset ? { async: true } : {}),
+        ...(c.props?.fallingEdge ? { fallingEdge: true } : {}),
+      };
       const parts: Part[] = [
         { key: 'one', type: 'CONST1', at: [-120, 0] },
         ...seq('', 4).map((_, i) => ({ key: `t${i}`, type: 'T_FF' as ComponentType, at: [0, 120 * i] as [number, number], props: ffProps })),

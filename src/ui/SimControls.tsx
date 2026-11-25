@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { delayToTicks } from '../model/time';
 import { SPEEDS, useSimStore } from '../store/simStore';
 import type { Speed } from '../store/simStore';
 import { useCircuitStore } from '../store/circuitStore';
@@ -18,6 +20,13 @@ export function SimControls() {
   const period = useSimStore((s) => s.period);
   const { play, pause, step, skipToEnd, cycle, setSpeed, reset } = useSimStore.getState();
   const unit = useCircuitStore((s) => s.circuit.timeUnit);
+  const stopAt = useSimStore((s) => s.stopAt);
+  const stopEachCycle = useSimStore((s) => s.stopEachCycle);
+  const stoppedAt = useSimStore((s) => s.stoppedAt);
+  const { setStopAt, setStopEachCycle } = useSimStore.getState();
+  // what is being typed (shown as is while the field has focus), else the breakpoint itself
+  const [draft, setDraft] = useState<string | null>(null);
+  const typed = draft ?? (stopAt === null ? '' : String(stopAt / 10));
 
   // idle: nothing will ever happen; quiet: only clock ticks are left
   const idle = !sim || sim.idle;
@@ -30,7 +39,15 @@ export function SimControls() {
         t = <bdi>{time}</bdi>
         {unit !== 'none' && ` ${unit}`}
       </span>
-      <span className="sim-state">{playing ? 'בתנועה' : quiet ? 'במנוחה' : 'בהשהיה'}</span>
+      <span className="sim-state">
+        {playing
+          ? 'בתנועה'
+          : stoppedAt !== null && sim?.now === stoppedAt
+            ? 'נעצר בנקודת העצירה'
+            : quiet
+              ? 'במנוחה'
+              : 'בהשהיה'}
+      </span>
       {playing ? (
         <button type="button" onClick={pause}>
           עצירה
@@ -56,6 +73,37 @@ export function SimControls() {
           מחזור
         </button>
       )}
+      <span className="sim-breaks" role="group" aria-label="נקודות עצירה">
+        <label className="sim-stop-at" title="ההרצה (וגם ״דלג לסוף״) נעצרת בזמן הזה">
+          עצירה ב-t =
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step={0.1}
+            value={typed}
+            placeholder="—"
+            dir="ltr"
+            onBlur={() => setDraft(null)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              const t = Number(e.target.value);
+              if (e.target.value === '') setStopAt(null);
+              else if (Number.isFinite(t) && t > 0) setStopAt(delayToTicks(t));
+            }}
+          />
+        </label>
+        {period > 0 && (
+          <label className="sim-stop-cycle" title="ההרצה נעצרת בסוף כל מחזור שעון">
+            <input
+              type="checkbox"
+              checked={stopEachCycle}
+              onChange={(e) => setStopEachCycle(e.target.checked)}
+            />
+            בסוף כל מחזור
+          </label>
+        )}
+      </span>
       <label className="sim-speed">
         מהירות
         <select value={speed} onChange={(e) => setSpeed(Number(e.target.value) as Speed)}>

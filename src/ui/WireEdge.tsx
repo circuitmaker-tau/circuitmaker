@@ -6,12 +6,12 @@ import { useSimStore } from '../store/simStore';
 
 /**
  * A wire reads its own value from the simulation, so during playback only the
- * wires whose value or in-flight changes moved are redrawn.
+ * wires whose value changed are redrawn.
  *
- * `fronts` are new values on their way through the delay of the component that
- * drives the wire: each is drawn from the source end up to its progress (0 to
- * 1), so a change is seen travelling along the wire during Tp (work plan,
- * animation).
+ * A wire passes its value on at once: the delay happens inside the component
+ * that drives it, so a change on its way through Tp is drawn in that component
+ * (ComponentNode, `DelayBar`), and the wire changes colour only when the new
+ * value comes out (supervisor's review, 25.11).
  */
 export type WireEdgeData = { d: string; net: string };
 export type WireFlowEdge = Edge<WireEdgeData, 'wire'>;
@@ -28,21 +28,6 @@ export function WireEdge({ id, data }: EdgeProps<WireFlowEdge>) {
     <>
       {path !== undefined && <path d={d} className={`cm-path on-path-${path}`} />}
       <BaseEdge id={id} path={d} className={`cm-wire ${valueClass(value)}`} interactionWidth={14} />
-      <Fronts d={d} net={net} />
     </>
   );
-}
-
-/** Separate from the wire itself, so a moving front redraws only these paths. */
-function Fronts({ d, net }: { d: string; net: string }) {
-  const fronts = useSimStore((s) => s.fronts.get(net));
-  return fronts?.map((f, i) => (
-    <path
-      key={i}
-      d={d}
-      pathLength={1}
-      strokeDasharray={`${f.progress} 2`}
-      className={`cm-wire cm-front ${valueClass(f.value)}`}
-    />
-  ));
 }

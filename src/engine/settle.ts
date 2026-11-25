@@ -15,7 +15,7 @@ import type { Circuit } from '../model';
 import { counterReset, evalBlock, flipFlopAsync, latchStep, stateOutputs } from './behavior';
 import { evalGate } from './logic';
 import type { GateType, Logic } from './logic';
-import { buildNetlist, netKey } from './netlist';
+import { buildNetlist, deviceInputs, netKey, withoutAddedEn } from './netlist';
 import type { Device } from './netlist';
 
 export { netKey } from './netlist';
@@ -29,11 +29,17 @@ export interface SettledValues {
   states: Map<string, Logic[]>;
 }
 
-/** Outputs of a gate or a combinational block for the given input values. */
+/**
+ * Outputs of a gate or a combinational block for the given input values (an
+ * active-low En already inverted, see deviceInputs). With an added En, the
+ * outputs are 0 while En = 0, and X where they would be 1 while En is unknown.
+ */
 export function combinational(d: Device, ins: Logic[]): Logic[] {
-  return d.kind === 'gate'
-    ? [evalGate(d.type as GateType, ins)]
-    : evalBlock(d.type, ins, d.outputs.length);
+  if (d.kind === 'gate') return [evalGate(d.type as GateType, ins)];
+  const out = evalBlock(d.type, withoutAddedEn(d, ins), d.outputs.length);
+  if (!d.enAdded) return out;
+  const en = ins[d.en];
+  return out.map((v) => (en === 1 ? v : en === 0 || v === 0 ? 0 : 'X'));
 }
 
 /** The state a flip-flop's CLR' and PRE' force right now, or null. */
@@ -75,7 +81,7 @@ export function settle(circuit: Circuit): SettledValues {
       }
     };
     for (const d of devices) {
-      const ins = d.inputs.map(read);
+      const ins = deviceInputs(d, d.inputs.map(read));
       if (d.kind === 'gate' || d.kind === 'block') {
         combinational(d, ins).forEach((v, i) => set(d.outputs[i], v));
       } else if (d.kind === 'latch') {

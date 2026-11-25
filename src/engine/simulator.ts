@@ -19,7 +19,8 @@
  *       components are evaluated. More than 1000 rounds at one tick (a
  *       zero-delay loop) stops the run and is reported as an oscillation.
  * - E4  flip-flops, registers and counters change on a rising clock edge
- *       (0 -> 1) and sample their inputs as they were just before the edge
+ *       (0 -> 1), or on a falling one (1 -> 0) when set so (a bubble on CLK),
+ *       and sample their inputs as they were just before the edge
  *       (exam 2026B, 2D: "the sampling is always just before the clk change").
  *       A clock going 0 -> X or X -> 1 is not a defined edge, so Q becomes X.
  * - E6  a clock starts at its start level and toggles every half period.
@@ -34,7 +35,7 @@ import type { Circuit } from '../model';
 import { counterReset, edgeStep, flipFlopAsync, latchStep, stateOutputs } from './behavior';
 import type { Logic } from './logic';
 import { delayToTicks } from '../model/time';
-import { buildNetlist, delayFor, netKey } from './netlist';
+import { buildNetlist, delayFor, deviceInputs, gateState, netKey, withoutAddedEn } from './netlist';
 import type { Clock, Device } from './netlist';
 import { combinational, settle } from './settle';
 
@@ -76,7 +77,7 @@ interface SimEvent {
   cancelled?: boolean;
 }
 
-/** A new value on its way through a component's delay (shown travelling along the wire). */
+/** A new value on its way through a component's delay (drawn inside that component). */
 export interface InFlight {
   /** Tick at which the delay started. */
   from: number;
@@ -178,7 +179,7 @@ export class Simulator {
     }
     for (const d of netlist.devices) {
       d.state = start.states.get(d.id) ?? d.state;
-      if (d.kind === 'latch') d.last = d.inputs.map((n) => this.value(n));
+      if (d.kind === 'latch') d.last = deviceInputs(d, d.inputs.map((n) => this.value(n)));
     }
     for (const c of netlist.clocks) {
       this.push(c.half, c.net, c.start === 1 ? 0 : 1, { clock: c, cause: c.half });
@@ -390,7 +391,7 @@ export class Simulator {
   }
 
   private evaluate(d: Device, t: number, before: (net: string) => Logic, changed: Set<string>) {
-    const ins = d.inputs.map((n) => this.value(n));
+    const ins = deviceInputs(d, d.inputs.map((n) => this.value(n)));
     // the newest outside change among the inputs that just changed
     const cause = Math.max(
       ...d.inputs.filter((n) => changed.has(n)).map((n) => this.causeOf.get(n)!),
@@ -414,13 +415,17 @@ export class Simulator {
     const free = (k: number) => k < 0 || before(d.inputs[k]) === 1;
     const clk = d.inputs[d.clock];
     if (clk && changed.has(clk)) {
-      const from = before(clk);
-      const to = this.value(clk);
+      // a falling-edge device sees the clock inverted: 1 -> 0 is its active edge
+      const flip = (v: Logic): Logic => (d.falling ? (v === 'X' ? 'X' : v === 1 ? 0 : 1) : v);
+      const from = flip(before(clk));
+      const to = flip(this.value(clk));
       if (from === 0 && to === 1) {
         if ((d.reset < 0 || before(d.inputs[d.reset]) === 0) && free(d.clr) && free(d.pre)) {
-          const r = edgeStep(d.type, d.inputs.map(before), d.state);
+          const old = deviceInputs(d, d.inputs.map(before));
+          const r = edgeStep(d.type, withoutAddedEn(d, old), d.state);
           if (r.warning) this.warnings.push({ time: t, component: d.id, message: r.warning });
-          next = r.state;
+          // an added En: hold while it is 0 (register: no load, counter: no count)
+          next = gateState(d, old, r.state);
         }
       } else if ((from === 0 && to === 'X') || (from === 'X' && to === 1)) {
         next = d.state.map(() => 'X' as const);

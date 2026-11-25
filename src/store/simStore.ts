@@ -90,6 +90,17 @@ export interface SimState {
   warned: number;
   /** Ticks in one period of the first clock, or 0 when the circuit has no clock. */
   period: number;
+  /**
+   * Breakpoints (supervisor's review, 25.11): playing (and "skip to the end")
+   * stops at this tick, and, when set, at the end of every clock period, so a
+   * moment such as the end of a cycle can be frozen and looked at.
+   */
+  stopAt: number | null;
+  stopEachCycle: boolean;
+  /** The breakpoint where playing stopped last, shown next to the controls. */
+  stoppedAt: number | null;
+  setStopAt: (tick: number | null) => void;
+  setStopEachCycle: (on: boolean) => void;
 
   reset: (circuit: Circuit) => void;
   /** A change to make right after the next reset, then play (the analysis demo). */
@@ -115,6 +126,17 @@ const rateFor = (circuit: Circuit, speed: Speed) =>
   (typicalTpTicks(circuit) * speed) / MS_PER_TYPICAL_TP;
 
 let pendingDemo: { net: string; value: 0 | 1; at: number } | null = null;
+
+/** The first breakpoint after `now`, or null: the set time, or the end of the next clock period. */
+export function nextBreakpoint(
+  now: number,
+  b: { stopAt: number | null; stopEachCycle: boolean; period: number },
+): number | null {
+  const at = b.stopAt !== null && b.stopAt > now ? b.stopAt : null;
+  const cycle = b.stopEachCycle && b.period > 0 ? (Math.floor(now / b.period) + 1) * b.period : null;
+  if (at === null) return cycle;
+  return cycle === null ? at : Math.min(at, cycle);
+}
 
 export const useSimStore = create<SimState>()((set, get) => {
   const initialSpeed = loadPrefs().speed;
@@ -148,6 +170,12 @@ export const useSimStore = create<SimState>()((set, get) => {
     carry: 0,
     warned: 0,
     period: 0,
+    stopAt: null,
+    stopEachCycle: false,
+    stoppedAt: null,
+
+    setStopAt: (tick) => set({ stopAt: tick !== null && tick > 0 ? tick : null }),
+    setStopEachCycle: (on) => set({ stopEachCycle: on }),
 
     prepareDemo: (change) => {
       pendingDemo = change;
@@ -168,6 +196,7 @@ export const useSimStore = create<SimState>()((set, get) => {
           rate: rateFor(circuit, s.speed),
           version: s.version + 1,
           fronts: new Map(),
+          stoppedAt: null,
         };
       }),
 
@@ -182,7 +211,7 @@ export const useSimStore = create<SimState>()((set, get) => {
       circuit.updateComponent(inputId, { props: { value: next } }); // the saved circuit keeps it
       if (!sim) return;
       sim.setNet(`${inputId}:out`, next);
-      set({ playing: true, carry: 0 });
+      set({ playing: true, carry: 0, stoppedAt: null });
       bump();
     },
 
@@ -194,6 +223,15 @@ export const useSimStore = create<SimState>()((set, get) => {
       const ticks = Math.floor(total);
       set({ carry: total - ticks });
       if (ticks === 0) return;
+      const stop = nextBreakpoint(sim.now, get());
+      if (stop !== null && sim.now + ticks >= stop) {
+        // freeze exactly at the breakpoint, with every change at that moment done
+        sim.runUntil(stop);
+        report(sim);
+        set({ playing: false, carry: 0, stoppedAt: stop });
+        bump();
+        return;
+      }
       sim.runUntil(sim.now + ticks);
       report(sim);
       if (sim.idle) {
@@ -204,7 +242,7 @@ export const useSimStore = create<SimState>()((set, get) => {
 
     play: () => {
       const { sim } = get();
-      if (sim && !sim.idle) set({ playing: true });
+      if (sim && !sim.idle) set({ playing: true, stoppedAt: null });
     },
 
     pause: () => set({ playing: false }),
@@ -221,8 +259,15 @@ export const useSimStore = create<SimState>()((set, get) => {
     skipToEnd: () => {
       const { sim } = get();
       if (!sim) return;
-      set({ playing: false });
-      sim.runToEnd();
+      set({ playing: false, stoppedAt: null });
+      // up to the end, or to the next breakpoint if it comes first
+      const stop = nextBreakpoint(sim.now, get());
+      sim.runToEnd(stop ?? undefined);
+      if (stop !== null && !sim.quiet) {
+        // something is still on its way after the breakpoint: freeze there
+        sim.runUntil(stop);
+        set({ stoppedAt: stop });
+      }
       report(sim);
       bump();
     },

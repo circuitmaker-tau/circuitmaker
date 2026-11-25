@@ -507,6 +507,32 @@ a {
   color: var(--muted);
 }
 
+.sim-breaks {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.sim-stop-at,
+.sim-stop-cycle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.sim-stop-at input {
+  width: 4.5em;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
 .sim-speed select {
   font: inherit;
   color: var(--fg);
@@ -561,6 +587,33 @@ button:disabled:hover {
   border-bottom: 6px solid transparent;
   border-left: 8px solid var(--stroke);
   left: 4px;
+}
+
+/* active-low En: the bubble of the course symbols, at the edge of the box */
+.cm-port.is-low::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translateY(-50%);
+  border: 1.2px solid var(--stroke);
+  border-radius: 50%;
+  background: var(--bg);
+}
+
+/* falling-edge clock input: the course's bubble just outside the triangle */
+.cm-clk.is-falling::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: -4px;
+  width: 7px;
+  height: 7px;
+  border: 1.2px solid var(--stroke);
+  border-radius: 50%;
+  background: var(--bg);
 }
 
 .cm-clock {
@@ -784,24 +837,24 @@ button:disabled:hover {
   background: var(--accent-soft);
 }
 
-/* a change travelling along a wire during the driving component's Tp */
-.cm-front {
-  fill: none;
+/* a new value inside a component's Tp: the bar fills, then the output changes */
+.cm-delay {
+  position: absolute;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   pointer-events: none;
-  stroke-width: 2.6;
-  stroke-linecap: butt;
+  z-index: 2;
 }
 
-.cm-front.sig-1 {
-  stroke: var(--sig-1);
-}
-
-.cm-front.sig-0 {
-  stroke: var(--sig-0);
-}
-
-.cm-front.sig-x {
-  stroke: var(--sig-x);
+.cm-delay-fill {
+  display: block;
+  height: 4px;
+  min-width: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: 0 0 0 1px var(--bg);
 }
 
 /* ---------------------------------------------------------------- phones */
