@@ -49,3 +49,15 @@ test('in English: an example explains itself in English, and a self-practice que
   await page.getByRole('button', { name: 'עברית', exact: true }).click();
   await expect(title).toHaveText(/[֐-׿]/);
 });
+
+test('in English: the guide, with every section of its contents', async ({ page }) => {
+  await page.goto('./?lang=en#/help');
+  await expect(page.locator('.help h1')).toHaveText('User guide');
+  const links = page.locator('.help-toc a');
+  await expect(links).toHaveCount(19);
+  for (const link of await links.all()) {
+    const id = (await link.getAttribute('href'))!.split('/').pop()!;
+    await expect(page.locator(`section#${id} h2`)).toHaveText(await link.innerText());
+  }
+  await expect(page.locator('.help-body')).not.toHaveText(/[֐-׿]/);
+});
