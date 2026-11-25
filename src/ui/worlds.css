@@ -815,3 +815,8 @@
   inset-inline-end: 0;
   background: var(--panel);
 }
+
+/* formulas are left to right and sit at the start of the line: the right in Hebrew, the left in English */
+html[lang='en'] :is(.kmap-question, .kmap-expression, .expr-form .analysis-func, .fsm-given .analysis-func, .pla-formulas .analysis-func, .truth-forms .analysis-func, .from-preview .analysis-func) {
+  text-align: left;
+}
